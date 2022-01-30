@@ -28,10 +28,10 @@ int main(){
   max31855_setup(&thermo);
 
   // ======= Set up phase constrol =======
-  PHASECONTROL_CONFIG pump_config = {.trigger        = RISING,
-				     .zero_cross_pin = 15,
-				     .out_pin        = LED_PIN,
-				     .zero_cross_delay = 1620};
+  PHASECONTROL_CONFIG pump_config = {.trigger         = RISING,
+				     .zerocross_pin   = 15,
+				     .out_pin         = LED_PIN,
+				     .zerocross_delay = 100};//1620};
   phasecontrol_setup(&pump_config);
   
   // ========== Set up the UART ==========
@@ -44,8 +44,7 @@ int main(){
   
   uint8_t msg_buf[4];
   uint8_t duty_cycle = 0;
-  int dir = 1;
-  phasecontrol_set_duty_cycle(50);
+  int dir = 10;
   while(1){
     /*
     if(uart_data_in_rx(&pi_uart)){
@@ -61,16 +60,16 @@ int main(){
     }
     */
     
-    sleep_ms(10);
-    /*
+    sleep_ms(500);
+    
     phasecontrol_set_duty_cycle(duty_cycle);
     duty_cycle += dir;
     if (duty_cycle == 100){
-      dir = -1;
+      dir = -10;
     }
     else if (duty_cycle == 0){
-      dir = 1;
-      }*/
+      dir = 10;
+      }
     //gpio_put(LED_PIN, phasecontrol_is_ac_hot());
   }
 }
