@@ -38,20 +38,19 @@ static uint64_t prev_zerocross_time = 0;
 
 static uint16_t timeout_us = 0;
 const uint16_t timeouts_us[128] =
-  {0, 531, 753, 924, 1068, 1196, 1313, 1421, 1521, 1616,
-   1707, 1793, 1877, 1957, 2035, 2110, 2183, 2255, 2324,
-   2393, 2460, 2525, 2590, 2654, 2716, 2778, 2839, 2899,
-   2958, 3017, 3075, 3133, 3190, 3246, 3303, 3358, 3414,
-   3469, 3524, 3578, 3633, 3687, 3740, 3794, 3848, 3901,
-   3954, 4007, 4061, 4114, 4167, 4220, 4273, 4326, 4379,
-   4432, 4486, 4539, 4593, 4647, 4701, 4755, 4810, 4864,
-   4919, 4975, 5031, 5087, 5144, 5201, 5258, 5316, 5375,
-   5435, 5495, 5556, 5617, 5680, 5743, 5808, 5874, 5941,
-   6009, 6079, 6150, 6223, 6299, 6376, 6457, 6540, 6626,
-   6717, 6812, 6913, 7020, 7137, 7265, 7410, 7581, 7802,
-   8333, 8333, 8333, 8333, 8333, 8333, 8333, 8333, 8333,
-   8333, 8333, 8333, 8333, 8333, 8333, 8333, 8333, 8333,
-   8333, 8333, 8333, 8333, 8333, 8333, 8333, 8333};
+  {0   , 471 , 668 , 819 , 947 , 1060, 1162, 1257, 1346, 1430,
+   1509, 1585, 1658, 1728, 1795, 1861, 1925, 1987, 2048, 2107,
+   2165, 2222, 2277, 2332, 2386, 2439, 2491, 2542, 2593, 2643,
+   2693, 2741, 2790, 2838, 2885, 2932, 2979, 3025, 3071, 3116,
+   3161, 3206, 3250, 3295, 3339, 3382, 3426, 3469, 3513, 3556,
+   3598, 3641, 3684, 3726, 3768, 3811, 3853, 3895, 3937, 3979,
+   4020, 4062, 4104, 4146, 4188, 4229, 4271, 4313, 4355, 4397,
+   4439, 4481, 4523, 4565, 4607, 4650, 4692, 4735, 4778, 4821,
+   4864, 4907, 4951, 4995, 5039, 5083, 5127, 5172, 5217, 5263,
+   5309, 5355, 5401, 5448, 5496, 5544, 5592, 5641, 5690, 5740,
+   5791, 5842, 5895, 5947, 6001, 6056, 6112, 6168, 6226, 6286,
+   6346, 6408, 6472, 6538, 6606, 6676, 6749, 6824, 6904, 6987,
+   7076, 7171, 7274, 7387, 7515, 7666, 7862, 8333};
 
 static int64_t stop(int32_t alarm_num, void * data){
   gpio_put(out_pin, 0);
@@ -80,19 +79,9 @@ static void switch_scheduler(uint gpio, uint32_t events){
 /**
  * The main loop running on core1. After getting the configuration values from
  * core0, it sets up the pins and the zerocross interrupt and enters an infinite
- * loop. This loop check for a new duty cycle and data requests from core0 and 
- * schedules switching times if a zerocross was detected.
+ * loop. This loop check for a new duty cycle and data requests from core0.
  */
-static void phasecontrol_loop() {
-  // Get packed config values from core 0
-  //uint32_t config_vals = multicore_fifo_pop_blocking();
-  //out_pin = config_vals & 255;
-  //zerocross_pin = (config_vals>>8) & 255;
-  //trigger = (config_vals>>16) & 255;
-
-  // Get zerocross time from core 0
-  //zerocross_delay = multicore_fifo_pop_blocking();
-  
+static void phasecontrol_loop() {  
   // Setup SSR output pin
   gpio_init(out_pin);
   gpio_set_dir(out_pin, GPIO_OUT);
@@ -124,7 +113,6 @@ static void phasecontrol_loop() {
 
 
 
-
 /* ===================================================================
  * ==================== FUNCTIONS FOR CORE 0 =========================
  * ===================================================================*/
@@ -139,19 +127,6 @@ void phasecontrol_setup(PHASECONTROL_CONFIG * config) {
   trigger = config->trigger;
   
   multicore_launch_core1(phasecontrol_loop);
-  /*
-  sleep_ms(10); 
-  // Pack configuration data
-  uint32_t config_data = config->trigger;
-  config_data = (config_data<<8) | config->zero_cross_pin;
-  config_data = (config_data<<8) | config->out_pin;
-
-  // Push data to core1
-  multicore_fifo_push_blocking(config_data);
-  //multicore_fifo_push_blocking(config->zero_cross_delay);
-
-  // Wait for everything to get setup
-  sleep_ms(10); */
   return;
 }
 

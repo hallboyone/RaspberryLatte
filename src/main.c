@@ -44,7 +44,7 @@ int main(){
   
   uint8_t msg_buf[4];
   uint8_t duty_cycle = 0;
-  int dir = 10;
+  int dir = 1;
   while(1){
     /*
     if(uart_data_in_rx(&pi_uart)){
@@ -60,15 +60,15 @@ int main(){
     }
     */
     
-    sleep_ms(500);
+    sleep_ms(10);
     
     phasecontrol_set_duty_cycle(duty_cycle);
     duty_cycle += dir;
     if (duty_cycle == 100){
-      dir = -10;
+      dir = -1;
     }
     else if (duty_cycle == 0){
-      dir = 10;
+      dir = 1;
       }
     //gpio_put(LED_PIN, phasecontrol_is_ac_hot());
   }
