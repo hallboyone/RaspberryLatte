@@ -27,11 +27,7 @@ typedef struct {
   uint    zerocross_delay;
 } PHASECONTROL_CONFIG;
 
-
-static uint8_t out_pin;
-static uint8_t zerocross_pin;
-static uint8_t trigger;
-static uint32_t zerocross_delay;
+static PHASECONTROL_CONFIG config;
 
 static uint64_t zerocross_time = 0;
 static uint64_t prev_zerocross_time = 0;
@@ -53,23 +49,24 @@ const uint16_t timeouts_us[128] =
    7076, 7171, 7274, 7387, 7515, 7666, 7862, 8333};
 
 static int64_t stop(int32_t alarm_num, void * data){
-  gpio_put(out_pin, 0);
+  gpio_put(config.out_pin, 0);
   return 0;
 }
 
 static int64_t start(int32_t alarm_num, void * data){
-  gpio_put(out_pin, 1);
+  gpio_put(config.out_pin, 1);
   return 0;
 }
 
 static void switch_scheduler(uint gpio, uint32_t events){
   prev_zerocross_time = zerocross_time;
-  zerocross_time = time_us_64() - zerocross_delay;
+  zerocross_time = time_us_64() - config.zerocross_delay;
+  
   if(zerocross_time - prev_zerocross_time > PERIOD_1_00 - 100) {
     // Schedule stop time
     add_alarm_at(zerocross_time+PERIOD_1_25, &stop, NULL, false);
     
-    // Schedule start time 
+    // Schedule start time if running
     if (timeout_us != 0) {
       add_alarm_at(zerocross_time+PERIOD_1_00-timeout_us, &start, NULL, false);
     }
@@ -83,25 +80,23 @@ static void switch_scheduler(uint gpio, uint32_t events){
  */
 static void phasecontrol_loop() {  
   // Setup SSR output pin
-  gpio_init(out_pin);
-  gpio_set_dir(out_pin, GPIO_OUT);
+  gpio_init(config.out_pin);
+  gpio_set_dir(config.out_pin, GPIO_OUT);
 
-  if(zerocross_delay == 100){
   // Setup zero-cross input pin
-  gpio_init(zerocross_pin);
-  gpio_set_dir(zerocross_pin, GPIO_IN);
-  gpio_set_pulls(zerocross_pin, false, true);
-  gpio_set_irq_enabled_with_callback(zerocross_pin,
-				     trigger, true,
+  gpio_init(config.zerocross_pin);
+  gpio_set_dir(config.zerocross_pin, GPIO_IN);
+  gpio_set_pulls(config.zerocross_pin, false, true);
+  gpio_set_irq_enabled_with_callback(config.zerocross_pin,
+				     config.trigger, true,
 				     &switch_scheduler);
-  }
+
   while (true) {
     // Handle data from core0
     if (multicore_fifo_rvalid()){
       uint32_t msg = multicore_fifo_pop_blocking();   
       if(msg & SET_DUTY){
-	uint8_t duty_idx = (msg & DUTY_MASK);
-	timeout_us = timeouts_us[duty_idx];
+	timeout_us = timeouts_us[msg & DUTY_MASK];
       }
       else if(msg & IS_AC_ON){
 	bool is_ac_on = (time_us_64()-zerocross_time < PERIOD_1_25);
@@ -120,12 +115,8 @@ static void phasecontrol_loop() {
 /**
  * Called from core 0. Launches core 1 and passes it the required data.
  */
-void phasecontrol_setup(PHASECONTROL_CONFIG * config) {
-  out_pin = config->out_pin;
-  zerocross_pin = config->zerocross_pin;
-  zerocross_delay = config->zerocross_delay;
-  trigger = config->trigger;
-  
+void phasecontrol_setup(PHASECONTROL_CONFIG * config_) {
+  config = *config_;
   multicore_launch_core1(phasecontrol_loop);
   return;
 }

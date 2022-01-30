@@ -69,7 +69,7 @@ int main(){
     }
     else if (duty_cycle == 0){
       dir = 1;
-      }
+    }
     //gpio_put(LED_PIN, phasecontrol_is_ac_hot());
   }
 }
