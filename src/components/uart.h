@@ -12,14 +12,6 @@ typedef struct UART_{
   uint baudrate;
 } UART;
 
-void uart_read_and_clear(UART* uart, uint8_t * buf, uint8_t len){
-  // Fill buf with first len chars and drop the rest
-  uart_read_blocking(uart->id, buf, len);
-  while(uart_is_readable(uart->id)){
-    uart_getc(uart->id);
-  }
-} 
-
 void uart_setup(UART* uart){
   // Put the uart in a known state and enable it.
   uart->baudrate = uart_init(uart->id, uart->baudrate);
@@ -44,3 +36,11 @@ void uart_send(UART* uart, uint8_t * buf, uint8_t len){
 bool uart_data_in_rx(UART* uart){
   return uart_is_readable(uart->id);
 }
+
+void uart_read_and_clear(UART* uart, uint8_t * buf, uint8_t len){
+  // Fill buf with first len chars and drop the rest
+  uart_read_blocking(uart->id, buf, len);
+  while(uart_is_readable(uart->id)){
+    uart_getc(uart->id);
+  }
+} 
