@@ -17,7 +17,7 @@ void packData(uint64_t scale_val,
   scale_val = 0;
   //thermo_val = 0;
   switch_vals = 0;
-  *buf = (((uint64_t)switch_vals)<<(24+14)) | (((uint64_t)thermo_val)<<0) | ((uint64_t)(scale_val));
+  *buf = (((uint64_t)switch_vals)<<(24+14)) | (((uint64_t)thermo_val)) | ((uint64_t)(scale_val));
 }
 
 int main(){
@@ -72,7 +72,7 @@ int main(){
     hx711_read(&scale);
     max31855_read(&thermo);
     packData(scale.val, (uint32_t)thermo.val[0], 0, &payload);
-    uart_send(&pi_uart, (uint8_t*)&payload, 8);
+    uart_send(&pi_uart, &thermo.val[2], 2);
     
     sleep_ms(1000);
     gpio_put(LED_PIN, led_state);

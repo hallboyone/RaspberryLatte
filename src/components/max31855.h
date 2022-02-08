@@ -20,12 +20,12 @@ void max31855_read(MAX31855* s){
   spi_read_blocking(s->spi, 0, s->val, 4);
   gpio_put(s->cs, 1);
   
-  s->reading = ((uint16_t)s->val[0]);
+  s->reading = ((uint16_t)s->val[2]);
   //s->reading >>= 2;
 }
 
 void max31855_setup(MAX31855* s){
-  spi_init(s->spi, 1000000);
+  spi_init(s->spi, 10000000);
 
   spi_set_format(s->spi, 8, 0, 0, SPI_MSB_FIRST);
 
