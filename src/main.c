@@ -6,6 +6,7 @@
 #include "components/max31855.h"
 #include "hx711.pio.h"
 #include "components/phasecontrol.h"
+#include "lmt01.pio.h"
 
 void packData(uint64_t scale_val,
 	      uint64_t thermo_val,
@@ -33,12 +34,18 @@ int main(){
   const uint clk_pin = 17;
   hx711_setup(&scale, pio_num, dat_pin, clk_pin);
 
+  /*
   // ======== Set up thermocouple ========
   MAX31855 thermo = {.spi = spi1,
 		     .cs  = 11,
 		     .clk = 10,
 		     .din = 12};
   max31855_setup(&thermo);
+  */
+  // ======== Set up digital thermo ========
+  LMT01 thermo = {.pio_num = 0,
+		  .dat_pin = 12};
+  lmt01_setup(&thermo);
 
   // ======= Set up phase constrol =======
   PHASECONTROL_CONFIG pump_config = {.trigger         = RISING,
@@ -70,9 +77,9 @@ int main(){
 
     // Read sensors
     hx711_read(&scale);
-    max31855_read(&thermo);
-    packData(scale.val, (uint32_t)thermo.val[0], 0, &payload);
-    uart_send(&pi_uart, &thermo.val[2], 2);
+    lmt01_read(&thermo);
+    packData(scale.val, (uint32_t)thermo.val, 0, &payload);
+    uart_send(&pi_uart, (uint8_t*)&thermo.val, 4);
     
     sleep_ms(1000);
     gpio_put(LED_PIN, led_state);

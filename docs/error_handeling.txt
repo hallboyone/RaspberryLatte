@@ -1,0 +1,23 @@
+Failure modes: 
+ 1) Configuration Errors
+    a) Brew temp out of range
+    b) Steam temp out of range
+    c) Hot water temp out of range
+    d) 
+ 2) Sensor Errors
+    a) Thermo failure
+       1) Tempurature below limit
+       2) Tempurature above limit
+       3) Invalid temp data
+       4) Incorrect temp data
+    b) Flowrate failure
+       1) Flowrate below 0
+       2) Flowrate above limit
+       3) Invalid flowrate data
+       4) Nonzero flowrate while pump off
+       5) Zero flowrate while pump on
+       6) Incorrect flowrate data
+    c) Scale failure
+       1) Scale above/below limit
+       20 Invalid scale data
+ 3) Output failures
