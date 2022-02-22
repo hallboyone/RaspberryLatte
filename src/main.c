@@ -3,6 +3,7 @@
 #include "hardware/gpio.h"
 
 #include "components/uart.h"
+#include "components/physical_inputs.h"
 //#include "hx711.pio.h"
 //#include "components/phasecontrol.h"
 #include "lmt01.pio.h"
@@ -13,7 +14,8 @@ void packData(uint64_t scale_val,
 	      uint64_t * buf){
   *buf = 0;
   // The bytes of the thermo value need to be reversed
-  *buf = ((thermo_val & 0x0000ff00)>>8) | ((thermo_val & 0x000000ff)<<8); 
+  *buf = ((thermo_val & 0x0000ff00)>>8) | ((thermo_val & 0x000000ff)<<8);
+  *buf = (*buf) | switch_vals<<16;
   //scale_val = 3;
   //scale_val <<= 30;
   //thermo_val = 0; 
@@ -37,8 +39,11 @@ int main(){
   // ======== Set up digital thermo ========
   LMT01 thermo = {.pio_num = 0,
                   .sig_pin = 15};
-		  lmt01_setup(&thermo);
-
+  lmt01_setup(&thermo);
+  
+  PhysicalInputs switches = {.gpio_pump = 16,
+			     .gpio_dial = {17, 18, 19, 20}};
+  physical_inputs_setup(&switches);	     
   /*
   // ======= Set up phase constrol =======
   PHASECONTROL_CONFIG pump_config = {.trigger         = RISING,
@@ -71,7 +76,8 @@ vv  phasecontrol_setup(&pump_config);
     // Read sensors
     //hx711_read(&scale);
     lmt01_read(&thermo);
-    packData(0, thermo.val, 0, &payload);
+    physical_inputs_read(&switches);
+    packData(0, thermo.val, switches.state, &payload);
     uart_send(&pi_uart, (uint8_t*)&payload, 8);
 
     sleep_ms(50);
