@@ -1,37 +1,33 @@
-	.program lmt01
 ; Reads data from the LMT01, a TI tempurature sensor that transmits some number of
 ; pulses porportional to the measured tempurature
-; 1) Wait for input pin to go high.
-; 2) Wait for input pin to go low for  			
-	
-; Decrements y and set x to 20
-count_pulse:
-    set x 20                          ; Restart time in x
-    jmp y-- dec_label                 ; Decrement y          
+
+.program lmt01
+    set y, 0               ; Reset counter
+    wait 0 pin 0           ; Wait for start of pulse train
+counting_loop:             ; Loop until pin goes low or time is up
+    jmp pin no_pulse       ; No pulse, skip increment steps
+    mov x, !y	           ; Pulse. Increment y using (y+1)=!((!y)-1)
+    jmp x-- dec_label                     
 dec_label:
-    wait 0 pin 0                      ; Wait for pin to go low
-
-.wrap_target
-wait_for_high:
-    jmp pin count_pulse
-    jmp !osre write_data
-    jmp x-- wait_for_high
+    mov y, !x
+    set x 25               ; Restart timer
+    wait 1 pin 0           ; Wait for pin to go high again
+no_pulse:
+    jmp x-- counting_loop  ; Timer not expired. Loop again
+    in  y, 32              ; Send counter value to program
     
-    mov isr y                         ; Queue y reg for output
-    set y 0                           ; Set y reg to 0
-    mov y ~y                          ; Set y reg to all ones
-.wrap
-
-write_data:
-    push                              ; push latest reading
-    out null 32                       ; clear data request
-    jmp wait_for_high
-
-
-% c-sdk {
+%c-sdk{
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "pico/time.h"
+
+typedef struct {
+    uint pio_num;
+    uint sig_pin;
+    PIO pio;
+    uint sm;
+    uint32_t val;
+} LMT01;
 
 static const int PULSE_COUNTS [20] = {181,  338,  494,  651,
 			       808,  966,  1125, 1284,
@@ -101,49 +97,40 @@ static int getTemp(int pulse_count){
   } 
 }
 
-typedef struct {
-    uint pio_num;
-    uint dat_pin;
-    PIO pio;
-    uint sm;
-    int val;
-} LMT01;
-
 static inline void lmt01_program_init(PIO pio, uint sm, uint offset, uint dat_pin) {
-    pio_gpio_init(pio, dat_pin);
+    // Setup dat_pin
     pio_sm_set_consecutive_pindirs(pio, sm, dat_pin, 1, false);
+    pio_gpio_init(pio, dat_pin);
 
     pio_sm_config c = lmt01_program_get_default_config(offset);
     
     sm_config_set_jmp_pin(&c, dat_pin);
     sm_config_set_in_pins(&c, dat_pin);
     
-    sm_config_set_in_shift(&c, true, false, 0);
-    sm_config_set_out_shift(&c, false, true, 32);
-
-    // Each clock cycle should be 1us -> 1000000 Hz
-    float div = (float)clock_get_hz(clk_sys)/1000000;
+    sm_config_set_in_shift(&c, false, true, 32);
+    //sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    
+    // Each clock cycle should be 0.5us -> 2000000 Hz
+    float div = (float)clock_get_hz(clk_sys)/2000000.0;
     sm_config_set_clkdiv(&c, div);
     
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
+}
 
-    // Wait for a bit to let the sensor run at least once preventing garbage data
-    sleep_ms(100);
+
+static inline void lmt01_read(LMT01 * thermo){
+    thermo->val = pio_sm_get_blocking(thermo->pio, thermo->sm);
+    //thermo->val = raw_val;//getTemp(raw_val);
+    return;
 }
 
 static inline void lmt01_setup(LMT01 * thermo){
-  thermo->pio =  (thermo->pio_num==0) ? pio0 : pio1;
-  uint offset = pio_add_program(thermo->pio, &hx711_program);
-  thermo->sm = pio_claim_unused_sm(thermo->pio, true);
-  lmt01_program_init(thermo->pio, thermo->sm, offset, thermo->dat_pin);
-}
-
-static inline void lmt01_read(LMT01 * thermo){
-    pio_sm_put(thermo->pio, thermo->sm, 1);
-    uint32_t raw_val = pio_sm_get_blocking(thermo->pio, thermo->sm);
-    //raw_val = ~raw_val;
-    thermo->val = raw_val;//getTemp(raw_val);
-    return;
+    thermo->pio =  (thermo->pio_num==0) ? pio0 : pio1;
+    uint offset = pio_add_program(thermo->pio, &lmt01_program);
+    thermo->sm = pio_claim_unused_sm(thermo->pio, true);
+    lmt01_program_init(thermo->pio, thermo->sm, offset, thermo->sig_pin);
+    lmt01_read(thermo);
+    lmt01_read(thermo);
 }
 %}
