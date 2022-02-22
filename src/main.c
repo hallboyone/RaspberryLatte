@@ -36,11 +36,11 @@ int main(){
   hx711_setup(&scale, pio_num, dat_pin, clk_pin);
   */
   // ======== Set up digital thermo ========
-  /*LMT01 thermo = {.pio_num = 1,
+  LMT01 thermo = {.pio_num = 1,
                   .sig_pin = 15};
-		  lmt01_setup(&thermo);*/
-  gpio_init(15);
-  gpio_set_dir(15, GPIO_IN);
+		  lmt01_setup(&thermo);
+		  //gpio_init(15);
+		  //gpio_set_dir(15, GPIO_IN);
   
   /*
   // ======= Set up phase constrol =======
@@ -70,7 +70,7 @@ vv  phasecontrol_setup(&pump_config);
       //uart_send(&pi_uart, (uint8_t*)&scale_val, 4);
       
     //}
-    
+    /*
     uint32_t counter = 0;
     // Go high for at least 25ms
     absolute_time_t sample_time = get_absolute_time();
@@ -95,11 +95,11 @@ vv  phasecontrol_setup(&pump_config);
 	}
 	sample_time = get_absolute_time();
       }
-    }
+      }*/
     // Read sensors
     //hx711_read(&scale);
-    //lmt01_read(&thermo);
-    packData(0, counter, 0, &payload);
+    lmt01_read(&thermo);
+    packData(0, thermo.val, 0, &payload);
     uart_send(&pi_uart, (uint8_t*)&payload, 8);
     //uart_send(&pi_uart, (uint8_t*)&counter, 1);
     //sleep_ms(50);
