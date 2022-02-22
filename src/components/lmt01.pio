@@ -108,7 +108,7 @@ static inline void lmt01_program_init(PIO pio, uint sm, uint offset, uint dat_pi
     sm_config_set_in_pins(&c, dat_pin);
     
     sm_config_set_in_shift(&c, false, true, 32);
-    //sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
     
     // Each clock cycle should be 0.5us -> 2000000 Hz
     float div = (float)clock_get_hz(clk_sys)/2000000.0;

@@ -12,9 +12,8 @@ void packData(uint64_t scale_val,
 	      uint64_t switch_vals,
 	      uint64_t * buf){
   *buf = 0;
-  // The bytes of the thermo value are reversed
-  *buf = ((thermo_val & 0xff000000)>>24) | ((thermo_val & 0x00ff0000)>>8) |
-         ((thermo_val & 0x0000ff00)<<8) | ((thermo_val & 0x000000ff)<<24); 
+  // The bytes of the thermo value need to be reversed
+  *buf = ((thermo_val & 0x0000ff00)>>8) | ((thermo_val & 0x000000ff)<<8); 
   //scale_val = 3;
   //scale_val <<= 30;
   //thermo_val = 0; 
@@ -36,12 +35,10 @@ int main(){
   hx711_setup(&scale, pio_num, dat_pin, clk_pin);
   */
   // ======== Set up digital thermo ========
-  LMT01 thermo = {.pio_num = 1,
+  LMT01 thermo = {.pio_num = 0,
                   .sig_pin = 15};
 		  lmt01_setup(&thermo);
-		  //gpio_init(15);
-		  //gpio_set_dir(15, GPIO_IN);
-  
+
   /*
   // ======= Set up phase constrol =======
   PHASECONTROL_CONFIG pump_config = {.trigger         = RISING,
@@ -60,7 +57,7 @@ vv  phasecontrol_setup(&pump_config);
   
   //uint8_t msg_buf[4];
   uint64_t payload = 0;
-  //bool led_state = false;
+  bool led_state = false;
   //int dir = 1;
   while(1){
     //if(uart_data_in_rx(&pi_uart)){
@@ -70,40 +67,15 @@ vv  phasecontrol_setup(&pump_config);
       //uart_send(&pi_uart, (uint8_t*)&scale_val, 4);
       
     //}
-    /*
-    uint32_t counter = 0;
-    // Go high for at least 25ms
-    absolute_time_t sample_time = get_absolute_time();
-    while(absolute_time_diff_us(sample_time, get_absolute_time()) < 25000){
-      if(!gpio_get(15)){
-	while(!gpio_get(15)){
-	  tight_loop_contents();
-	}
-	sample_time = get_absolute_time();
-      }
-    }
-    while(gpio_get(15)){
-      tight_loop_contents();
-    }
-    sample_time = get_absolute_time();
-    // Count pulses till signal high for 25ms
-    while(absolute_time_diff_us(sample_time, get_absolute_time()) < 25000){
-      if(!gpio_get(15)){
-	counter += 1;
-	while(!gpio_get(15)){
-	  tight_loop_contents();
-	}
-	sample_time = get_absolute_time();
-      }
-      }*/
+
     // Read sensors
     //hx711_read(&scale);
     lmt01_read(&thermo);
     packData(0, thermo.val, 0, &payload);
     uart_send(&pi_uart, (uint8_t*)&payload, 8);
-    //uart_send(&pi_uart, (uint8_t*)&counter, 1);
-    //sleep_ms(50);
-    gpio_put(LED_PIN, gpio_get(15));
-    //led_state = !led_state;
+
+    sleep_ms(50);
+    gpio_put(LED_PIN, led_state);
+    led_state = !led_state;
   }
 }
