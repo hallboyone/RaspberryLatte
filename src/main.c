@@ -4,6 +4,8 @@
 
 #include "components/uart.h"
 #include "components/physical_inputs.h"
+#include "components/pressure_sensor.h"
+
 //#include "hx711.pio.h"
 //#include "components/phasecontrol.h"
 #include "lmt01.pio.h"
@@ -11,11 +13,15 @@
 void packData(uint64_t scale_val,
 	      uint64_t thermo_val,
 	      uint64_t switch_vals,
+	      uint64_t pressure_val,
 	      uint64_t * buf){
   *buf = 0;
-  // The bytes of the thermo value need to be reversed
+  // 0-15
   *buf = ((thermo_val & 0x0000ff00)>>8) | ((thermo_val & 0x000000ff)<<8);
-  *buf = (*buf) | switch_vals<<16;
+  // 16-31
+  *buf = (*buf) | ((pressure_val & 0xff00) << 8) | ((pressure_val & 0x00ff) << 24);
+  // 32-34
+  *buf = (*buf) | switch_vals<<32;
   //scale_val = 3;
   //scale_val <<= 30;
   //thermo_val = 0; 
@@ -40,10 +46,16 @@ int main(){
   LMT01 thermo = {.pio_num = 0,
                   .sig_pin = 15};
   lmt01_setup(&thermo);
-  
+
+  // ======== Set up physical inputs ========
   PhysicalInputs switches = {.gpio_pump = 16,
 			     .gpio_dial = {17, 18, 19, 20}};
-  physical_inputs_setup(&switches);	     
+  physical_inputs_setup(&switches);
+
+  // ======== Set up pressure sensor ========
+  PressureSensor pressure_sensor = {.a_pin = 28};
+  pressure_sensor_setup(&pressure_sensor);
+  
   /*
   // ======= Set up phase constrol =======
   PHASECONTROL_CONFIG pump_config = {.trigger         = RISING,
@@ -77,7 +89,8 @@ vv  phasecontrol_setup(&pump_config);
     //hx711_read(&scale);
     lmt01_read(&thermo);
     physical_inputs_read(&switches);
-    packData(0, thermo.val, switches.state, &payload);
+    pressure_sensor_read(&pressure_sensor);
+    packData(0, thermo.val, switches.state, pressure_sensor.val, &payload);
     uart_send(&pi_uart, (uint8_t*)&payload, 8);
 
     sleep_ms(50);
