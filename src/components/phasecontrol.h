@@ -8,11 +8,13 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 #include "pico/multicore.h"
+#include "pico/util/queue.h"
 
 #define RISING             0x08
 #define FALLING            0x04
 #define PERIOD_1_25        20833
 #define PERIOD_1_00        16667
+#define PERIOD_0_75        12500
 #define PERIOD_0_50        8333
 
 // Message instructions. Or'd over value if applicable
@@ -21,32 +23,45 @@
 #define IS_AC_ON           0x20000000
 
 typedef struct {
-  uint8_t trigger;
-  uint8_t zerocross_pin;
-  uint8_t out_pin;
-  uint    zerocross_delay;
-} PHASECONTROL_CONFIG;
+  uint8_t event;             // RISING or FALLING
+  uint8_t zerocross_pin;     // GPIO that senses event at every zerocrossing
+  int64_t zerocross_shift;   // Time between zerocross trigger and actual zero cross
+  uint8_t out_pin;           // Load output pin
+} PhasecontrolConfig;
 
-static PHASECONTROL_CONFIG config;
+static PhasecontrolConfig config;
 
-static uint64_t zerocross_time = 0;
-static uint64_t prev_zerocross_time = 0;
+static queue_t power_queue;
+static queue_t ac_on_queue;
 
-static uint16_t timeout_us = 0;
+static uint64_t   zerocross_time = 0;
+static bool       ac_on          = false;
+static alarm_id_t off_alarm      = 0;
+
 const uint16_t timeouts_us[128] =
-  {0   , 471 , 668 , 819 , 947 , 1060, 1162, 1257, 1346, 1430,
-   1509, 1585, 1658, 1728, 1795, 1861, 1925, 1987, 2048, 2107,
-   2165, 2222, 2277, 2332, 2386, 2439, 2491, 2542, 2593, 2643,
-   2693, 2741, 2790, 2838, 2885, 2932, 2979, 3025, 3071, 3116,
-   3161, 3206, 3250, 3295, 3339, 3382, 3426, 3469, 3513, 3556,
-   3598, 3641, 3684, 3726, 3768, 3811, 3853, 3895, 3937, 3979,
-   4020, 4062, 4104, 4146, 4188, 4229, 4271, 4313, 4355, 4397,
-   4439, 4481, 4523, 4565, 4607, 4650, 4692, 4735, 4778, 4821,
-   4864, 4907, 4951, 4995, 5039, 5083, 5127, 5172, 5217, 5263,
-   5309, 5355, 5401, 5448, 5496, 5544, 5592, 5641, 5690, 5740,
-   5791, 5842, 5895, 5947, 6001, 6056, 6112, 6168, 6226, 6286,
-   6346, 6408, 6472, 6538, 6606, 6676, 6749, 6824, 6904, 6987,
-   7076, 7171, 7274, 7387, 7515, 7666, 7862, 8333};
+  {8333,7862,7666,7515,7387,7274,7171,7076,6987,6904,
+   6824,6749,6676,6606,6538,6472,6408,6346,6286,6226,
+   6168,6112,6056,6001,5947,5895,5842,5791,5740,5690,
+   5641,5592,5544,5496,5448,5401,5355,5309,5263,5217,
+   5172,5127,5083,5039,4995,4951,4907,4864,4821,4778,
+   4735,4692,4650,4607,4565,4523,4481,4439,4397,4355,
+   4313,4271,4229,4188,4146,4104,4062,4020,3979,3937,
+   3895,3853,3811,3768,3726,3684,3641,3598,3556,3513,
+   3469,3426,3382,3339,3295,3250,3206,3161,3116,3071,
+   3025,2979,2932,2885,2838,2790,2741,2693,2643,2593,
+   2542,2491,2439,2386,2332,2277,2222,2165,2107,2048,
+   1987,1925,1861,1795,1728,1658,1585,1509,1430,1346,
+   1257,1162,1060,947, 819, 668, 471, 0};	
+static int8_t timeout_idx = -1;
+
+// Clears the queue and adds the new value.
+void update_queue_s8(queue_t * q, int8_t new_val){
+  while (!queue_is_empty(q)){
+    int8_t dummy_val;
+    queue_remove_blocking(q, &dummy_val);
+  }
+  queue_add_blocking(q, &new_val);
+}
 
 static int64_t stop(int32_t alarm_num, void * data){
   gpio_put(config.out_pin, 0);
@@ -58,18 +73,27 @@ static int64_t start(int32_t alarm_num, void * data){
   return 0;
 }
 
+static int64_t signal_off(int32_t alarm_num, void * data){
+  // If this is the most recent off_alarm set, turn off. 
+  if(alarm_num == off_alarm) update_queue_s8(&ac_on_queue, 0);
+  return 0;
+}
+
 static void switch_scheduler(uint gpio, uint32_t events){
-  prev_zerocross_time = zerocross_time;
-  zerocross_time = time_us_64() - config.zerocross_delay;
-  
-  if(zerocross_time - prev_zerocross_time > PERIOD_1_00 - 100) {
-    // Schedule stop time
-    add_alarm_at(zerocross_time+PERIOD_1_25, &stop, NULL, false);
+  // If it has been about 1 period since the last signal
+  if(zerocross_time + PERIOD_1_00 - 100 < time_us_64()){
+    // Zerocrossing indicates AC is on for at least one period
+    update_queue_s8(&ac_on_queue, 1);
+    off_alarm = add_alarm_in_us(config.zerocross_shift + PERIOD_1_00 + 100, &signal_off, NULL, true);
     
-    // Schedule start time if running
-    if (timeout_us != 0) {
-      add_alarm_at(zerocross_time+PERIOD_1_00-timeout_us, &start, NULL, false);
+    if (timeout_idx >= 0){
+      // Schedule stop time after 0.75 period
+      add_alarm_in_us(config.zerocross_shift+PERIOD_0_75, &stop, NULL, false);
+    
+      // Schedule start time after the given timeout
+      add_alarm_in_us(config.zerocross_shift + timeouts_us[timeout_idx], &start, NULL, true);
     }
+    zerocross_time = time_us_64();
   }
 }
 
@@ -78,7 +102,7 @@ static void switch_scheduler(uint gpio, uint32_t events){
  * core0, it sets up the pins and the zerocross interrupt and enters an infinite
  * loop. This loop check for a new duty cycle and data requests from core0.
  */
-static void phasecontrol_loop() {  
+static void phasecontrol_loop_core1() {  
   // Setup SSR output pin
   gpio_init(config.out_pin);
   gpio_set_dir(config.out_pin, GPIO_OUT);
@@ -87,26 +111,16 @@ static void phasecontrol_loop() {
   gpio_init(config.zerocross_pin);
   gpio_set_dir(config.zerocross_pin, GPIO_IN);
   gpio_set_pulls(config.zerocross_pin, false, true);
-  gpio_set_irq_enabled_with_callback(config.zerocross_pin,
-				     config.trigger, true,
-				     &switch_scheduler);
+  gpio_set_irq_enabled_with_callback(config.zerocross_pin, config.event, true, &switch_scheduler);
 
+  update_queue_s8(&ac_on_queue, 1);
   while (true) {
-    // Handle data from core0
-    if (multicore_fifo_rvalid()){
-      uint32_t msg = multicore_fifo_pop_blocking();   
-      if(msg & SET_DUTY){
-	timeout_us = timeouts_us[msg & DUTY_MASK];
-      }
-      else if(msg & IS_AC_ON){
-	bool is_ac_on = (time_us_64()-zerocross_time < PERIOD_1_25);
-	multicore_fifo_push_blocking(is_ac_on);
-      }
+    if (!queue_is_empty(&power_queue)){
+      // New power setting sent to core1
+      queue_remove_blocking(&power_queue, &timeout_idx);
     }
   }
 }
-
-
 
 /* ===================================================================
  * ==================== FUNCTIONS FOR CORE 0 =========================
@@ -115,28 +129,34 @@ static void phasecontrol_loop() {
 /**
  * Called from core 0. Launches core 1 and passes it the required data.
  */
-void phasecontrol_setup(PHASECONTROL_CONFIG * config_) {
+void phasecontrol_setup(PhasecontrolConfig * config_) {
   config = *config_;
-  multicore_launch_core1(phasecontrol_loop);
+
+  // Set up queues and initialize the power queue with -1
+  queue_init(&power_queue, sizeof(int8_t), 1);
+  queue_init(&ac_on_queue, sizeof(int8_t), 1);
+  update_queue_s8(&power_queue, -1);
+
+  // Launch core1 and wait for it to get set up. 
+  multicore_launch_core1(phasecontrol_loop_core1);
+  while(queue_is_empty(&ac_on_queue)){
+    tight_loop_contents();
+  }
   return;
 }
 
 /**
- * Write the target duty cycle to core1
+ * Write the target duty cycle from -1 to 127 to core1. -1 is off. 
  */
-void phasecontrol_set_duty_cycle(uint8_t duty_cycle){
-  uint32_t masked_msg = (uint32_t)duty_cycle | SET_DUTY;
-  multicore_fifo_push_blocking(masked_msg);
+void phasecontrol_set_duty_cycle(int8_t duty_cycle){
+  update_queue_s8(&power_queue, duty_cycle);
 }
 
 /**
- * Sends a request to core1 for ac status and then waits for and 
- *returns the response
+ * Returns true if a zerocrossing has been sensed in the last 16,666 us
  */
 bool phasecontrol_is_ac_hot(){
-  multicore_fifo_push_blocking(IS_AC_ON);
-  while(!multicore_fifo_rvalid()){
-    tight_loop_contents();
-  }
-  return multicore_fifo_pop_blocking();
+  int8_t tf = 1;
+  queue_peek_blocking(&ac_on_queue, &tf);
+  return tf;
 }

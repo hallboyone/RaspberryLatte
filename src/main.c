@@ -2,9 +2,10 @@
 #include "pico/time.h"
 #include "hardware/gpio.h"
 
-#include "components/uart.h"
-#include "components/physical_inputs.h"
-#include "components/pressure_sensor.h"
+//#include "components/uart.h"
+//#include "components/physical_inputs.h"
+//#include "components/pressure_sensor.h"
+ #include "components/phasecontrol.h"
 
 //#include "hx711.pio.h"
 //#include "components/phasecontrol.h"
@@ -42,6 +43,7 @@ int main(){
   const uint clk_pin = 17;
   hx711_setup(&scale, pio_num, dat_pin, clk_pin);
   */
+ /*
   // ======== Set up digital thermo ========
   LMT01 thermo = {.pio_num = 0,
                   .sig_pin = 15};
@@ -55,22 +57,23 @@ int main(){
   // ======== Set up pressure sensor ========
   PressureSensor pressure_sensor = {.a_pin = 28};
   pressure_sensor_setup(&pressure_sensor);
-  
-  /*
-  // ======= Set up phase constrol =======
-  PHASECONTROL_CONFIG pump_config = {.trigger         = RISING,
-				     .zerocross_pin   = 15,
-				     .out_pin         = 14,
-				     .zerocross_delay = 1620};
-vv  phasecontrol_setup(&pump_config);
   */
+
+  // ======= Set up phase constrol =======
+  PhasecontrolConfig pump_config = {.event           = FALLING,
+				                            .zerocross_pin   = 15,
+				                            .out_pin         = 14,
+				                            .zerocross_shift = 300};
+  phasecontrol_setup(&pump_config);
+
+ /*
   // ========== Set up the UART ==========
   UART pi_uart = {.id = uart1,
 		  .tx_pin = 4,
 		  .rx_pin = 5,
 		  .baudrate = 115200};
   uart_setup(&pi_uart);
-
+  */
   
   //uint8_t msg_buf[4];
   uint64_t payload = 0;
@@ -87,14 +90,14 @@ vv  phasecontrol_setup(&pump_config);
 
     // Read sensors
     //hx711_read(&scale);
+    /*
     lmt01_read(&thermo);
     physical_inputs_read(&switches);
     pressure_sensor_read(&pressure_sensor);
     packData(0, thermo.val, switches.state, pressure_sensor.val, &payload);
     uart_send(&pi_uart, (uint8_t*)&payload, 8);
-
-    sleep_ms(50);
-    gpio_put(LED_PIN, led_state);
-    led_state = !led_state;
+    */
+    //sleep_ms(50);
+    gpio_put(LED_PIN, phasecontrol_is_ac_hot());
   }
 }
