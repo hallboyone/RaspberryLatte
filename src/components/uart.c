@@ -1,16 +1,8 @@
-#include "pico/stdlib.h"
-#include "hardware/uart.h"
+#include "uart.h"
 
 #define DATA_BITS        8
 #define STOP_BITS        1
 #define PARITY           UART_PARITY_NONE
-
-typedef struct UART_{
-  uart_inst_t * const id;
-  uint8_t rx_pin;
-  uint8_t tx_pin;
-  uint baudrate;
-} UART;
 
 void uart_setup(UART* uart){
   // Put the uart in a known state and enable it.

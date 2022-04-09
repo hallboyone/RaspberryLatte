@@ -1,12 +1,5 @@
-#include "pico/stdlib.h"
+#include "physical_inputs.h"
 #include "hardware/gpio.h"
-
-typedef struct {
-  uint8_t gpio_pump;
-  uint8_t gpio_dial[4];
-  uint8_t state;
-} PhysicalInputs;
-
 
 void physical_inputs_read(PhysicalInputs * s){
   s->state = (gpio_get(s->gpio_pump)<<2);

@@ -20,6 +20,7 @@
     "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
     "files.associations": {
         "stdlib.h": "c",
-        "gpio.h": "c"
+        "gpio.h": "c",
+        "phasecontrol.h": "c"
     }
 }

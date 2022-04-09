@@ -1,3 +1,5 @@
+# Information from http://derekmolloy.ie/hello-world-introductions-to-cmake/
+
 cmake_minimum_required(VERSION 3.12)
 
 include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
@@ -11,12 +13,15 @@ include_directories(include)
 
 add_executable(RaspberryLattePico src/main.c)
 
-#pico_generate_pio_header(main ${CMAKE_CURRENT_LIST_DIR}/src/components/hx711.pio)
+pico_generate_pio_header(RaspberryLattePico ${CMAKE_CURRENT_LIST_DIR}/src/components/hx711.pio)
 pico_generate_pio_header(RaspberryLattePico ${CMAKE_CURRENT_LIST_DIR}/src/components/lmt01.pio)
 
 target_sources(RaspberryLattePico 
                PRIVATE ./src/main.c 
-               PRIVATE src/components/phasecontrol.c)
+               PRIVATE src/components/phasecontrol.c
+               PRIVATE src/components/physical_inputs.c
+               PRIVATE src/components/packer.c
+               PRIVATE src/components/uart.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
