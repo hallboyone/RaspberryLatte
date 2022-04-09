@@ -2,10 +2,10 @@
 #include "pico/time.h"
 #include "hardware/gpio.h"
 
+#include "phasecontrol.h"
 //#include "components/uart.h"
 //#include "components/physical_inputs.h"
 //#include "components/pressure_sensor.h"
- #include "components/phasecontrol.h"
 
 //#include "hx711.pio.h"
 //#include "components/phasecontrol.h"
@@ -98,6 +98,6 @@ int main(){
     uart_send(&pi_uart, (uint8_t*)&payload, 8);
     */
     //sleep_ms(50);
-    gpio_put(LED_PIN, phasecontrol_is_ac_hot());
+    gpio_put(LED_PIN, 1);
   }
 }

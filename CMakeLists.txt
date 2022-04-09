@@ -2,19 +2,24 @@ cmake_minimum_required(VERSION 3.12)
 
 include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
 
-project(RaspberryLatte-pico)
-
+project(RaspberryLattePico C CXX ASM)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
-#add_executable(phasecontrol ./src/phasecontrol.)c
-add_executable(main)
+include_directories(include)
+
+add_executable(RaspberryLattePico src/main.c)
 
 #pico_generate_pio_header(main ${CMAKE_CURRENT_LIST_DIR}/src/components/hx711.pio)
-pico_generate_pio_header(main ${CMAKE_CURRENT_LIST_DIR}/src/components/lmt01.pio)
+pico_generate_pio_header(RaspberryLattePico ${CMAKE_CURRENT_LIST_DIR}/src/components/lmt01.pio)
 
-target_sources(main PRIVATE ./src/main.c)
+target_sources(RaspberryLattePico 
+               PRIVATE ./src/main.c 
+               PRIVATE src/components/phasecontrol.c)
 
-target_link_libraries(main PRIVATE pico_stdlib
+target_link_libraries(RaspberryLattePico PRIVATE 
+  pico_stdlib
   hardware_adc
   hardware_uart
   pico_time
@@ -22,4 +27,4 @@ target_link_libraries(main PRIVATE pico_stdlib
   hardware_spi
   pico_multicore)
 
-pico_add_extra_outputs(main)
+pico_add_extra_outputs(RaspberryLattePico)

@@ -5,29 +5,15 @@
  * in inductive voltage spikes
  */
 
-#include "pico/stdlib.h"
+#include "../include/phasecontrol.h"
 #include "pico/time.h"
 #include "pico/multicore.h"
 #include "pico/util/queue.h"
 
-#define RISING             0x08
-#define FALLING            0x04
 #define PERIOD_1_25        20833
 #define PERIOD_1_00        16667
 #define PERIOD_0_75        12500
 #define PERIOD_0_50        8333
-
-// Message instructions. Or'd over value if applicable
-#define SET_DUTY           0x10000000
-#define DUTY_MASK          0x0000007F
-#define IS_AC_ON           0x20000000
-
-typedef struct {
-  uint8_t event;             // RISING or FALLING
-  uint8_t zerocross_pin;     // GPIO that senses event at every zerocrossing
-  int64_t zerocross_shift;   // Time between zerocross trigger and actual zero cross
-  uint8_t out_pin;           // Load output pin
-} PhasecontrolConfig;
 
 static PhasecontrolConfig config;
 
