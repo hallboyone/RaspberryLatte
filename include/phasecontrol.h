@@ -10,6 +10,10 @@
 #define RISING             0x08
 #define FALLING            0x04
 
+/**
+ * Structure holding the configuration values of a phase controller for and
+ * inductive load.
+ */
 typedef struct {
   uint8_t event;             ///< RISING or FALLING
   uint8_t zerocross_pin;     ///< GPIO that senses event at every zerocrossing

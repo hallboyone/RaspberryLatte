@@ -80,6 +80,6 @@ int main(){
     */
     //sleep_ms(50);
     packData(0, 1, 2, 3, &payload);
-    gpio_put(LED_PIN, 1);
+    gpio_put(LED_PIN, phasecontrol_is_ac_hot());
   }
 }
