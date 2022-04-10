@@ -99,7 +99,7 @@ static void phasecontrol_loop_core1() {
   gpio_set_pulls(config.zerocross_pin, false, true);
   gpio_set_irq_enabled_with_callback(config.zerocross_pin, config.event, true, &switch_scheduler);
 
-  update_queue_s8(&ac_on_queue, 1);
+  update_queue_s8(&ac_on_queue, 0);
   while (true) {
     if (!queue_is_empty(&power_queue)){
       // New power setting sent to core1
@@ -115,8 +115,8 @@ static void phasecontrol_loop_core1() {
 /**
  * Called from core 0. Launches core 1 and passes it the required data.
  */
-void phasecontrol_setup(PhasecontrolConfig * config_) {
-  config = *config_;
+void phasecontrol_setup(PhasecontrolConfig * user_config) {
+  config = *user_config;
 
   // Set up queues and initialize the power queue with -1
   queue_init(&power_queue, sizeof(int8_t), 1);
