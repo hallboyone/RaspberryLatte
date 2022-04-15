@@ -19,12 +19,10 @@ int main(){
 
   
   // ========= Set up the scale ==========
-  HX711 scale;
-  const uint pio_num = 0;
-  const uint dat_pin = 16;
-  const uint clk_pin = 17;
-  hx711_setup(&scale, pio_num, dat_pin, clk_pin);
-  
+  HX711 scale = {.pio_num = 0,
+                 .dat_pin = 16,
+                 .clk_pin = 17};
+  hx711_setup(&scale);
 
   // ======== Set up pressure sensor ========
   PressureSensor pressure_sensor = {.a_pin = 28};
@@ -55,30 +53,9 @@ int main(){
 		  .baudrate = 115200};
   uart_setup(&pi_uart);
   
-  
-  //uint8_t msg_buf[4];
   uint64_t payload = 0;
   bool led_state = false;
-  //int dir = 1;
   while(1){
-    //if(uart_data_in_rx(&pi_uart)){
-      //uart_read_and_clear(&pi_uart, msg_buf, 4);
-      
-      // Send a 4 byte message containing the scale value
-      //uart_send(&pi_uart, (uint8_t*)&scale_val, 4);
-      
-    //}
-
-    // Read sensors
-    //hx711_read(&scale);
-    /*
-    lmt01_read(&thermo);
-    physical_inputs_read(&switches);
-    pressure_sensor_read(&pressure_sensor);
-    
-    uart_send(&pi_uart, (uint8_t*)&payload, 8);
-    */
-    //sleep_ms(50);
     packData(0, 1, 2, 3, &payload);
     gpio_put(LED_PIN, phasecontrol_is_ac_hot());
   }

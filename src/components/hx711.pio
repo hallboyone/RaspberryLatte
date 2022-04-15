@@ -31,24 +31,25 @@ bit_loop:
 #include "hardware/gpio.h"
 
 typedef struct HX711_{
+    const uint8_t pio_num;
+    const uint8_t dat_pin;
+    const uint8_t clk_pin;
     PIO pio;
     uint sm;
     uint32_t val;
 } HX711;
 
-static inline void hx711_program_init(PIO pio, uint sm, uint offset, uint clk_pin, uint dat_pin) {
-    pio_gpio_init(pio, dat_pin);
-    pio_gpio_init(pio, clk_pin);
-    pio_sm_set_consecutive_pindirs(pio, sm, clk_pin, 1, true);
-    pio_sm_set_consecutive_pindirs(pio, sm, dat_pin, 1, false);
-    //gpio_pull_up(dat_pin);
-
+static inline void hx711_program_init(HX711* scale, uint offset) {
+    pio_gpio_init(scale->pio, scale->dat_pin);
+    pio_gpio_init(scale->pio, scale->clk_pin);
+    pio_sm_set_consecutive_pindirs(scale->pio, scale->sm, scale->clk_pin, 1, true);
+    pio_sm_set_consecutive_pindirs(scale->pio, scale->sm, scale->dat_pin, 1, false);
 
     pio_sm_config c = hx711_program_get_default_config(offset);
     
-    sm_config_set_sideset_pins(&c, clk_pin);
-    sm_config_set_jmp_pin(&c, dat_pin);
-    sm_config_set_in_pins(&c, dat_pin);
+    sm_config_set_sideset_pins(&c, scale->clk_pin);
+    sm_config_set_jmp_pin(&c, scale->dat_pin);
+    sm_config_set_in_pins(&c, scale->dat_pin);
     
     sm_config_set_in_shift(&c, true, false, 0);
     sm_config_set_out_shift(&c, false, true, 32);
@@ -57,15 +58,15 @@ static inline void hx711_program_init(PIO pio, uint sm, uint offset, uint clk_pi
     float div = (float)clock_get_hz(clk_sys)/6000000;
     sm_config_set_clkdiv(&c, div);
     
-    pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_enabled(pio, sm, true);
+    pio_sm_init(scale->pio, scale->sm, offset, &c);
+    pio_sm_set_enabled(scale->pio, scale->sm, true);
 }
 
-static inline void hx711_setup(HX711* scale, uint pio_num, uint dat_pin, uint clk_pin){
-  scale->pio =  (pio_num==0) ? pio0 : pio1;
+static inline void hx711_setup(HX711* scale){
+  scale->pio =  (scale->pio_num==0) ? pio0 : pio1;
   uint offset = pio_add_program(scale->pio, &hx711_program);
   scale->sm = pio_claim_unused_sm(scale->pio, true);
-  hx711_program_init(scale->pio, scale->sm, offset, clk_pin, dat_pin);
+  hx711_program_init(scale, offset);
 }
 
 static inline void hx711_read(HX711* scale){
