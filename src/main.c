@@ -17,7 +17,6 @@ int main(){
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
-  
   // ========= Set up the scale ==========
   HX711 scale = {.pio_num = 0,
                  .dat_pin = 16,
@@ -30,7 +29,7 @@ int main(){
 
   // ======== Set up physical inputs ========
   PhysicalInputs switches = {.gpio_pump = 16,
-			     .gpio_dial = {17, 18, 19, 20}};
+			                       .gpio_dial = {17, 18, 19, 20}};
   physical_inputs_setup(&switches);
 
   // ======== Set up digital thermo ========
@@ -38,14 +37,13 @@ int main(){
                   .sig_pin = 15};
   lmt01_setup(&thermo);
 
-  // ======= Set up phase constrol =======
+  // ======= Set up phase control =======
   PhasecontrolConfig pump_config = {.event           = FALLING,
 				                            .zerocross_pin   = 15,
 				                            .out_pin         = 14,
 				                            .zerocross_shift = 300};
   phasecontrol_setup(&pump_config);
 
- 
   // ========== Set up the UART ==========
   UART pi_uart = {.id = uart1,
 		  .tx_pin = 4,
