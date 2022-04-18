@@ -20,16 +20,13 @@ target_sources(RaspberryLattePico
                PRIVATE ./src/main.c 
                PRIVATE src/components/phasecontrol.c
                PRIVATE src/components/physical_inputs.c
-               PRIVATE src/components/packer.c
-               PRIVATE src/components/uart.c)
+               PRIVATE src/components/packer.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
   hardware_adc
-  hardware_uart
   pico_time
   hardware_pio
-  hardware_spi
   pico_multicore)
 
 pico_add_extra_outputs(RaspberryLattePico)

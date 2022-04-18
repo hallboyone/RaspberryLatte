@@ -5,7 +5,6 @@
 #include "physical_inputs.h"
 #include "pressure_sensor.h"
 #include "packer.h"
-#include "uart.h"
 #include "hx711.pio.h"
 #include "lmt01.pio.h"
 
