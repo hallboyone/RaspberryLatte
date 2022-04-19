@@ -4,7 +4,7 @@
 #include "phasecontrol.h"
 #include "physical_inputs.h"
 #include "pressure_sensor.h"
-#include "packer.h"
+#include "uart_bridge.h"
 #include "hx711.pio.h"
 #include "lmt01.pio.h"
 
@@ -28,6 +28,10 @@ void blink_io(){
 
 int main(){
   stdio_init_all();
+
+  // Read the settings over UART
+  MachineSettings settings;
+  while(!getSettings(&settings)) tight_loop_contents();
 
   // ============ Set up LED =============
   const uint LED_PIN = PICO_DEFAULT_LED_PIN;

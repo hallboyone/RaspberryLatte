@@ -6,7 +6,6 @@ include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
 
 project(RaspberryLattePico C CXX ASM)
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 include_directories(include)
@@ -20,7 +19,7 @@ target_sources(RaspberryLattePico
                PRIVATE ./src/main.c 
                PRIVATE src/components/phasecontrol.c
                PRIVATE src/components/physical_inputs.c
-               PRIVATE src/components/packer.c)
+               PRIVATE src/components/uart_bridge.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
