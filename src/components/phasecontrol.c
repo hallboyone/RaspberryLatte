@@ -117,7 +117,7 @@ static void phasecontrol_loop_core1() {
  */
 void phasecontrol_setup(PhasecontrolConfig * user_config) {
   config = *user_config;
-
+    
   // Set up queues and initialize the power queue with -1
   queue_init(&power_queue, sizeof(int8_t), 1);
   queue_init(&ac_on_queue, sizeof(int8_t), 1);

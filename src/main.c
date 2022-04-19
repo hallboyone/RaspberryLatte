@@ -13,10 +13,12 @@ void controlLED(int * data, int len){
 }
 
 int main(){
+  // Setup UART and clear queue
   stdio_init_all();
-
-  setHandler(0, &controlLED);
-
+  while(getchar_timeout_us(0) != PICO_ERROR_TIMEOUT) tight_loop_contents();
+  
+  assignHandler(0, &controlLED);
+  
   // ============ Set up LED =============
   const uint LED_PIN = PICO_DEFAULT_LED_PIN;
   gpio_init(LED_PIN);
@@ -50,9 +52,5 @@ int main(){
 				                            .zerocross_shift = 300};
   //phasecontrol_setup(&pump_config);
 */
-
-
-  while(1){
-    readMessages(5000000);
-  }
+  readMessages(50);
 }
