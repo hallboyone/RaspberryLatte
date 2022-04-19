@@ -25,7 +25,7 @@
 		"files.associations": {
 			"stdlib.h": "c",
 			"gpio.h": "c",
-			"phasecontrol.h": "c"
+			"type_traits": "c"
 		}
 	}
 }

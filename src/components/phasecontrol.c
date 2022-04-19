@@ -10,6 +10,8 @@
 #include "pico/multicore.h"
 #include "pico/util/queue.h"
 
+#include "uart_bridge.h"
+
 #define PERIOD_1_25        20833
 #define PERIOD_1_00        16667
 #define PERIOD_0_75        12500
@@ -72,7 +74,7 @@ static void switch_scheduler(uint gpio, uint32_t events){
     update_queue_s8(&ac_on_queue, 1);
     off_alarm = add_alarm_in_us(config.zerocross_shift + PERIOD_1_00 + 100, &signal_off, NULL, true);
     
-    if (timeout_idx >= 0){
+    if (timeout_idx > 0){
       // Schedule stop time after 0.75 period
       add_alarm_in_us(config.zerocross_shift+PERIOD_0_75, &stop, NULL, false);
     
@@ -111,13 +113,23 @@ static void phasecontrol_loop_core1() {
 /* ===================================================================
  * ==================== FUNCTIONS FOR CORE 0 =========================
  * ===================================================================*/
+/**
+ * Parses a single byte message sent over UART with id MSG_ID_SET_PUMP
+ * 
+ * @param value a pointer to a single integer containing the data from message
+ * @param len length of data array. Must be 1. 
+ */
+static void phasecontrol_set_duty_cycle_handler(int* value, int len){
+  assert(len==1);
+  phasecontrol_set_duty_cycle((*value<=127) ? *value : 127);
+}
 
 /**
  * Called from core 0. Launches core 1 and passes it the required data.
  */
 void phasecontrol_setup(PhasecontrolConfig * user_config) {
   config = *user_config;
-    
+  
   // Set up queues and initialize the power queue with -1
   queue_init(&power_queue, sizeof(int8_t), 1);
   queue_init(&ac_on_queue, sizeof(int8_t), 1);
@@ -128,11 +140,14 @@ void phasecontrol_setup(PhasecontrolConfig * user_config) {
   while(queue_is_empty(&ac_on_queue)){
     tight_loop_contents();
   }
+
+  // Setup UART handler
+  assignHandler(MSG_ID_SET_PUMP, &phasecontrol_set_duty_cycle_handler);
   return;
 }
 
 /**
- * Write the target duty cycle from -1 to 127 to core1. -1 is off. 
+ * Write the target duty cycle from 0 to 127 to core1 with 0 being off. 
  */
 void phasecontrol_set_duty_cycle(int8_t duty_cycle){
   update_queue_s8(&power_queue, duty_cycle);

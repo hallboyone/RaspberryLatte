@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
-#include "machine_structs.h"
+
+#define MSG_ID_SET_PUMP 0
 
 typedef void (*MessageHandler)(int *, int);
 typedef uint8_t MessageID;
