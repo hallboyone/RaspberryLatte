@@ -1,10 +1,22 @@
 #include "pico/stdlib.h"
 
-#define MSG_ID_SET_PUMP 0
+#define MSG_ID_END_PROGRAM 0
+#define MSG_ID_LED_TEST 1
+#define MSG_ID_RESPONSE_TEST 2
+#define MSG_ID_SET_PUMP 3
+#define MSG_ID_READ_SWITCH 4
 
-typedef void (*MessageHandler)(int *, int);
+/** 
+ * \brief A function that handles UART messages with a certain ID.
+ * 
+ * \param data An int pointer with each element containing one byte of data.
+ * \param len The number of bytes in the message's body 
+ */
+typedef void (*MessageHandler)(int * data, int len);
+
 typedef uint8_t MessageID;
 typedef uint8_t MessageLen;
+
 /**
  * Define the indicated function as the message's handler
  * 
@@ -16,10 +28,13 @@ typedef uint8_t MessageLen;
 int assignHandler(MessageID id, MessageHandler h);
 
 /**
- * Reads messages over the UART until empty or timeout is reached
+ * Read message over the UART if avalible
  * 
- * @param timeout_us Value in microseconds before returning to main loop regardless of uart status
- * 
- * @returns 1 if unknown message was read. 0 else. 
+ * @returns -1 if unknown message was read, 0 if no message was found, and 1 if messge was handled. 
  */
-int readMessages(uint64_t timeout_us);
+int readMessage();
+
+/**
+ * Send message over the UART
+ */
+void sendMessage(MessageID id, int * data, int len);

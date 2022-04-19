@@ -118,6 +118,7 @@ static void phasecontrol_loop_core1() {
  * 
  * @param value a pointer to a single integer containing the data from message
  * @param len length of data array. Must be 1. 
+ * @returns 0 because no return message needed. 
  */
 static void phasecontrol_set_duty_cycle_handler(int* value, int len){
   assert(len==1);

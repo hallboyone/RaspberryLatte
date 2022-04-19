@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "uart_bridge.h"
 #include "pico/time.h"
 
@@ -24,34 +25,39 @@ int assignHandler(MessageID id, MessageHandler h){
 }
 
 /**
- * Reads messages over the UART until empty or timeout is reached
+ * Read message over the UART if avalible
  * 
- * @param timeout_us Value in microseconds before returning to main loop regardless of uart status
- * 
- * @returns 1 if unknown message was read. 0 else. 
+ * @returns -1 if unknown message was read, 0 if no message was found, and 1 if messge was handled. 
  */
-int readMessages(uint64_t timeout_us){
-  // Get absolute timeout time
-  absolute_time_t end_time = make_timeout_time_us(timeout_us);
-  int read_unknown = 0;
-  
-  // Until our timeout
-  while(0 < absolute_time_diff_us(get_absolute_time(), end_time)){
-    // Read message header. Return if none found
-    int msg_header = getchar_timeout_us(0);
-    if(msg_header == PICO_ERROR_TIMEOUT) return read_unknown;
-
-    // Parse header and read associated data
-    MessageID id   = (msg_header & 0xF0)>>4;
-    MessageLen len = (msg_header & 0x0F);
-    int msg_body[len];
-    for(uint8_t n = 0; n < len; n++){
-      assert((msg_body[n]=getchar_timeout_us(10)) != PICO_ERROR_TIMEOUT);
-    }
-
-    // Call handler
-    if (handlers[id]!=NULL) handlers[id](msg_body, len);
-    else read_unknown = 1;
+int readMessage(){
+  // Read message header. Return if none found
+  int msg_header = getchar_timeout_us(0);
+  if(msg_header == PICO_ERROR_TIMEOUT){
+    // If no message was found
+    return 0;
   }
-  return read_unknown;
+
+  // Parse header and read associated data
+  MessageID id   = (msg_header & 0xF0)>>4;
+  MessageLen len = (msg_header & 0x0F);
+  int msg_body[len];
+  for(uint8_t n = 0; n < len; n++){
+    assert((msg_body[n]=getchar_timeout_us(10)) != PICO_ERROR_TIMEOUT);
+  }
+
+  if (handlers[id]==NULL){
+    // Unkown handler
+    return -1;
+  } else {
+    // Call Handler
+    handlers[id](msg_body, len);
+  }
+  return 1;
+}
+
+void sendMessage(MessageID id, int * data, int len){
+  putchar_raw((id<<4) | len);
+  for(int n = 0; n<len; n++){
+    putchar_raw(data[n]);
+  }
 }
