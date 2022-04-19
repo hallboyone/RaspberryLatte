@@ -28,4 +28,5 @@ target_link_libraries(RaspberryLattePico PRIVATE
   hardware_pio
   pico_multicore)
 
-pico_add_extra_outputs(RaspberryLattePico)
+
+#pico_add_extra_outputs(RaspberryLattePico)

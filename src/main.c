@@ -1,43 +1,28 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
-#include "phasecontrol.h"
-#include "physical_inputs.h"
-#include "pressure_sensor.h"
+//#include "phasecontrol.h"
+//#include "physical_inputs.h"
+//#include "pressure_sensor.h"
 #include "uart_bridge.h"
-#include "hx711.pio.h"
-#include "lmt01.pio.h"
+//#include "hx711.pio.h"
+//#include "lmt01.pio.h"
 
-void blink_io(){
-  int timeout = 1000;
-  int msg[2] = {0,0};
-  while(true){
-    msg[0] = getchar_timeout_us(0);
-    if(msg[0] != PICO_ERROR_TIMEOUT){
-      msg[1] = getchar_timeout_us(0);
-      if(msg[1] != PICO_ERROR_TIMEOUT){
-        timeout = msg[1]<<8 | msg[0];
-      }
-    }
-    gpio_put(PICO_DEFAULT_LED_PIN, 1);
-    sleep_ms(timeout);
-    gpio_put(PICO_DEFAULT_LED_PIN, 0);
-    sleep_ms(timeout);
-  }
+void controlLED(int * data, int len){
+  gpio_put(PICO_DEFAULT_LED_PIN, *data != 0);
 }
 
 int main(){
   stdio_init_all();
 
-  // Read the settings over UART
-  MachineSettings settings;
-  while(!getSettings(&settings)) tight_loop_contents();
+  setHandler(0, &controlLED);
 
   // ============ Set up LED =============
   const uint LED_PIN = PICO_DEFAULT_LED_PIN;
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
+/*
   // ========= Set up the scale ==========
   HX711 scale = {.pio_num = 0,
                  .dat_pin = 16,
@@ -64,15 +49,10 @@ int main(){
 				                            .out_pin         = 14,
 				                            .zerocross_shift = 300};
   //phasecontrol_setup(&pump_config);
-  
-  blink_io();
+*/
 
-/*
-  uint64_t payload = 0;
-  bool led_state = false;
+
   while(1){
-    packData(0, 1, 2, 3, &payload);
-    gpio_put(LED_PIN, phasecontrol_is_ac_hot());
+    readMessages(5000000);
   }
-  */
 }

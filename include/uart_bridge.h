@@ -1,9 +1,9 @@
 #include "pico/stdlib.h"
 #include "machine_structs.h"
 
-typedef int (*MessageHandler)(int *);
+typedef void (*MessageHandler)(int *, int);
 typedef uint8_t MessageID;
-
+typedef uint8_t MessageLen;
 /**
  * Define the indicated function as the message's handler
  * 
@@ -12,7 +12,7 @@ typedef uint8_t MessageID;
  * 
  * @returns 1 if messageID was unclaimed. 0 else. 
  */
-int setHandler(MessageHandler h, MessageID id);
+int setHandler(MessageID id, MessageHandler h);
 
 /**
  * Reads messages over the UART until empty or timeout is reached
