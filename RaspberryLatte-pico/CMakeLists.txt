@@ -1,13 +1,3 @@
-# Information from http://derekmolloy.ie/hello-world-introductions-to-cmake/
-
-cmake_minimum_required(VERSION 3.12)
-
-include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
-
-project(RaspberryLattePico C CXX ASM)
-set(CMAKE_C_STANDARD 11)
-pico_sdk_init()
-
 include_directories(include)
 
 add_executable(RaspberryLattePico src/main.c)
