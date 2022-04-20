@@ -18,14 +18,14 @@ add_executable(RaspberryLattePico src/main.c)
 target_sources(RaspberryLattePico 
                PRIVATE ./src/main.c 
                PRIVATE src/components/uart_bridge.c
-               PRIVATE src/components/phasecontrol.c)
+               PRIVATE src/components/pressure_sensor.c)
                #PRIVATE src/components/physical_inputs.c
                #PRIVATE src/components/uart_bridge.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
-  pico_multicore)
-  #hardware_adc
+  pico_multicore
+  hardware_adc)
   #pico_time
   #hardware_pio
   #pico_multicore)

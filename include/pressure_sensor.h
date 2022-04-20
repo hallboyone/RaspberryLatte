@@ -1,18 +1,15 @@
 #include "pico/stdlib.h"
-#include "hardware/adc.h"
 
-typedef struct {
-  uint8_t a_pin;
-  uint16_t val;
-} PressureSensor;
+/**
+ * Configures an anolog input at a_pin to read a pressure sensor and registers as a message handler.
+ * 
+ * \param a_pin The GPIO pin that the pressure signal is attached to. Must be GPIO 26, 27, 28, or 29.
+ */
+void pressure_sensor_setup(uint8_t a_pin);
 
-
-void pressure_sensor_read(PressureSensor * s){
-  adc_select_input(s->a_pin - 26);
-  s->val = adc_read();
-}
-
-void pressure_sensor_setup(PressureSensor * s){
-  adc_init();
-  adc_gpio_init(s->a_pin);
-} 
+/**
+ * \brief Gets the value of the pressure sensor attached to configured pin.
+ * 
+ * \returns The raw value of the configured pressure sensor. 
+ */
+int pressure_sensor_read();

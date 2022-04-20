@@ -5,6 +5,7 @@
 #define MSG_ID_RESPONSE_TEST 2
 #define MSG_ID_SET_PUMP 3
 #define MSG_ID_READ_SWITCH 4
+#define MSG_ID_READ_PRESSURE 5
 
 /** 
  * \brief A function that handles UART messages with a certain ID.

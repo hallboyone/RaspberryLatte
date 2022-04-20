@@ -3,7 +3,7 @@
 
 //#include "phasecontrol.h"
 //#include "physical_inputs.h"
-//#include "pressure_sensor.h"
+#include "pressure_sensor.h"
 #include "uart_bridge.h"
 //#include "hx711.pio.h"
 //#include "lmt01.pio.h"
@@ -41,6 +41,9 @@ int main(){
   gpio_init(LED_PIN);
   gpio_set_dir(LED_PIN, GPIO_OUT);
 
+  // ======== Set up pressure sensor ========
+  pressure_sensor_setup(28);
+
   // Open UART bridge
   while(run){
     readMessage();
@@ -51,10 +54,6 @@ int main(){
                  .dat_pin = 16,
                  .clk_pin = 17};
   //hx711_setup(&scale);
-
-  // ======== Set up pressure sensor ========
-  PressureSensor pressure_sensor = {.a_pin = 28};
-  //pressure_sensor_setup(&pressure_sensor);
 
   // ======== Set up physical inputs ========
   PhysicalInputs switches = {.gpio_pump = 16,
