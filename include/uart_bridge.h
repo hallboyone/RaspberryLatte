@@ -7,6 +7,11 @@
 #define MSG_ID_READ_SWITCH 4
 #define MSG_ID_READ_PRESSURE 5
 
+#define MSG_READ_SUCCESS           1
+#define MSG_READ_FAIL_NO_MSG       0
+#define MSG_READ_FAIL_UNCONF_MSG  -1
+#define MSG_READ_FAIL_INVALID_MSG -2
+
 /** 
  * \brief A function that handles UART messages with a certain ID.
  * 
@@ -37,5 +42,9 @@ int readMessage();
 
 /**
  * Send message over the UART
+ * 
+ * \param id The message id that triggered the send command
+ * \param data Pointer to an int array of length \p len containing the data to be sent
+ * \param len Integer giving the length of the \p data array.
  */
 void sendMessage(MessageID id, int * data, int len);

@@ -25,8 +25,8 @@ static void pressure_sensor_read_handler(int* data, int len){
   if(_a_pin != 255){
     adc_select_input(_a_pin - 26);
     int pressure = adc_read();
-    response[0] = (pressure>>0) & 0xFF;
-    response[1] = (pressure>>4) & 0xFF;
+    response[0] = (pressure>>8) & 0xFF;
+    response[1] = (pressure>>0) & 0xFF;
   }
   sendMessage(MSG_ID_READ_PRESSURE, response, 2);
 }

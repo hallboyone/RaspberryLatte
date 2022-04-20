@@ -30,7 +30,7 @@ void sendResponse(int * data, int len){
 int main(){
   // Setup UART and clear queue
   stdio_init_all();
-  while(getchar_timeout_us(0) != PICO_ERROR_TIMEOUT) tight_loop_contents();
+  while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
   
   assignHandler(MSG_ID_END_PROGRAM, &endProgram);
   assignHandler(MSG_ID_LED_TEST, &controlLED);

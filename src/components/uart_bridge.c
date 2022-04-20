@@ -31,30 +31,42 @@ int assignHandler(MessageID id, MessageHandler h){
  */
 int readMessage(){
   // Read message header. Return if none found
-  int msg_header = getchar_timeout_us(0);
+  int msg_header = getchar_timeout_us(10);
   if(msg_header == PICO_ERROR_TIMEOUT){
     // If no message was found
-    return 0;
-  }
+    return MSG_READ_FAIL_NO_MSG;
+  } 
 
-  // Parse header and read associated data
+  // Parse header and check if message is valid
   MessageID id   = (msg_header & 0xF0)>>4;
   MessageLen len = (msg_header & 0x0F);
+  if (handlers[id]==NULL){
+    // Unkown handler. Empty buffer and return.
+    while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
+    return MSG_READ_FAIL_UNCONF_MSG;
+  }
+
+  // Get message data
   int msg_body[len];
   for(uint8_t n = 0; n < len; n++){
-    assert((msg_body[n]=getchar_timeout_us(10)) != PICO_ERROR_TIMEOUT);
+    if((msg_body[n]=getchar_timeout_us(10)) == PICO_ERROR_TIMEOUT){
+      // If not enough data, return -2
+      return MSG_READ_FAIL_INVALID_MSG;
+    }
   }
 
-  if (handlers[id]==NULL){
-    // Unkown handler
-    return -1;
-  } else {
-    // Call Handler
-    handlers[id](msg_body, len);
-  }
-  return 1;
+  // Call handler
+  handlers[id](msg_body, len);
+  return MSG_READ_SUCCESS;
 }
 
+/**
+ * Send message over the UART
+ * 
+ * \param id The message id that triggered the send command
+ * \param data Pointer to an int array of length \p len containing the data to be sent
+ * \param len Integer giving the length of the \p data array.
+ */
 void sendMessage(MessageID id, int * data, int len){
   putchar_raw((id<<4) | len);
   for(int n = 0; n<len; n++){
