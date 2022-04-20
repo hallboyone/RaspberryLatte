@@ -1,6 +1,6 @@
-#include "pressure_sensor.h"
-
 #include "hardware/adc.h"
+
+#include "pressure_sensor.h"
 #include "uart_bridge.h"
 
 static uint8_t _a_pin = 255;

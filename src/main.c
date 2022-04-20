@@ -28,20 +28,14 @@ void sendResponse(int * data, int len){
 }
 
 int main(){
-  // Setup UART and clear queue
+  // Setup UART, clear queue, and assign endProgram command
   stdio_init_all();
   while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
-  
   assignHandler(MSG_ID_END_PROGRAM, &endProgram);
-  assignHandler(MSG_ID_LED_TEST, &controlLED);
-  assignHandler(MSG_ID_RESPONSE_TEST, &sendResponse);
 
-  // ============ Set up LED =============
-  const uint LED_PIN = PICO_DEFAULT_LED_PIN;
-  gpio_init(LED_PIN);
-  gpio_set_dir(LED_PIN, GPIO_OUT);
+  gpio_init(PICO_DEFAULT_LED_PIN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
-  // ======== Set up pressure sensor ========
   pressure_sensor_setup(28);
 
   // Open UART bridge

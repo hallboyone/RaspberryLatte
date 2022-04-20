@@ -36,7 +36,8 @@ int assignHandler(MessageID id, MessageHandler h);
 /**
  * Read message over the UART if avalible
  * 
- * @returns -1 if unknown message was read, 0 if no message was found, and 1 if messge was handled. 
+ * @returns -2 if invalid message was read, -1 if unknown message was read, 
+ * 0 if no message was found, and 1 if messge was handled. 
  */
 int readMessage();
 
