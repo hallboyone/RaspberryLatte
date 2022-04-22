@@ -9,7 +9,8 @@ target_sources(RaspberryLattePico
                PRIVATE ./src/main.c 
                PRIVATE src/components/uart_bridge.c
                PRIVATE src/components/pressure_sensor.c
-               PRIVATE src/components/binary_input.c)
+               PRIVATE src/components/binary_input.c
+               PRIVATE src/components/phasecontrol.c)
                #PRIVATE src/components/uart_bridge.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 

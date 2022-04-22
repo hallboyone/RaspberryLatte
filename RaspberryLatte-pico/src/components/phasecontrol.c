@@ -126,6 +126,17 @@ static void phasecontrol_set_duty_cycle_handler(int* value, int len){
 }
 
 /**
+ * Returns 1 over UART if AC is hot. 0 else.
+ * 
+ * @param value Pointer to an unused integer array
+ * @param len Length of unused integer array
+ */
+static void phasecontrol_is_ac_hot_handler(int* value, int len){
+  int response = phasecontrol_is_ac_hot();
+  sendMessage(MSG_ID_GET_AC_ON, &response, 1);
+}
+
+/**
  * Called from core 0. Launches core 1 and passes it the required data.
  */
 void phasecontrol_setup(PhasecontrolConfig * user_config) {
@@ -142,8 +153,9 @@ void phasecontrol_setup(PhasecontrolConfig * user_config) {
     tight_loop_contents();
   }
 
-  // Setup UART handler
+  // Setup UART handlers
   assignHandler(MSG_ID_SET_PUMP, &phasecontrol_set_duty_cycle_handler);
+  assignHandler(MSG_ID_GET_AC_ON, &phasecontrol_set_duty_cycle_handler);
   return;
 }
 

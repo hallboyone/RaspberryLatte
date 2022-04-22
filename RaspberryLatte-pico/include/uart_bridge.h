@@ -1,6 +1,6 @@
 #include "pico/stdlib.h"
 
-#define MSG_ID_END_PROGRAM   0
+#define MSG_ID_END_PROGRAM   0 /**< Breaks the infinite while loop and exits the firmware */
 
 #define MSG_ID_SET_LEDS      1
 #define MSG_ID_SET_PUMP      2
@@ -10,6 +10,7 @@
 #define MSG_ID_GET_PRESSURE  9
 #define MSG_ID_GET_WEIGHT   10
 #define MSG_ID_GET_TEMP     11
+#define MSG_ID_GET_AC_ON    12 /**< Returns true if the AC is on */
 
 
 #define MSG_READ_SUCCESS           1
