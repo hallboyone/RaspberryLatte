@@ -1,7 +1,7 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
-//#include "phasecontrol.h"
+#include "phasecontrol.h"
 #include "binary_input.h"
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
@@ -33,9 +33,17 @@ int main(){
 
   const uint8_t pump_switch_gpio = 16;
   const uint8_t mode_select_gpio[4] = {17,18,19,20};
-  binary_inputs_setup(1, &pump_switch_gpio, true);
-  binary_inputs_setup(4, mode_select_gpio, true);
+  binary_input_setup(1, &pump_switch_gpio, true);
+  binary_input_setup(4, mode_select_gpio, true);
   
+  // Set up phase control
+  PhasecontrolConfig pump_config = 
+  {.event           = FALLING,
+  .zerocross_pin   = 15,
+  .out_pin         = 14,
+  .zerocross_shift = 300};
+  phasecontrol_setup(&pump_config);
+
   // Open UART bridge
   while(run){
     readMessage();
@@ -47,21 +55,11 @@ int main(){
                  .clk_pin = 17};
   //hx711_setup(&scale);
 
-  // ======== Set up physical inputs ========
-  PhysicalInputs switches = {.gpio_pump = 16,
-			                       .gpio_dial = {17, 18, 19, 20}};
-  physical_inputs_setup(&switches);
-
   // ======== Set up digital thermo ========
   LMT01 thermo = {.pio_num = 0,
                   .sig_pin = 15};
   //lmt01_setup(&thermo);
 
-  // ======= Set up phase control =======
-  PhasecontrolConfig pump_config = {.event           = FALLING,
-				                            .zerocross_pin   = 15,
-				                            .out_pin         = 14,
-				                            .zerocross_shift = 300};
-  //phasecontrol_setup(&pump_config);
+
 */
 }
