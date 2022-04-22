@@ -1,6 +1,8 @@
 /**
- * [!!!!OLD!!!!]Interface for a SPST and SP4T switch. The state is encoded in a 8 bit value as
- *       [7-3: Not used][2: SPST off/on][1-0: SP4T value]
+ * Handles the setup and reading of up to 8 multi-throw switches. Each switch
+ * is setup by calling <binary_inputs_setup> with its throw count, pins, and
+ * pull-down settings. This also registers an internal packer function as the
+ * UART handler for MSG_ID_GET_SWITCH messages.
  */
 
 #include "pico/stdlib.h"
@@ -14,7 +16,7 @@
  * @param pins Pointer to an array of GPIO pin numbers of length \p num_throw.
  * @param pull_down True if pins should be pulled down. False else. 
  */
-void binary_inputs_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down);
+void binary_input_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down);
 
 /**
  * Reads the requested switch.
@@ -30,4 +32,4 @@ uint8_t readSwitch(uint8_t switch_idx);
  * @param data Pointer to switch indicies to read. If empty, return all.
  * @param len Number of indicies in data array. 
  */
-static void physical_inputs_read_handler(int * data, int len);
+static void binary_input_read_handler(int * data, int len);

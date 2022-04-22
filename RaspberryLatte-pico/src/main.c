@@ -2,7 +2,7 @@
 #include "pico/time.h"
 
 //#include "phasecontrol.h"
-#include "binary_inputs.h"
+#include "binary_input.h"
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
 //#include "hx711.pio.h"
@@ -18,23 +18,16 @@ void endProgram(int * data, int len){
   run = false;
 }
 
-void sendResponse(int * data, int len){
-  int my_response[len];
-  // Flip order
-  for (int i=0; i<len; i++){
-    my_response[i] = data[len-i-1];
-  }
-  sendMessage(MSG_ID_RESPONSE_TEST, my_response, len);
-}
-
 int main(){
   // Setup UART, clear queue, and assign endProgram command
   stdio_init_all();
   while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
+  
   assignHandler(MSG_ID_END_PROGRAM, &endProgram);
 
   gpio_init(PICO_DEFAULT_LED_PIN);
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+  assignHandler(MSG_ID_END_PROGRAM, &endProgram);
 
   pressure_sensor_setup(28);
 

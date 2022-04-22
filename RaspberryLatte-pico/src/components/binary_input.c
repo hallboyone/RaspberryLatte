@@ -1,11 +1,10 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "binary_inputs.h"
+#include "binary_input.h"
 #include "uart_bridge.h"
 
-static uint8_t * _binary_inputs[8] = {NULL, NULL, NULL, NULL,
-                                      NULL, NULL, NULL, NULL};
+static uint8_t * _binary_inputs[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static uint8_t _num_binary_inputs = 0;
 
 /**
@@ -17,7 +16,7 @@ static uint8_t _num_binary_inputs = 0;
  * @param pins Pointer to an array of GPIO pin numbers of length \p num_throw.
  * @param pull_down True if pins should be pulled down. False else. 
  */
-void binary_inputs_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down){
+void binary_input_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down){
   assert(_num_binary_inputs < 8);
   
   // Copy data to _binary_inputs. Data is stored as [num_throw, pin1, pin2, ... , pin_num_throw]
@@ -34,7 +33,7 @@ void binary_inputs_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down
 
   _num_binary_inputs += 1;
 
-  assignHandler(MSG_ID_READ_SWITCH, &physical_inputs_read_handler);
+  assignHandler(MSG_ID_GET_SWITCH, &binary_input_read_handler);
 }
 
 /**
@@ -60,20 +59,20 @@ uint8_t readSwitch(uint8_t switch_idx){
  * @param data Pointer to switch indicies to read. If empty, return all.
  * @param len Number of indicies in data array. 
  */
-static void physical_inputs_read_handler(int * data, int len){
+static void binary_input_read_handler(int * data, int len){
   if(len == 0){
     // Read all switches in order they where added
     int response[_num_binary_inputs];
     for(uint8_t s_i = 0; s_i < _num_binary_inputs; s_i++){
       response[s_i] = readSwitch(s_i);
     }
-    sendMessage(MSG_ID_READ_SWITCH, response, _num_binary_inputs);
+    sendMessage(MSG_ID_GET_SWITCH, response, _num_binary_inputs);
   } else {
     // Read only the requested switches
     int response[len];
     for(uint8_t s_i = 0; s_i < len; s_i++){
       response[s_i] = readSwitch(data[s_i]);
     }
-    sendMessage(MSG_ID_READ_SWITCH, response, len);
+    sendMessage(MSG_ID_GET_SWITCH, response, len);
   }
 }

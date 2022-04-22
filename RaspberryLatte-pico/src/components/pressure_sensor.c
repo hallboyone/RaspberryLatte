@@ -28,7 +28,7 @@ static void pressure_sensor_read_handler(int* data, int len){
     response[0] = (pressure>>8) & 0xFF;
     response[1] = (pressure>>0) & 0xFF;
   }
-  sendMessage(MSG_ID_READ_PRESSURE, response, 2);
+  sendMessage(MSG_ID_GET_PRESSURE, response, 2);
 }
 
 /**
@@ -42,5 +42,5 @@ void pressure_sensor_setup(uint8_t a_pin){
 
   _a_pin = a_pin;
 
-  assignHandler(MSG_ID_READ_PRESSURE, &pressure_sensor_read_handler);
+  assignHandler(MSG_ID_GET_PRESSURE, &pressure_sensor_read_handler);
 } 
