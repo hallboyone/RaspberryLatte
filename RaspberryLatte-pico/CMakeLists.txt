@@ -8,8 +8,8 @@ add_executable(RaspberryLattePico src/main.c)
 target_sources(RaspberryLattePico 
                PRIVATE ./src/main.c 
                PRIVATE src/components/uart_bridge.c
-               PRIVATE src/components/pressure_sensor.c)
-               #PRIVATE src/components/physical_inputs.c
+               PRIVATE src/components/pressure_sensor.c
+               PRIVATE src/components/binary_inputs.c)
                #PRIVATE src/components/uart_bridge.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 

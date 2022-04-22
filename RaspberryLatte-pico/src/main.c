@@ -2,7 +2,7 @@
 #include "pico/time.h"
 
 //#include "phasecontrol.h"
-//#include "physical_inputs.h"
+#include "binary_inputs.h"
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
 //#include "hx711.pio.h"
@@ -38,6 +38,11 @@ int main(){
 
   pressure_sensor_setup(28);
 
+  const uint8_t pump_switch_gpio = 16;
+  const uint8_t mode_select_gpio[4] = {17,18,19,20};
+  binary_inputs_setup(1, &pump_switch_gpio, true);
+  binary_inputs_setup(4, mode_select_gpio, true);
+  
   // Open UART bridge
   while(run){
     readMessage();

@@ -20,6 +20,9 @@
     "files.associations": {
         "stdlib.h": "c",
         "gpio.h": "c",
-        "phasecontrol.h": "c"
+        "phasecontrol.h": "c",
+        "malloc.h": "c",
+        "memory.h": "c",
+        "string.h": "c"
     },
 }
