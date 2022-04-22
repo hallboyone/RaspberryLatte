@@ -45,7 +45,7 @@ int main(){
   .zerocross_shift = 300};
   phasecontrol_setup(&pump_config);
 
-  // Open UART bridge
+  // Continually look for a message and then run maintenance
   while(run){
     readMessage();
     runMaintenance();
