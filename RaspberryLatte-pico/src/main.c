@@ -1,6 +1,7 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
+#include "maintainer.h"
 #include "phasecontrol.h"
 #include "binary_input.h"
 #include "pressure_sensor.h"
@@ -47,6 +48,7 @@ int main(){
   // Open UART bridge
   while(run){
     readMessage();
+    runMaintenance();
   }
 /*
   // ========= Set up the scale ==========
