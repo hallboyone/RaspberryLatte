@@ -6,7 +6,8 @@
 #include "binary_input.h"
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
-//#include "hx711.pio.h"
+#include "hx711.h"
+
 //#include "lmt01.pio.h"
 
 bool run = true;
@@ -44,6 +45,8 @@ int main(){
   .out_pin         = 14,
   .zerocross_shift = 300};
   phasecontrol_setup(&pump_config);
+
+  hx711_setup(0, 3, 2);
 
   // Continually look for a message and then run maintenance
   while(run){

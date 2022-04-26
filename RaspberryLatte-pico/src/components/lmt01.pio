@@ -1,3 +1,4 @@
+/*
 ; Reads data from the LMT01, a TI tempurature sensor that transmits some number of
 ; pulses porportional to the measured tempurature
 
@@ -6,7 +7,7 @@
     wait 0 pin 0           ; Wait for start of pulse train
 counting_loop:             ; Loop until pin goes low or time is up
     jmp pin no_pulse       ; No pulse, skip increment steps
-    mov x, !y	           ; Pulse. Increment y using (y+1)=!((!y)-1)
+    mov x, !y	             ; Pulse. Increment y using (y+1)=!((!y)-1)
     jmp x-- dec_label                     
 dec_label:
     mov y, !x
@@ -16,18 +17,10 @@ no_pulse:
     jmp x-- counting_loop  ; Timer not expired. Loop again
     in  y, 32              ; Send counter value to program
     
-%c-sdk{
+%c-sdk{*/
 #include "hardware/clocks.h"
 #include "hardware/gpio.h"
 #include "pico/time.h"
-
-typedef struct {
-    uint pio_num;
-    uint sig_pin;
-    PIO pio;
-    uint sm;
-    uint32_t val;
-} LMT01;
 
 static const int PULSE_COUNTS [20] = {181,  338,  494,  651,
 			       808,  966,  1125, 1284,
@@ -54,6 +47,13 @@ static const float PULSE_SLOPES [19] = {0.063694268,
 				 0.061349693,
 				 0.060975610,
 				 0.061728395};
+
+static uint _pio_num;
+static uint _sig_pin;
+static PIO _pio;
+static  _sm;
+static uint32_t _val;
+static int _latest_temp = 0;
 
 static int getTemp(int pulse_count){
   if (pulse_count < PULSE_COUNTS[1]){
@@ -97,10 +97,10 @@ static int getTemp(int pulse_count){
   } 
 }
 
-static inline void lmt01_program_init(PIO pio, uint sm, uint offset, uint dat_pin) {
+static inline void lmt01_program_init(uint offset, uint dat_pin) {
     // Setup dat_pin
-    pio_sm_set_consecutive_pindirs(pio, sm, dat_pin, 1, false);
-    pio_gpio_init(pio, dat_pin);
+    pio_sm_set_consecutive_pindirs(_pio, _sm, dat_pin, 1, false);
+    pio_gpio_init(_pio, dat_pin);
 
     pio_sm_config c = lmt01_program_get_default_config(offset);
     
@@ -114,22 +114,36 @@ static inline void lmt01_program_init(PIO pio, uint sm, uint offset, uint dat_pi
     float div = (float)clock_get_hz(clk_sys)/2000000.0;
     sm_config_set_clkdiv(&c, div);
     
-    pio_sm_init(pio, sm, offset, &c);
-    pio_sm_set_enabled(pio, sm, true);
+    pio_sm_init(_pio, _sm, offset, &c);
+    pio_sm_set_enabled(_pio, _sm, true);
 }
 
 
-static inline void lmt01_read(LMT01 * thermo){
-    thermo->val = getTemp(pio_sm_get_blocking(thermo->pio, thermo->sm));
-    return;
+static inline int lmt01_read(){
+    return getTemp(pio_sm_get_blocking(_pio, _sm));
 }
 
-static inline void lmt01_setup(LMT01 * thermo){
-    thermo->pio =  (thermo->pio_num==0) ? pio0 : pio1;
-    uint offset = pio_add_program(thermo->pio, &lmt01_program);
-    thermo->sm = pio_claim_unused_sm(thermo->pio, true);
-    lmt01_program_init(thermo->pio, thermo->sm, offset, thermo->sig_pin);
-    lmt01_read(thermo);
-    lmt01_read(thermo);
+static inline void lmt01_setup(uint8_t pio_num, uint8_t sig_pin){
+    _pio =  (pio_num==0 ? pio0 : pio1);
+    uint offset = pio_add_program(_pio, &lmt01_program);
+    _sm = pio_claim_unused_sm(_pio, true);
+    lmt01_program_init(offset, thermo->sig_pin);
+    lmt01_read();
+    lmt01_read();
+}
+
+/**
+ * Clears the RX buffer and saves the most recent value. The LMT01 takes around 50ms
+ * pre reading so this procedure ensures a query can be answered quickly with the
+ * most recent value.
+ */
+static void lmt01_maintainer(){
+  while(!pio_sm_is_rx_fifo_empty()){
+    latest_temp = lmt01_read();
+  }
+}
+
+static void lmt01_read_handler(int* value, int len){
+  sendMessage(MSG_ID_GET_TEMP, &latest)
 }
 %}

@@ -12,7 +12,7 @@ typedef void (*Maintainer)();
 /**
  * Save the pointer to the maintainer function along with its service interval in us
  */
-void registerMaintainer(Maintainer fun, uint64_t interval_us);
+void registerMaintainer(Maintainer fun);
 
 /**
  * Iterate through all registered maintainers and call them if their service interval 
