@@ -7,6 +7,7 @@
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
 #include "hx711.h"
+#include "heater.h"
 
 //#include "lmt01.pio.h"
 
@@ -48,6 +49,8 @@ int main(){
 
   hx711_setup(0, 3, 2);
 
+  heater_setup(PICO_DEFAULT_LED_PIN);
+  
   // Continually look for a message and then run maintenance
   while(run){
     readMessage();

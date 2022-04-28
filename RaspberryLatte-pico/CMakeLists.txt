@@ -12,7 +12,8 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/binary_input.c
                PRIVATE src/components/phasecontrol.c
                PRIVATE src/components/hx711.c
-               PRIVATE src/components/maintainer.c)
+               PRIVATE src/components/maintainer.c
+               PRIVATE src/components/heater.c)
                #PRIVATE src/components/uart_bridge.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 

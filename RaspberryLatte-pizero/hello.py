@@ -28,10 +28,15 @@ def getWeight():
     response = bitstruct.unpack('u4u4u24', ser.read_all())
     print(f"Current weight (g): {-0.000152968191*response[2]+2491.937016352400}")
 
+def setHeater():
+    msg_id = int(input("Enter heater setting\n> "))
+    ser.write(bitstruct.pack('u4u4u8', 4, 1, msg_id))
+
 ser = serial.Serial(port="/dev/ttyS0", baudrate = 115200)
 #getPressure()
 #getSwitches()
-getWeight()
+#getWeight()
+setHeater()
 #while(True):
     # msg_id = int(input("Enter message ID\n> "))
     # msg_len = 1
