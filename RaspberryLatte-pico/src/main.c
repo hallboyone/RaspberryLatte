@@ -27,9 +27,9 @@ int main(){
   // Setup UART, clear queue, and assign endProgram command
   stdio_init_all();
   while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
-  
   assignHandler(MSG_ID_END_PROGRAM, &endProgram);
 
+  // Setup the onboard LED
   gpio_init(PICO_DEFAULT_LED_PIN);
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
@@ -58,17 +58,9 @@ int main(){
     runMaintenance();
   }
 /*
-  // ========= Set up the scale ==========
-  HX711 scale = {.pio_num = 0,
-                 .dat_pin = 16,
-                 .clk_pin = 17};
-  //hx711_setup(&scale);
-
   // ======== Set up digital thermo ========
   LMT01 thermo = {.pio_num = 0,
                   .sig_pin = 15};
   //lmt01_setup(&thermo);
-
-
 */
 }
