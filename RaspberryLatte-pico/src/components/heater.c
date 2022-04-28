@@ -1,7 +1,7 @@
 /**
  * @file heater.c
  * @author Richard Hall (hallboyone@icloud.com)
- * @brief Sets up a low frequnecy (~0.5Hz) PWm signal for controlling a heating element
+ * @brief Sets up a low frequnecy (~1Hz) PWM signal for controlling a heating element
  * through a zerocross SSR
  * @version 0.1
  * @date 2022-04-27
@@ -11,8 +11,8 @@
 #include "heater.h"         /** Function definitions */
 #include "uart_bridge.h"    /** Message handling */
 
-#define PWM_PERIOD_MS 1050 /** Length of 1 PWM cycle */
-#define PWM_INCREMENTS  64 /** Number of discrete PWM settings */
+#define PWM_PERIOD_MS 1050 /** Length of 1 PWM cycle. Set to (1000/60)*63 */
+#define PWM_INCREMENTS  64 /** Number of discrete PWM settings Valid setting will be [0,PWM_INCREMENTS-1]*/
 /**
  * There are also a few internal variables that are needed for the heater to run correctly.
  * First, the pin the pwm is attached to needs to be saved. Second, the current duty cycle
