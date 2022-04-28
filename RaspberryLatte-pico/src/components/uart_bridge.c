@@ -45,7 +45,10 @@ int readMessage(){
     while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
     return MSG_READ_FAIL_UNCONF_MSG;
   }
-
+  
+  // Sleep for a ms to make sure any body data gets transmitted
+  sleep_ms(1);
+  
   // Get message data
   int msg_body[len];
   for(uint8_t n = 0; n < len; n++){
