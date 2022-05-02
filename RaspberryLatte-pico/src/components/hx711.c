@@ -33,16 +33,6 @@ static inline void hx711_program_init(uint8_t dat_pin, uint8_t clk_pin, uint off
     pio_sm_set_enabled(_pio, _sm, true);
 }
 
-void hx711_setup(uint8_t pio_num, uint8_t dat_pin, uint8_t clk_pin){
-  _pio =  (pio_num==0) ? pio0 : pio1;
-  uint offset = pio_add_program(_pio, &hx711_program);
-  _sm = pio_claim_unused_sm(_pio, true);
-  hx711_program_init(dat_pin, clk_pin, offset);
-
-  assignHandler(MSG_ID_GET_WEIGHT, &hx711_read_handler);
-  registerMaintainer(&hx711_maintainer);
-}
-
 static void hx711_maintainer(){
     while(!pio_sm_is_rx_fifo_empty(_pio, _sm)){
         _latest_weight = pio_sm_get_blocking(_pio, _sm);
@@ -57,3 +47,14 @@ static void hx711_read_handler(int * msg, int len){
     sendMessage(MSG_ID_GET_WEIGHT, response, 3);
     return;
 }
+
+void hx711_setup(uint8_t pio_num, uint8_t dat_pin, uint8_t clk_pin){
+  _pio =  (pio_num==0) ? pio0 : pio1;
+  uint offset = pio_add_program(_pio, &hx711_program);
+  _sm = pio_claim_unused_sm(_pio, true);
+  hx711_program_init(dat_pin, clk_pin, offset);
+
+  assignHandler(MSG_ID_GET_WEIGHT, &hx711_read_handler);
+  registerMaintainer(&hx711_maintainer);
+}
+
