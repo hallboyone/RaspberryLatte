@@ -47,7 +47,7 @@ int main(){
 
   heater_setup(HEATER_PWM_PIN);
 
-  lmt01_setup(0, 15);
+  lmt01_setup(0, LMT01_DATA_PIN);
 
   // Continually look for a message and then run maintenance
   while(run){
