@@ -9,15 +9,10 @@
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
 #include "hx711.h"
+#include "lmt01.h"
 #include "heater.h"
 
-//#include "lmt01.pio.h"
-
 bool run = true;
-
-void controlLED(int * data, int len){
-  gpio_put(PICO_DEFAULT_LED_PIN, *data != 0);
-}
 
 void endProgram(int * data, int len){
   run = false;
@@ -52,15 +47,11 @@ int main(){
 
   heater_setup(HEATER_PWM_PIN);
 
+  lmt01_setup(0, 15);
+
   // Continually look for a message and then run maintenance
   while(run){
     readMessage();
     runMaintenance();
   }
-/*
-  // ======== Set up digital thermo ========
-  LMT01 thermo = {.pio_num = 0,
-                  .sig_pin = 15};
-  //lmt01_setup(&thermo);
-*/
 }
