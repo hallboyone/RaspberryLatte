@@ -7,6 +7,10 @@
 
 #include "pico/stdlib.h"
 
+
+#define PULL_UP   0
+#define PULL_DOWN 1
+
 /**
  * Create a binary input with the indicated number of throws. Only one of the throws
  * can be active at a time. The state of the switch is packed into binary indicating
@@ -14,23 +18,16 @@
  *
  * @param num_pins The number of pins for the binary input.
  * @param pins Pointer to an array of GPIO pin numbers of length \p num_throw.
- * @param pull_down True if pins should be pulled down. False else. 
+ * @param pull_dir Set to either PULL_UP or PULL_DOWN 
  * @param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  */
-void binary_input_setup(uint8_t num_pins, const uint8_t * pins, bool pull_down, bool muxed);
+void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool muxed);
 
 /**
- * Reads the requested switch.
+ * Reads the requested switch. If switch is muxed, returns the bit mask of the pins. Else returns the index of first high pin
  * 
  * @param switch_idx Index of the requested switch. Must have been setup previously. 
- * @returns 0 if non of the switches throws are triggered. Else returns the first triggered throw (Note: 1 indexed).
+ * @returns If switch is not muxed, then the index of the first active pin is returned (1 indexed, 0 if no pin is found)
+ * If switch is muxed, then the the state of the pins are encoded into a uint8_t mask (i.e, second of three pins active, 010 returned)
  */
-uint8_t readSwitch(uint8_t switch_idx);
- 
-/**
- * Read the physical inputs and return their values over UART
- * 
- * @param data Pointer to switch indicies to read. If empty, return all.
- * @param len Number of indicies in data array. 
- */
-static void binary_input_read_handler(int * data, int len);
+uint8_t binary_input_read(uint8_t switch_idx);
