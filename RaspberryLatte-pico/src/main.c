@@ -31,9 +31,9 @@ int main(){
   pressure_sensor_setup(PRESSURE_SENSOR_PIN);
 
   const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
-  const uint8_t mode_select_gpio[4] = {DIAL_0_PIN, DIAL_1_PIN, DIAL_2_PIN, DIAL_3_PIN};
-  binary_input_setup(1, &pump_switch_gpio, true);
-  binary_input_setup(4, mode_select_gpio, true);
+  const uint8_t mode_select_gpio[4] = {DIAL_A_PIN, DIAL_B_PIN};
+  binary_input_setup(1, &pump_switch_gpio, true, false);
+  binary_input_setup(2, mode_select_gpio, true, true);
   
   // Set up phase control
   PhasecontrolConfig pump_config = 

@@ -12,11 +12,12 @@
  * can be active at a time. The state of the switch is packed into binary indicating
  * the index of the active pin.
  *
- * @param num_throw The number of throws in the binary input.
+ * @param num_pins The number of pins for the binary input.
  * @param pins Pointer to an array of GPIO pin numbers of length \p num_throw.
  * @param pull_down True if pins should be pulled down. False else. 
+ * @param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  */
-void binary_input_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down);
+void binary_input_setup(uint8_t num_pins, const uint8_t * pins, bool pull_down, bool muxed);
 
 /**
  * Reads the requested switch.

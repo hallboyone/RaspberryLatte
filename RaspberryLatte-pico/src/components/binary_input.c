@@ -12,23 +12,25 @@ static uint8_t _num_binary_inputs = 0;
  * can be active at a time. The state of the switch is packed into binary indicating
  * the index of the active pin.
  *
- * @param num_throw The number of throws in the binary input.
+ * @param num_pins The number of throws in the binary input.
  * @param pins Pointer to an array of GPIO pin numbers of length \p num_throw.
  * @param pull_down True if pins should be pulled down. False else. 
+ * @param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  */
-void binary_input_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down){
+void binary_input_setup(uint8_t num_pins, const uint8_t * pins, bool pull_down, bool muxed){
   assert(_num_binary_inputs < 8);
   
-  // Copy data to _binary_inputs. Data is stored as [num_throw, pin1, pin2, ... , pin_num_throw]
-  _binary_inputs[_num_binary_inputs] = (uint8_t*)malloc((1+num_throw)*sizeof(uint8_t));
-  _binary_inputs[_num_binary_inputs][0] = num_throw;
-  memcpy(_binary_inputs[_num_binary_inputs]+1, pins, num_throw);
+  // Copy data to _binary_inputs. Data is stored as [num_pins, muxed, pin1, pin2, ... , pin_num_throw]
+  _binary_inputs[_num_binary_inputs] = (uint8_t*)malloc((2+num_pins)*sizeof(uint8_t));
+  _binary_inputs[_num_binary_inputs][0] = num_pins;
+  _binary_inputs[_num_binary_inputs][1] = muxed;
+  memcpy(_binary_inputs[_num_binary_inputs]+2, pins, num_pins);
 
-  // Setup each pin. INdex shifted to skip leading num_throw value
-  for (uint8_t p = 1; p <= _binary_inputs[_num_binary_inputs][0]; p++){
-    gpio_init(_binary_inputs[_num_binary_inputs][p]);
-    gpio_set_dir(_binary_inputs[_num_binary_inputs][p], false);
-    gpio_set_pulls(_binary_inputs[_num_binary_inputs][p], !pull_down, pull_down);
+  // Setup each pin. Index shifted to skip leading meta data
+  for (uint8_t p = 0; p < _binary_inputs[_num_binary_inputs][0]; p++){
+    gpio_init(_binary_inputs[_num_binary_inputs][p+2]);
+    gpio_set_dir(_binary_inputs[_num_binary_inputs][p+2], false);
+    gpio_set_pulls(_binary_inputs[_num_binary_inputs][p+2], !pull_down, pull_down);
   }
 
   _num_binary_inputs += 1;
@@ -37,7 +39,7 @@ void binary_input_setup(uint8_t num_throw, const uint8_t * pins, bool pull_down)
 }
 
 /**
- * Reads the requested switch.
+ * Reads the requested switch. If switch is muxed, returns the bit mask of the pins. Else returns the index of first high pin
  * 
  * @param switch_idx Index of the requested switch. Must have been setup previously. 
  * @returns 0 if non of the switches throws are triggered. Else returns the first triggered throw (Note: 1 indexed).
@@ -46,11 +48,19 @@ uint8_t readSwitch(uint8_t switch_idx){
   // Make sure switch has been setup
   assert(switch_idx<_num_binary_inputs);
 
-  uint8_t num_throws = _binary_inputs[switch_idx][0];
-  for(uint8_t n = 1; n <= num_throws; n++){
-    if(gpio_get(_binary_inputs[switch_idx][n])) return n;
+  uint8_t num_pins = _binary_inputs[switch_idx][0];
+  if(_binary_inputs[switch_idx][1]){ // If muxed,
+    uint8_t pin_mask = 0;
+    for(uint8_t n = 0; n < num_pins; n++){
+      pin_mask = pin_mask || (gpio_get(_binary_inputs[switch_idx][n+2])<<n);
+    }
+    return pin_mask;
+  } else{
+    for(uint8_t n = 0; n < num_pins; n++){
+      if(gpio_get(_binary_inputs[switch_idx][n+2])) return n;
+    }
+    return 0;
   }
-  return 0;
 }
 
 /**
@@ -61,7 +71,7 @@ uint8_t readSwitch(uint8_t switch_idx){
  */
 static void binary_input_read_handler(int * data, int len){
   if(len == 0){
-    // Read all switches in order they where added
+    // Read all switches in order they were added
     int response[_num_binary_inputs];
     for(uint8_t s_i = 0; s_i < _num_binary_inputs; s_i++){
       response[s_i] = readSwitch(s_i);
