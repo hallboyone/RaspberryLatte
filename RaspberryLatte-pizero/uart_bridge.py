@@ -15,10 +15,16 @@ _MSG_ID_GET_WEIGHT    = 10
 _MSG_ID_GET_TEMP      = 11
 _MSG_ID_GET_AC_ON     = 12
 
+_MSG_LEN_GET_SWITCH   =  3
+_MSG_LEN_GET_PRESSURE =  3
+_MSG_LEN_GET_WEIGHT   =  4
+_MSG_LEN_GET_TEMP     =  3
+_MSG_LEN_GET_AC_ON    =  3
+
 _get_pressure_msg = bitstruct.pack('u4u4', _MSG_ID_GET_PRESSURE, 0)
 _get_temp_msg     = bitstruct.pack('u4u4', _MSG_ID_GET_TEMP, 0)
 _get_switch_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_SWITCH, 0)
-_get_weight_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_WEIGHT, 0))
+_get_weight_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_WEIGHT, 0)
 
 _decode_pressure_bs = bitstruct.compile('u4u4u16')
 _decode_temp_bs     = bitstruct.compile('u4u4u16')
@@ -26,6 +32,7 @@ _decode_switches_bs = bitstruct.compile('u4u4u8u8')
 _decode_weight_bs   = bitstruct.compile('u4u4u24')
 
 _set_heater_bs      = bitstruct.compile('u4u4u8')
+
 
 class Reading:
     def __init__(self) -> None:
@@ -72,35 +79,31 @@ class ScaleReading(Reading):
 
 def get_pressure()->PressureReading:
     ser.write(_get_pressure_msg)
-    while(ser.in_waiting==0):
+    while(ser.in_waiting != _MSG_LEN_GET_PRESSURE):
         pass
-    sleep(0.005)
     response = _decode_pressure_bs.unpack(ser.read_all())
     return PressureReading(response[2])
 
 def get_tempurature()->TempuratureReading:
     ser.write(_get_temp_msg)
-    while(ser.in_waiting==0):
+    while(ser.in_waiting != _MSG_LEN_GET_TEMP):
         pass
-    sleep(0.005)
     response = _decode_temp_bs.unpack(ser.read_all())
     return TempuratureReading(response[2])
 
 def get_switches()->SwitchReading:
     ser.write(_get_switch_msg)
-    while(ser.in_waiting==0):
+    while(ser.in_waiting != _MSG_LEN_GET_SWITCH):
         pass
-    sleep(0.005)
     response = _decode_switches_bs.unpack(ser.read_all())
     return SwitchReading(response[2], response[3])
 
 def get_weight():
     ser.write(_get_weight_msg)
-    while(ser.in_waiting==0):
+    while(ser.in_waiting != _MSG_LEN_GET_WEIGHT):
         pass
-    sleep(0.005)
     response = _decode_weight_bs.unpack(ser.read_all())
     return ScaleReading(response[2])
 
-def set_heater_to(int: new_value):
+def set_heater_to(new_value):
     ser.write(_set_heater_bs.pack(_MSG_ID_SET_HEATER, 1, new_value))
