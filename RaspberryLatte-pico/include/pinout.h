@@ -13,4 +13,4 @@
 
 #define HEATER_PWM_PIN             0
 
-#define LMT01_DATA_PIN             13
+#define LMT01_DATA_PIN             6

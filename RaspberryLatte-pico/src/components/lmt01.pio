@@ -6,7 +6,7 @@
     set y, 0               ; Reset counter
     wait 0 pin 0           ; Wait for start of pulse train
 counting_loop:             ; Loop until pin goes low or time is up
-    jmp pin no_pulse       ; No pulse, skip increment steps
+    jmp pin no_pulse       ; No pulse (pin low), skip increment steps
     mov x, !y	             ; Pulse. Increment y using (y+1)=!((!y)-1)
     jmp x-- dec_label                     
 dec_label:
