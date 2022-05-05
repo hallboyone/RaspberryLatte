@@ -4,6 +4,29 @@ from time import sleep, time
 
 ser = serial.Serial(port="/dev/ttyS0", baudrate = 115200)
 
+_MSG_ID_SET_LEDS      =  1
+_MSG_ID_SET_PUMP      =  2
+_MSG_ID_SET_SOLENOID  =  3
+_MSG_ID_SET_HEATER    =  4
+
+_MSG_ID_GET_SWITCH    =  8
+_MSG_ID_GET_PRESSURE  =  9
+_MSG_ID_GET_WEIGHT    = 10
+_MSG_ID_GET_TEMP      = 11
+_MSG_ID_GET_AC_ON     = 12
+
+_get_pressure_msg = bitstruct.pack('u4u4', _MSG_ID_GET_PRESSURE, 0)
+_get_temp_msg     = bitstruct.pack('u4u4', _MSG_ID_GET_TEMP, 0)
+_get_switch_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_SWITCH, 0)
+_get_weight_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_WEIGHT, 0))
+
+_decode_pressure_bs = bitstruct.compile('u4u4u16')
+_decode_temp_bs     = bitstruct.compile('u4u4u16')
+_decode_switches_bs = bitstruct.compile('u4u4u8u8')
+_decode_weight_bs   = bitstruct.compile('u4u4u24')
+
+_set_heater_bs      = bitstruct.compile('u4u4u8')
+
 class Reading:
     def __init__(self) -> None:
         self._timestamp = time()
@@ -39,42 +62,45 @@ class SwitchReading(Reading):
     def dial(self)->int:
         return self._dial_val
 
-def getPressure()->PressureReading:
-    msg_get_pressure = bitstruct.pack('u4u4', 9, 0)
-    ser.write(msg_get_pressure)
+class ScaleReading(Reading):
+    def __init__(self, raw_val) -> None:
+        super().__init__()
+        self._raw_val = raw_val
+    
+    def in_g(self)->float:
+        return -0.000152968191*self._raw_val+2491.937016352400
+
+def get_pressure()->PressureReading:
+    ser.write(_get_pressure_msg)
     while(ser.in_waiting==0):
         pass
-    sleep(0.01)
-    response = bitstruct.unpack('u4u4u16', ser.read_all())
+    sleep(0.005)
+    response = _decode_pressure_bs.unpack(ser.read_all())
     return PressureReading(response[2])
 
-def getTempurature()->TempuratureReading:
-    msg_get_temp = bitstruct.pack('u4u4', 11, 0)
-    ser.write(msg_get_temp)
+def get_tempurature()->TempuratureReading:
+    ser.write(_get_temp_msg)
     while(ser.in_waiting==0):
         pass
-    sleep(0.01)
-    response = bitstruct.unpack('u4u4u16', ser.read_all())
+    sleep(0.005)
+    response = _decode_temp_bs.unpack(ser.read_all())
     return TempuratureReading(response[2])
 
-def getSwitches():
-    ser.write(bitstruct.pack('u4u4', 8, 0))
+def get_switches()->SwitchReading:
+    ser.write(_get_switch_msg)
     while(ser.in_waiting==0):
         pass
-    sleep(0.01)
-    response = bitstruct.unpack('u4u4u8u8', ser.read_all())
+    sleep(0.005)
+    response = _decode_switches_bs.unpack(ser.read_all())
     return SwitchReading(response[2], response[3])
 
+def get_weight():
+    ser.write(_get_weight_msg)
+    while(ser.in_waiting==0):
+        pass
+    sleep(0.005)
+    response = _decode_weight_bs.unpack(ser.read_all())
+    return ScaleReading(response[2])
 
-
-# def getWeight():
-#     ser.write(bitstruct.pack('u4u4', 10, 0))
-#     while(ser.in_waiting==0):
-#         pass
-#     sleep(0.01)
-#     response = bitstruct.unpack('u4u4u24', ser.read_all())
-#     print(f"Current weight (g): {-0.000152968191*response[2]+2491.937016352400}")
-
-# def setHeater():
-#     msg_id = int(input("Enter heater setting\n> "))
-#     ser.write(bitstruct.pack('u4u4u8', 4, 1, msg_id))
+def set_heater_to(int: new_value):
+    ser.write(_set_heater_bs.pack(_MSG_ID_SET_HEATER, 1, new_value))

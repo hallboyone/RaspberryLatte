@@ -1,5 +1,9 @@
-import uart_bridge as from_pico
+import uart_bridge as pico
 
-pressure = from_pico.getPressure().in_bar()
-temp = from_pico.getTempurature().in_C()
-dial = from_pico.getSwitches().dial()
+pressure    = pico.get_pressure().in_bar()
+temp        = pico.get_tempurature().in_C()
+dial_switch = pico.get_switches().dial()
+pump_switch = pico.get_switches().pump()
+weight      = pico.get_weight().in_g()
+
+set_heater_to(50)
