@@ -4,15 +4,15 @@
 
 .program lmt01
     set y, 0               ; Reset counter
-    wait 0 pin 0           ; Wait for start of pulse train
-counting_loop:             ; Loop until pin goes low or time is up
-    jmp pin no_pulse       ; No pulse (pin low), skip increment steps
-    mov x, !y	             ; Pulse. Increment y using (y+1)=!((!y)-1)
+    wait 1 pin 0           ; Wait for start of pulse train (rising edge)
+increment:             ; Loop until pin stays low
+    mov x, !y	           ; Count rising edge Increment y using (y+1)=!((!y)-1)
     jmp x-- dec_label                     
 dec_label:
     mov y, !x
     set x 25               ; Restart timer
-    wait 1 pin 0           ; Wait for pin to go high again
+    wait 0 pin 0           ; Wait for pin to go low again
 no_pulse:
-    jmp x-- counting_loop  ; Timer not expired. Loop again
-    in  y, 32              ; Send counter value to program
+    jmp pin increment      ; If rising edge, increment counter and restart timer
+    jmp x-- no_pulse       ; Timer not expired. Loop again
+    in  y, 32              ; Send counter value to program and restart
