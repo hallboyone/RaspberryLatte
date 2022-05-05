@@ -37,29 +37,29 @@ static inline int pulse2Temp(const int pulse_count){
             if (pulse_count < PULSE_COUNTS[4]){
                 if (pulse_count < PULSE_COUNTS[2]){
                     if (pulse_count < PULSE_COUNTS[1]){
-                        return (pulse_count*PULSE_SLOPES[0] + PULSE_SLOPES[0]);
+                        return (pulse_count*PULSE_SLOPES[0] + PULSE_SHIFTS[0]);
                     } else { // >=[1]
-                        return (pulse_count*PULSE_SLOPES[1] + PULSE_SLOPES[1]);
+                        return (pulse_count*PULSE_SLOPES[1] + PULSE_SHIFTS[1]);
                     }
                 } else { // >=[2]
                     if (pulse_count < PULSE_COUNTS[3]){
-                        return (pulse_count*PULSE_SLOPES[2] + PULSE_SLOPES[2]);                
+                        return (pulse_count*PULSE_SLOPES[2] + PULSE_SHIFTS[2]);                
                     } else { // >=[3]
-                        return (pulse_count*PULSE_SLOPES[3] + PULSE_SLOPES[3]); 
+                        return (pulse_count*PULSE_SLOPES[3] + PULSE_SHIFTS[3]); 
                     }                
                 }
             } else { // >=[4]
                 if (pulse_count < PULSE_COUNTS[6]){
                     if (pulse_count < PULSE_COUNTS[5]){
-                        return (pulse_count*PULSE_SLOPES[4] + PULSE_SLOPES[4]);               
+                        return (pulse_count*PULSE_SLOPES[4] + PULSE_SHIFTS[4]);               
                     } else { // >=[5]
-                        return (pulse_count*PULSE_SLOPES[5] + PULSE_SLOPES[5]); 
+                        return (pulse_count*PULSE_SLOPES[5] + PULSE_SHIFTS[5]); 
                     }                
                 } else { // >=[6]
                     if (pulse_count < PULSE_COUNTS[7]){
-                        return (pulse_count*PULSE_SLOPES[6] + PULSE_SLOPES[6]);              
+                        return (pulse_count*PULSE_SLOPES[6] + PULSE_SHIFTS[6]);              
                     } else { // >=[7]
-                        return (pulse_count*PULSE_SLOPES[7] + PULSE_SLOPES[7]);  
+                        return (pulse_count*PULSE_SLOPES[7] + PULSE_SHIFTS[7]);  
                     }  
                 }
             }
@@ -67,29 +67,29 @@ static inline int pulse2Temp(const int pulse_count){
             if (pulse_count < PULSE_COUNTS[12]){
                 if (pulse_count < PULSE_COUNTS[10]){
                     if (pulse_count < PULSE_COUNTS[9]){
-                        return (pulse_count*PULSE_SLOPES[8] + PULSE_SLOPES[8]);                
+                        return (pulse_count*PULSE_SLOPES[8] + PULSE_SHIFTS[8]);                
                     } else { // >=[9]
-                        return (pulse_count*PULSE_SLOPES[9] + PULSE_SLOPES[9]); 
+                        return (pulse_count*PULSE_SLOPES[9] + PULSE_SHIFTS[9]); 
                     }
                 } else { // >=[10]
                     if (pulse_count < PULSE_COUNTS[11]){
-                        return (pulse_count*PULSE_SLOPES[10] + PULSE_SLOPES[10]);              
+                        return (pulse_count*PULSE_SLOPES[10] + PULSE_SHIFTS[10]);              
                     } else { // >=[11]
-                        return (pulse_count*PULSE_SLOPES[11] + PULSE_SLOPES[11]); 
+                        return (pulse_count*PULSE_SLOPES[11] + PULSE_SHIFTS[11]); 
                     }                
                 }
             } else { // >=[12]
                 if (pulse_count < PULSE_COUNTS[14]){
                     if (pulse_count < PULSE_COUNTS[13]){
-                        return (pulse_count*PULSE_SLOPES[12] + PULSE_SLOPES[12]);               
+                        return (pulse_count*PULSE_SLOPES[12] + PULSE_SHIFTS[12]);               
                     } else { // >=[13]
-                        return (pulse_count*PULSE_SLOPES[13] + PULSE_SLOPES[13]);  
+                        return (pulse_count*PULSE_SLOPES[13] + PULSE_SHIFTS[13]);  
                     }
                 } else { // >=[14]
                     if (pulse_count < PULSE_COUNTS[15]){
-                        return (pulse_count*PULSE_SLOPES[14] + PULSE_SLOPES[14]);                
+                        return (pulse_count*PULSE_SLOPES[14] + PULSE_SHIFTS[14]);                
                     } else { // >=[15]
-                        return (pulse_count*PULSE_SLOPES[15] + PULSE_SLOPES[15]);  
+                        return (pulse_count*PULSE_SLOPES[15] + PULSE_SHIFTS[15]);  
                     }                
                 }
             }
@@ -171,7 +171,7 @@ void lmt01_setup(uint8_t pio_num, uint8_t dat_pin){
     assignHandler(MSG_ID_GET_TEMP, &lmt01_read_handler);
     registerMaintainer(&lmt01_maintainer);
 
-    while(_latest_temp<=0 || _latest_temp>175){
+    while(_latest_temp<=0 || _latest_temp>2800){
         // Wait till a valid tempurature is measured
         lmt01_read();
     }
