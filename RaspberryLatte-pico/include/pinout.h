@@ -11,6 +11,6 @@
 #define SCALE_DATA_PIN             3
 #define SCALE_CLOCK_PIN            2
 
-#define HEATER_PWM_PIN             0
+#define HEATER_PWM_PIN             4
 
 #define LMT01_DATA_PIN             6
