@@ -32,7 +32,8 @@ _decode_switches_bs = bitstruct.compile('u4u4u8u8')
 _decode_weight_bs   = bitstruct.compile('u4u4u24')
 
 _set_heater_bs      = bitstruct.compile('u4u4u8')
-
+_set_pump_bs        = bitstruct.compile('u4u4u8')
+_set_solenoid_bs    = bitstruct.compile('u4u4u8')
 
 class Reading:
     def __init__(self) -> None:
@@ -107,3 +108,9 @@ def get_weight():
 
 def set_heater_to(new_value):
     ser.write(_set_heater_bs.pack(_MSG_ID_SET_HEATER, 1, new_value))
+
+def set_pump_to(new_value):
+    ser.write(_set_pump_bs.pack(_MSG_ID_SET_PUMP, 1, new_value))
+
+def set_solenoid_to(new_value):
+    ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))    
