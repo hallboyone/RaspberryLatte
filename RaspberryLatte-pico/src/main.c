@@ -11,6 +11,7 @@
 #include "hx711.h"
 #include "lmt01.h"
 #include "heater.h"
+#include "solenoid.h"
 
 bool run = true;
 
@@ -49,6 +50,8 @@ int main(){
 
   lmt01_setup(0, LMT01_DATA_PIN);
 
+  solenoid_setup(SOLENOID_PIN);
+  
   // Continually look for a message and then run maintenance
   while(run){
     readMessage();

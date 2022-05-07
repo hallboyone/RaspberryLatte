@@ -14,7 +14,8 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/hx711.c
                PRIVATE src/components/maintainer.c
                PRIVATE src/components/heater.c
-               PRIVATE src/components/lmt01.c)
+               PRIVATE src/components/lmt01.c
+               PRIVATE src/components/solenoid.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
