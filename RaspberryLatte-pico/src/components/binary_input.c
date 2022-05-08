@@ -17,7 +17,7 @@ static uint8_t _num_binary_inputs = 0;
  * @param pin_idx GPIO number to read
  * @return True if pin is high and pulled down or pin is low and pulled up. False otherwise.
  */
-static inline bool gpio_get_w_pull(uint pin_idx){
+static inline uint8_t gpio_get_w_pull(uint pin_idx){
   return (gpio_is_pulled_down(pin_idx) ? gpio_get(pin_idx) : !gpio_get(pin_idx));
 }
 
@@ -87,14 +87,14 @@ uint8_t binary_input_read(uint8_t switch_idx){
   assert(switch_idx<_num_binary_inputs);
 
   if(_binary_inputs[switch_idx][MUXED_IDX]){ // If muxed,
-    uint8_t pin_mask = 0;
+  uint8_t pin_mask = 0;
     for(uint8_t n = 0; n < _binary_inputs[switch_idx][NUM_PIN_IDX]; n++){
-      pin_mask = pin_mask || (gpio_get_w_pull(_binary_inputs[switch_idx][n+PIN_OFFSET])<<n);
+      pin_mask = pin_mask | (gpio_get_w_pull(_binary_inputs[switch_idx][n+PIN_OFFSET])<<n);
     }
     return pin_mask;
   } else{
     for(uint8_t n = 0; n < _binary_inputs[switch_idx][NUM_PIN_IDX]; n++){
-      if(gpio_get_w_pull(_binary_inputs[switch_idx][n+PIN_OFFSET])) return n;
+      if(gpio_get_w_pull(_binary_inputs[switch_idx][n+PIN_OFFSET])) return n+1;
     }
     return 0;
   }
