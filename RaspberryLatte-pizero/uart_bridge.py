@@ -1,5 +1,6 @@
 import serial
 import bitstruct
+import sys
 from time import sleep, time
 
 ser = serial.Serial(port="/dev/ttyS0", baudrate = 115200)
@@ -113,4 +114,24 @@ def set_pump_to(new_value):
     ser.write(_set_pump_bs.pack(_MSG_ID_SET_PUMP, 1, new_value))
 
 def set_solenoid_to(new_value):
-    ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))    
+    ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))
+
+if __name__ == "__main__":
+    cmd = sys.argv[1]
+    if cmd=="solenoid":
+        para = int(sys.argv[2])
+        print(f"Setting solenoid to {para}")
+        set_solenoid_to(para)
+    elif cmd=="pump":
+        para = int(sys.argv[2])
+        print(f"Setting pump to {para}")
+        set_pump_to(para)
+    elif cmd=="heater":
+        para = int(sys.argv[2])
+        print(f"Setting heater to {para}")
+        set_heater_to(para)
+    elif cmd=="scale":
+        print(f"Current weight is {get_weight().in_g()}")
+    elif cmd=="switches":
+        print(f"Current pump switch state is {get_switches().pump()}\nCurrent dial switch state is {get_switches().dial()}")
+    
