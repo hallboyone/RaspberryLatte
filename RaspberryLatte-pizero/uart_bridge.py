@@ -20,17 +20,19 @@ _MSG_LEN_GET_SWITCH   =  3
 _MSG_LEN_GET_PRESSURE =  3
 _MSG_LEN_GET_WEIGHT   =  4
 _MSG_LEN_GET_TEMP     =  3
-_MSG_LEN_GET_AC_ON    =  3
+_MSG_LEN_GET_AC_ON    =  2
 
 _get_pressure_msg = bitstruct.pack('u4u4', _MSG_ID_GET_PRESSURE, 0)
 _get_temp_msg     = bitstruct.pack('u4u4', _MSG_ID_GET_TEMP, 0)
 _get_switch_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_SWITCH, 0)
 _get_weight_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_WEIGHT, 0)
+_get_ac_on_msg    = bitstruct.pack('u4u4', _MSG_ID_GET_AC_ON, 0)
 
 _decode_pressure_bs = bitstruct.compile('u4u4u16')
 _decode_temp_bs     = bitstruct.compile('u4u4u16')
 _decode_switches_bs = bitstruct.compile('u4u4u8u8')
 _decode_weight_bs   = bitstruct.compile('u4u4u24')
+_decode_ac_on_bs    = bitstruct.compile('u4u4u8')
 
 _set_heater_bs      = bitstruct.compile('u4u4u8')
 _set_pump_bs        = bitstruct.compile('u4u4u8')
@@ -107,6 +109,13 @@ def get_weight():
     response = _decode_weight_bs.unpack(ser.read_all())
     return ScaleReading(response[2])
 
+def get_ac_on() -> bool:
+    ser.write(_get_ac_on_msg)
+    while(ser.in_waiting != _MSG_LEN_GET_AC_ON):
+        pass
+    response = _decode_ac_on_bs.unpack(ser.read_all())
+    return (0!=response[2])
+
 def set_heater_to(new_value):
     ser.write(_set_heater_bs.pack(_MSG_ID_SET_HEATER, 1, new_value))
 
@@ -134,4 +143,11 @@ if __name__ == "__main__":
         print(f"Current weight is {get_weight().in_g()}")
     elif cmd=="switches":
         print(f"Current pump switch state is {get_switches().pump()}\nCurrent dial switch state is {get_switches().dial()}")
+    elif cmd=="temp":
+        print(f"Current temp is {get_tempurature().in_C()}")
+    elif cmd=="ac_on":
+        if (get_ac_on()):
+            print("AC is on.")
+        else:
+            print("AC is off.")
     

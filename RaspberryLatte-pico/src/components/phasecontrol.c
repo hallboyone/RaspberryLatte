@@ -155,7 +155,7 @@ void phasecontrol_setup(PhasecontrolConfig * user_config) {
 
   // Setup UART handlers
   assignHandler(MSG_ID_SET_PUMP, &phasecontrol_set_duty_cycle_handler);
-  assignHandler(MSG_ID_GET_AC_ON, &phasecontrol_set_duty_cycle_handler);
+  assignHandler(MSG_ID_GET_AC_ON, &phasecontrol_is_ac_hot_handler);
   return;
 }
 
