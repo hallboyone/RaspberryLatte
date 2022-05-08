@@ -47,7 +47,7 @@ int readMessage(){
   }
   
   // Sleep for a ms to make sure any body data gets transmitted
-  sleep_ms(1);
+  sleep_us(500);
   
   // Get message data
   int msg_body[len];
