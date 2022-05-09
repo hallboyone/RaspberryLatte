@@ -60,7 +60,7 @@ class DiscreteIntegral:
         self._sum = 0;
         self._prev_time = None
         self._prev_val = None
-        
+
     def sum(self) -> float:
         return self._sum
 
@@ -69,3 +69,44 @@ class DiscreteIntegral:
             self._sum = max(self._sum, self._windup_bounds[0])
             self._sum = min(self._sum, self._windup_bounds[1])
 # DiscreteIntegral
+
+class PIDGains:
+    Kp = None
+    Ki = None
+    Kd = None
+
+class PIDSensor:
+    def read(self) -> float:
+        pass
+
+class PIDOutput:
+    def write(self, val : float):
+        pass
+
+class PID:
+    def __init__(self, gains : PIDGains) -> None:
+        self._gains = gains
+        self._sensor : PIDSensor = None
+        self._output : PIDOutput = None
+        self._derivative = DiscreteDerivative()
+        self._integral = DiscreteIntegral()
+        self._setpoint = 0
+
+    def attach_sensor(self, sensor : PIDSensor):
+        self._sensor = sensor
+    
+    def attach_output(self, output : PIDOutput):
+        self._output = output
+
+    def update_setpoint_to(self, setpoint : float):
+        self._setpoint = setpoint
+
+    def tick(self):
+        val = self._sensor.read()
+        err = self._setpoint - val
+        self._derivative.add_point(val)
+        self._integral.add_point(err)
+        output = self._gains.Kp * err + self._gains.Ki * self._integral.sum() + self._gains.Kd * self._derivative.slope()
+        self._output.write(self._gains.Kp * err +
+                           self._gains.Ki * self._integral.sum() +
+                           self._gains.Kd * self._derivative.slope())
