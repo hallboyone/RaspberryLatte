@@ -38,7 +38,7 @@ int main(){
   
   // Set up phase control
   PhasecontrolConfig pump_config = 
-  {.event           = FALLING,
+  {.event          = FALLING,
   .zerocross_pin   = PHASE_CONTROL_0CROSS_PIN,
   .out_pin         = PHASE_CONTROL_OUT_PIN,
   .zerocross_shift = PHASE_CONTROL_0CROSS_SHIFT};

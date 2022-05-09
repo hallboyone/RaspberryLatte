@@ -76,7 +76,7 @@ static void switch_scheduler(uint gpio, uint32_t events){
     
     if (timeout_idx > 0){
       // Schedule stop time after 0.75 period
-      add_alarm_in_us(config.zerocross_shift+PERIOD_0_75, &stop, NULL, false);
+      add_alarm_in_us(config.zerocross_shift + PERIOD_0_75, &stop, NULL, false);
     
       // Schedule start time after the given timeout
       add_alarm_in_us(config.zerocross_shift + timeouts_us[timeout_idx], &start, NULL, true);
