@@ -1,32 +1,6 @@
-from audioop import avg
-import numpy as np
 from time import time, sleep
 
-
 class DiscreteDerivative:
-    """
-    Creates a Discrete Derivative object that tracks the current rate of change for a discrete
-    timeseries. Only the points within the filter timespan are used to compute the rate of change
-
-    Attributes
-    ----------
-    _points : [float]]
-        array of sample values
-    _times : [float]
-        times the corresponding samples were added
-    _filter_span : float
-        length of time back from latest point to consider when fitting slope. If 0, only the last two reading are kept
-        
-
-    Methods
-    -------
-    __init__(filter_span : float):
-        Sets up the object with empty lists and given filter_span
-    add_point(point : float):
-        appends the new point to _points and records the call time
-    slope()->float:
-        returns the slope of the line fitted to the points within the filter's timespan
-    """
     def __init__(self, filter_span : float = 0) -> None:
         self._points: list[float] = []
         self._times: list[float] = []
@@ -36,7 +10,11 @@ class DiscreteDerivative:
         self._times.append(time())
         self._points.append(point)
 
-    def _clean_points(self):
+    def reset(self):
+        self._points = []
+        self._times = []
+
+    def _remove_old_points(self):
         if (self._filter_span <= 0):
             self._points = {self._points[-2], self._points[-1]}
         else:
@@ -45,27 +23,49 @@ class DiscreteDerivative:
                 self._times.pop(0)
         
     def slope(self) -> float:
-        if(len(self._points < 2)):
-            raise Exception("Must have 2 or more points to compute the slope")
+        if(len(self._points) < 2):
+            return 0
         
-        self._clean_points()
-        p_avg = average(self._points)
-        t_avg = average(self._times)
+        self._remove_old_points()
+        p_avg = sum(self._points)/len(self._points)
+        t_avg = sum(self._times)/len(self._times)
 
-        return p[0]
+        num = 0
+        dem = 0
+        for i in range(len(self._points)):
+            num = num + (self._times[i]-t_avg)*(self._points[i]-p_avg)
+            dem = dem + ((self._times[i]-t_avg)**2)
+        return num/dem
+# DiscreteDerivative
 
+class DiscreteIntegral:
+    def __init__(self, windup_bounds = None) -> None:
+        self._sum : float = 0
+        self._windup_bounds = windup_bounds
+        self._prev_time = None
+        self._prev_val = None
 
+    def add_point(self, point : float) -> None:
+        if self._prev_time == None:
+            self._prev_time = time()
+            self._prev_val = point
+        else:
+            t = time()
+            self._sum = self._sum + ((self._prev_val + point)/2)*(t - self._prev_time)
+            self._prev_time = t
+            self._prev_val = point
+            self._clip_to_bounds()
 
-dt = DiscreteDerivative(7)
-dt.add_point(0)
-sleep(1)
-dt.add_point(1.1)
-sleep(1)
-dt.add_point(1.9)
-sleep(1)
-dt.add_point(2.9)
-sleep(1)
-dt.add_point(4.1)
-sleep(1)
-dt.add_point(5)
-print(dt.slope())
+    def reset(self) -> None:
+        self._sum = 0;
+        self._prev_time = None
+        self._prev_val = None
+        
+    def sum(self) -> float:
+        return self._sum
+
+    def _clip_to_bounds(self):
+        if self._windup_bounds:
+            self._sum = max(self._sum, self._windup_bounds[0])
+            self._sum = min(self._sum, self._windup_bounds[1])
+# DiscreteIntegral
