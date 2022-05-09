@@ -150,4 +150,6 @@ if __name__ == "__main__":
             print("AC is on.")
         else:
             print("AC is off.")
+    elif cmd=="pressure":
+        print(f"Current pressure is {get_pressure().in_bar()} bar")
     
