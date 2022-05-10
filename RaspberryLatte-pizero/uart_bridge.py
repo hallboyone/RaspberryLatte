@@ -40,7 +40,7 @@ _set_solenoid_bs    = bitstruct.compile('u4u4u8')
 
 class Reading:
     def __init__(self) -> None:
-        self._timestamp = time()
+        self.timestamp = time()
 
 class PressureReading(Reading):
     def __init__(self, value) -> None:

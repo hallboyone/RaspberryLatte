@@ -3,18 +3,19 @@ import PID
 import sys
 from time import sleep
 
-#pressure    = pico.get_pressure().in_bar()
-#print(pico.get_tempurature().in_C())
-#dial_switch = pico.get_switches().dial()
-#pump_switch = pico.get_switches().pump()
-#weight      = pico.get_weight().in_g()
+# Getters
+temp_sensor     = components.LMT01()
+pressure_sensor = components.PressureSensor()
+weight_sensor   = components.Scale()
+switches        = components.Switches()
+ac_status       = components.ACStatus()
 
-temp_sensor = components.LMT01()
-heater_pwm = components.Heater()
+# Setters
+heater_pwm      = components.Heater()
+
+# Build and run PID controller
 boiler_gains = PID.PIDGains(3, 0.01, 0.1)
-
 boiler_controller = PID.PID(boiler_gains, setpoint = 90, sensor = temp_sensor, output = heater_pwm)
-
 for i in range(120):
     boiler_controller.tick()
     sleep(1)
