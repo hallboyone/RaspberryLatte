@@ -4,8 +4,7 @@
 #include "binary_output.h"
 #include "uart_bridge.h"
 
-static uint _binary_outputs[32];
-static uint _num_binary_inputs = 0;
+static bool _binary_outputs[29];
 
 /**
  * Handles messages to set GPIO outputs over uart. Messages have the form 
@@ -14,10 +13,13 @@ static uint _num_binary_inputs = 0;
 static void binary_output_read_handler(int * data, int len){
     assert(len>=1);
     for(uint byte_idx = 0; byte_idx < len; byte_idx++){
-        uint p_idx = data[0] & 0x7F;
+        uint gpio_num = data[0] & 0x7F;
         uint val = data[0]   & 0x80;
-        assert(p_idx < _num_binary_inputs);
-        gpio_put(_binary_outputs[p_idx], val);
+        binary_output_write(gpio_num, val)
+        assert(gpio_num<29);
+        if(_binary_outputs[gpio_num]){
+            gpio_put(gpio_num, val);
+        }
     }
 }
 
@@ -25,14 +27,15 @@ static void binary_output_read_handler(int * data, int len){
  * Create a binary output attached to the indicated pin. The first time this function is called, a binary output write 
  * handler is registered with the uart bridge. 
  */
-void binary_output_setup(const uint pin){
-    assert(_num_binary_inputs < 32);
-    gpio_init(pin);
-    gpio_set_dir(pin, true)
-    _binary_outputs[_num_binary_inputs] = pin;
-    _num_binary_inputs += 1;
-    
-    assignHandler(MSG_ID_SET_GPIO, &binary_output_read_handler);
+void binary_output_setup(const uint gpio_num){
+    assert(gpio_num < 29);
+    if(!_binary_outputs[gpio_num]){
+        _binary_outputs[gpio_num] = true;
+        gpio_init(gpio_num);
+        gpio_set_dir(gpio_num, true)
+        gpio_put(gpio_num, 0);
+        assignHandler(MSG_ID_SET_GPIO, &binary_output_read_handler);
+    }
 }
 
 /**
@@ -41,7 +44,9 @@ void binary_output_setup(const uint pin){
  * @param switch_idx Index of the requested switch. Note this is not a GPIO number!
  * @param val Value to write to output.
   */
-void binary_output_write(uint switch_idx, bool val){
-    assert(switch_idx<_num_binary_inputs);
-    gpio_put(_binary_outputs[switch_idx], val);
+void binary_output_write(uint gpio_num, bool val){
+    assert(gpio_num<29);
+    if(_binary_outputs[gpio_num]){
+        gpio_put(gpio_num, val);
+    }
 }
