@@ -46,13 +46,10 @@ int readMessage(){
     return MSG_READ_FAIL_UNCONF_MSG;
   }
   
-  // Sleep for a ms to make sure any body data gets transmitted
-  sleep_us(500);
-  
   // Get message data
   int msg_body[len];
   for(uint8_t n = 0; n < len; n++){
-    if((msg_body[n]=getchar_timeout_us(10)) == PICO_ERROR_TIMEOUT){
+    if((msg_body[n]=getchar_timeout_us(500)) == PICO_ERROR_TIMEOUT){
       // If not enough data, return -2
       return MSG_READ_FAIL_INVALID_MSG;
     }
