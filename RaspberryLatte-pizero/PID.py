@@ -1,4 +1,4 @@
-from time import time, sleep
+from time import time
 
 class DiscreteDerivative:
     def __init__(self, filter_span : float = 0) -> None:
@@ -16,7 +16,7 @@ class DiscreteDerivative:
 
     def _remove_old_points(self):
         if (self._filter_span <= 0):
-            self._points = {self._points[-2], self._points[-1]}
+            self._points = [self._points[-2], self._points[-1]]
         else:
             while(len(self._points)>2 and self._times[-1] - self._times[0] > self._filter_span):
                 self._points.pop(0)
@@ -57,7 +57,7 @@ class DiscreteIntegral:
             self._clip_to_bounds()
 
     def reset(self) -> None:
-        self._sum = 0;
+        self._sum = 0
         self._prev_time = None
         self._prev_val = None
 
@@ -74,20 +74,38 @@ class PIDGains:
     Kp = None
     Ki = None
     Kd = None
+    def __init__(self, kp, ki, kd) -> None:
+        self.Kp = kp
+        self.Ki = ki
+        self.Kd = kd
 
 class PIDSensor:
     def read(self) -> float:
         pass
 
 class PIDOutput:
-    def write(self, val : float):
-        pass
+    """
+    Object that implements the write function called by a PID controller to write the current controller
+    value to the plant. Constraints on the output are implemented here.
+    """
+    def write(self, val : float) -> float:
+        """
+        Implement in subclass. Should take the controller value, constrain it (optional), write to plant, and
+        return the constrained result.
+        """
+        return float
 
 class PID:
-    def __init__(self, gains : PIDGains) -> None:
+    """
+    A PID controller object. User configurable paramters include the controller gains, the setpoint, the
+    sensor, and the output. The sensor and output should be subclasses of the PIDSensor class with read 
+    and write methods respectivly. 
+    """
+    def __init__(self, gains : PIDGains, setpoint : float = 0, 
+                 sensor : PIDSensor = None, output : PIDOutput = None) -> None:
         self._gains = gains
-        self._sensor : PIDSensor = None
-        self._output : PIDOutput = None
+        self._sensor : PIDSensor = sensor
+        self._output : PIDOutput = output
         self._derivative = DiscreteDerivative()
         self._integral = DiscreteIntegral()
         self._setpoint = 0
@@ -102,9 +120,12 @@ class PID:
         self._setpoint = setpoint
 
     def tick(self):
+        if self._sensor == None or self._output == None:
+            print("Must attach sensor and output before running controller")
+            return
         val = self._sensor.read()
         err = self._setpoint - val
-        self._derivative.add_point(val)
+        self._derivative.add_point(-val)
         self._integral.add_point(err)
         output = self._gains.Kp * err + self._gains.Ki * self._integral.sum() + self._gains.Kd * self._derivative.slope()
         self._output.write(self._gains.Kp * err +
