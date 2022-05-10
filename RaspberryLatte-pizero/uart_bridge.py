@@ -5,7 +5,7 @@ from time import sleep, time
 
 ser = serial.Serial(port="/dev/ttyS0", baudrate = 115200)
 
-_MSG_ID_SET_LEDS      =  1
+_MSG_ID_SET_GPIO      =  1
 _MSG_ID_SET_PUMP      =  2
 _MSG_ID_SET_SOLENOID  =  3
 _MSG_ID_SET_HEATER    =  4
@@ -37,6 +37,9 @@ _decode_ac_on_bs    = bitstruct.compile('u4u4u8')
 _set_heater_bs      = bitstruct.compile('u4u4u8')
 _set_pump_bs        = bitstruct.compile('u4u4u8')
 _set_solenoid_bs    = bitstruct.compile('u4u4u8')
+_set_1gpio_bs        = bitstruct.compile('u4u4u1u7')
+_set_2gpio_bs        = bitstruct.compile('u4u4u1u7u1u7')
+_set_3gpio_bs        = bitstruct.compile('u4u4u1u7u1u7u1u7')
 
 class Reading:
     def __init__(self) -> None:
@@ -124,6 +127,20 @@ def set_pump_to(new_value):
 
 def set_solenoid_to(new_value):
     ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))
+
+def set_gpio_to(gpio_idx : int, val : bool):
+    if gpio_idx is list:
+        if len(gpio_idx) == 1:
+            ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, gpio_idx, val)
+        elif len(gpio_idx) == 2:
+            ser.write(_set_2gpio_bs.pack(_MSG_ID_SET_LEDS, 2, gpio_idx[0], val[0], gpio_idx[1], val[1])
+        elif len(gpio_idx) == 3:
+            ser.write(_set_3gpio_bs.pack(_MSG_ID_SET_LEDS, 3, gpio_idx[0], val[0], gpio_idx[1], val[1], gpio_idx[2], val[2])
+        else:
+            print("Can't send more than 3 gpio commands at a time")
+    else:
+        ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, gpio_idx, val)
+    
 
 if __name__ == "__main__":
     cmd = sys.argv[1]

@@ -41,7 +41,15 @@ class Heater(PID.PIDOutput):
     def off(self) -> None:
         self._prev_value = 0
         uart_bridge.set_heater_to(0)
-        
+
+class LEDs:
+    def __init__(self):
+        self._led_state = {"pwr" : False, "pump", False, "mode" False]
+    
+    def on(self, off_on : bool):
+        if self._led_state["pwr"] != off_on:
+
+    
 class LMT01(GetterComponent, PID.PIDSensor):
     _last_reading : uart_bridge.TempuratureReading
 
