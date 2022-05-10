@@ -128,18 +128,18 @@ def set_pump_to(new_value):
 def set_solenoid_to(new_value):
     ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))
 
-def set_gpio_to(gpio_idx : int, val : bool):
-    if gpio_idx is list:
-        if len(gpio_idx) == 1:
-            ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, gpio_idx, val)
-        elif len(gpio_idx) == 2:
-            ser.write(_set_2gpio_bs.pack(_MSG_ID_SET_LEDS, 2, gpio_idx[0], val[0], gpio_idx[1], val[1])
-        elif len(gpio_idx) == 3:
-            ser.write(_set_3gpio_bs.pack(_MSG_ID_SET_LEDS, 3, gpio_idx[0], val[0], gpio_idx[1], val[1], gpio_idx[2], val[2])
+def set_gpio_to(gpio_num : int, val : bool):
+    if gpio_num is list:
+        if len(gpio_num) == 1:
+            ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_GPIO, 1, val[0], gpio_num[0])
+        elif len(gpio_num) == 2:
+            ser.write(_set_2gpio_bs.pack(_MSG_ID_SET_GPIO, 2, val[0], gpio_num[0], val[1], gpio_num[1])
+        elif len(gpio_num) == 3:
+            ser.write(_set_3gpio_bs.pack(_MSG_ID_SET_GPIO, 3, val[0], gpio_num[0], val[1], gpio_num[1], val[2], gpio_num[2])
         else:
             print("Can't send more than 3 gpio commands at a time")
     else:
-        ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, gpio_idx, val)
+        ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val, gpio_num)
     
 
 if __name__ == "__main__":
