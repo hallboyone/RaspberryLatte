@@ -1,5 +1,7 @@
 import components
 import PID
+import pinout
+
 import sys
 from time import sleep
 
@@ -12,6 +14,7 @@ ac_status       = components.ACStatus()
 
 # Setters
 heater_pwm      = components.Heater()
+leds            = components.LEDs([pinout.LED0_PIN, pinout.LED1_PIN, pinout.LED2_PIN])
 
 # Build and run PID controller
 boiler_gains = PID.PIDGains(3, 0.01, 0.1)
