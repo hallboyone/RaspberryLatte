@@ -108,7 +108,7 @@ class PID:
         self._output : PIDOutput = output
         self._derivative = DiscreteDerivative()
         self._integral = DiscreteIntegral()
-        self._setpoint = 0
+        self._setpoint = setpoint
 
     def attach_sensor(self, sensor : PIDSensor):
         self._sensor = sensor
@@ -125,6 +125,7 @@ class PID:
             return
         val = self._sensor.read()
         err = self._setpoint - val
+        print(f"Temp is {val} so error is {err}")
         self._derivative.add_point(-val)
         self._integral.add_point(err)
         output = self._gains.Kp * err + self._gains.Ki * self._integral.sum() + self._gains.Kd * self._derivative.slope()
