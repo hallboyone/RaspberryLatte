@@ -1,6 +1,7 @@
 import uart_bridge
-import PID
+from PID import PIDSensor, PIDOutput
 import time
+from util import Bounds
 
 class GetterComponent:
     """
@@ -19,37 +20,7 @@ class GetterComponent:
         if (self._last_reading) == None or (self._last_reading.timestamp - time.time() > self._min_dwell_time):
             self._last_reading = self._getter()
 
-class Heater(PID.PIDOutput):
-    def __init__(self) -> None:
-        super().__init__()
-        self._prev_value = None
-        self._input_bounds = {"lower":0, "upper":63}
-    
-    def write(self, val: float) -> float:
-        val = round(val)
-        if val < self._input_bounds["lower"]:
-            val = self._input_bounds["lower"]
-        elif val > self._input_bounds["upper"]:
-            val = self._input_bounds["upper"]
-        
-        if self._prev_value == None or self._prev_value != val:
-            uart_bridge.set_heater_to(val)
-            self._prev_value = val
-        print(f"Setting heater to {round(val/0.63,2)}% power")
-        return val
-        
-    def off(self) -> None:
-        self._prev_value = 0
-        uart_bridge.set_heater_to(0)
-
-class LEDs:    
-    def set_all(self, led0_val, led1_val, led2_val):
-        uart_bridge.set_leds([0,1,2], [led0_val, led1_val, led2_val])
-        
-    def set(self, led_num : int, state : bool):
-        uart_bridge.set_leds(led_num, state)
-    
-class LMT01(GetterComponent, PID.PIDSensor):
+class LMT01(GetterComponent, PIDSensor):
     _last_reading : uart_bridge.TempuratureReading
 
     def __init__(self, min_dwell_time : float = 0.1) -> None:
@@ -59,7 +30,7 @@ class LMT01(GetterComponent, PID.PIDSensor):
         super().update()
         return self._last_reading.in_C()
 
-class PressureSensor(GetterComponent, PID.PIDSensor):
+class PressureSensor(GetterComponent, PIDSensor):
     _last_reading : uart_bridge.PressureReading
     def __init__(self, min_dwell_time : float = 0.1) -> None:
         super().__init__(min_dwell_time, uart_bridge.get_pressure)
@@ -68,7 +39,7 @@ class PressureSensor(GetterComponent, PID.PIDSensor):
         super().update()
         return self._last_reading.in_bar()
 
-class Scale(GetterComponent, PID.PIDSensor):    
+class Scale(GetterComponent, PIDSensor):    
     _last_reading : uart_bridge.ScaleReading = None
     def __init__(self, min_dwell_time : float = 0.1) -> None:
         super().__init__(min_dwell_time, uart_bridge.get_weight)
@@ -94,3 +65,39 @@ class ACStatus(GetterComponent):
     def read(self) -> bool:
         super().update()
         return self._last_reading
+
+
+class Heater(PIDOutput):
+    _pwr_bounds = Bounds(0, 63)
+    def __init__(self) -> None:
+        super().__init__()
+        self._prev_value = None
+    
+    def write(self, val: float) -> float:
+        val = self._pwr_bounds.clip(round(val))
+        
+        if self._prev_value == None or self._prev_value != val:
+            uart_bridge.set_heater_to(val)
+            self._prev_value = val
+        print(f"Setting heater to {round(val/0.63,2)}% power")
+        return val
+        
+    def off(self) -> None:
+        self._prev_value = 0
+        uart_bridge.set_heater_to(0)
+
+class LEDs:    
+    def set_all(led0_val, led1_val, led2_val):
+        uart_bridge.set_leds([0,1,2], [led0_val, led1_val, led2_val])
+
+    def set(led_num : int, state : bool):
+        uart_bridge.set_leds(led_num, state)
+
+class Pump(PIDOutput):
+    _pwr_bounds = Bounds(60, 127)
+    def set(self, pwr : float):
+        uart_bridge.set_pump_to(self._pwr_bounds.clip(round(pwr)))
+
+class Solenoid:
+    def set(on_off : bool):
+        uart_bridge.set_solenoid_to(on_off)
