@@ -144,3 +144,7 @@ class PID:
             self._output.write(self._gains.Kp * err +
                             self._gains.Ki * self._integral.sum() +
                             self._gains.Kd * self._derivative.slope())
+
+    def reset(self):
+        self._derivative.reset()
+        self._integral.reset()
