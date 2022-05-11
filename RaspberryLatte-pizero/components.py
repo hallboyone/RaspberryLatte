@@ -102,7 +102,15 @@ class Pump(PIDOutput):
     _pwr_bounds = Bounds(60, 127, allow_zero = True)
     def set(self, pwr : float):
         uart_bridge.set_pump_to(self._pwr_bounds.clip(round(pwr)))
+    def on(self, pwr : float = 127):
+        self.set(pwr)
+    def off(self):
+        self.set(0)
 
 class Solenoid:
     def set(self, on_off : bool):
         uart_bridge.set_solenoid_to(on_off)
+    def open(self):
+        self.set(True)
+    def close(self):
+        self.set(False)
