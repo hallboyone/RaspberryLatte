@@ -84,6 +84,11 @@ class ScaleReading(Reading):
     def in_g(self)->float:
         return -0.000152968191*self._raw_val+2491.937016352400
 
+class ACReading(Reading):
+    def __init__(self, val) -> None:
+        super().__init__()
+        self.val = val
+
 def get_pressure()->PressureReading:
     ser.write(_get_pressure_msg)
     while(ser.in_waiting != _MSG_LEN_GET_PRESSURE):
@@ -117,7 +122,7 @@ def get_ac_on() -> bool:
     while(ser.in_waiting != _MSG_LEN_GET_AC_ON):
         pass
     response = _decode_ac_on_bs.unpack(ser.read_all())
-    return (0!=response[2])
+    return ACReading(0!=response[2])
 
 def set_heater_to(new_value):
     ser.write(_set_heater_bs.pack(_MSG_ID_SET_HEATER, 1, new_value))

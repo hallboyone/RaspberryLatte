@@ -17,7 +17,7 @@ class GetterComponent:
         self._getter = getter
     
     def update(self):
-        if (self._last_reading) == None or (self._last_reading.timestamp - time.time() > self._min_dwell_time):
+        if (self._last_reading) == None or (time.time() - self._last_reading.timestamp > self._min_dwell_time):
             self._last_reading = self._getter()
 
 class LMT01(GetterComponent, PIDSensor):
@@ -53,18 +53,23 @@ class Switches(GetterComponent):
     def __init__(self, min_dwell_time : float = 0.1) -> None:
         super().__init__(min_dwell_time, uart_bridge.get_switches)
     
-    def read(self) -> dict[str,int]:
+    def read(self, switch = None):
         super().update()
-        return {"pump" : self._last_reading.pump(), "dial" : self._last_reading.dial()}
+        if switch == "pump":
+            return self._last_reading.pump()
+        elif switch == "dial" or switch == "mode":
+            return self._last_reading.dial()
+        else:
+            return {"pump" : self._last_reading.pump(), "dial" : self._last_reading.dial()}
 
 class ACStatus(GetterComponent):    
-    _last_reading : bool = None
+    _last_reading : uart_bridge.ACReading = None
     def __init__(self, min_dwell_time : float = 0.1) -> None:
         super().__init__(min_dwell_time, uart_bridge.get_ac_on)
     
     def read(self) -> bool:
         super().update()
-        return self._last_reading
+        return self._last_reading.val
 
 
 class Heater(PIDOutput):
@@ -87,17 +92,17 @@ class Heater(PIDOutput):
         uart_bridge.set_heater_to(0)
 
 class LEDs:    
-    def set_all(led0_val, led1_val, led2_val):
+    def set_all(self, led0_val, led1_val, led2_val):
         uart_bridge.set_leds([0,1,2], [led0_val, led1_val, led2_val])
 
-    def set(led_num : int, state : bool):
+    def set(self, led_num : int, state : bool):
         uart_bridge.set_leds(led_num, state)
 
 class Pump(PIDOutput):
-    _pwr_bounds = Bounds(60, 127)
+    _pwr_bounds = Bounds(60, 127, allow_zero = True)
     def set(self, pwr : float):
         uart_bridge.set_pump_to(self._pwr_bounds.clip(round(pwr)))
 
 class Solenoid:
-    def set(on_off : bool):
+    def set(self, on_off : bool):
         uart_bridge.set_solenoid_to(on_off)

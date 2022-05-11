@@ -102,13 +102,17 @@ class PID:
     and write methods respectivly. 
     """
     def __init__(self, gains : PIDGains, setpoint : float = 0, 
-                 sensor : PIDSensor = None, output : PIDOutput = None) -> None:
+                 sensor : PIDSensor = None, output : PIDOutput = None,
+                 min_dwell_time = 1) -> None:
         self._gains = gains
         self._sensor : PIDSensor = sensor
         self._output : PIDOutput = output
         self._derivative = DiscreteDerivative()
         self._integral = DiscreteIntegral()
         self._setpoint = setpoint
+        self._min_dt = min_dwell_time
+
+        self._last_tick_time = time()
 
     def attach_sensor(self, sensor : PIDSensor):
         self._sensor = sensor
@@ -119,16 +123,24 @@ class PID:
     def update_setpoint_to(self, setpoint : float):
         self._setpoint = setpoint
 
+    def at_setpoint(self, err_tol = 5) -> bool:
+        val = self._sensor.read()
+        if (val-self._setpoint < err_tol) and (val-self._setpoint > err_tol):
+            return True
+        else:
+            return False
+         
     def tick(self):
         if self._sensor == None or self._output == None:
             print("Must attach sensor and output before running controller")
             return
-        val = self._sensor.read()
-        err = self._setpoint - val
-        print(f"Temp is {val} so error is {err}")
-        self._derivative.add_point(-val)
-        self._integral.add_point(err)
-        output = self._gains.Kp * err + self._gains.Ki * self._integral.sum() + self._gains.Kd * self._derivative.slope()
-        self._output.write(self._gains.Kp * err +
-                           self._gains.Ki * self._integral.sum() +
-                           self._gains.Kd * self._derivative.slope())
+        if self._last_tick_time!=None and time()-self._last_tick_time>self._min_dt:
+            self._last_tick_time = time()
+            val = self._sensor.read()
+            err = self._setpoint - val
+            print(f"Temp is {val} so error is {err}")
+            self._derivative.add_point(-val)
+            self._integral.add_point(err)
+            self._output.write(self._gains.Kp * err +
+                            self._gains.Ki * self._integral.sum() +
+                            self._gains.Kd * self._derivative.slope())
