@@ -42,13 +42,12 @@ class Heater(PID.PIDOutput):
         self._prev_value = 0
         uart_bridge.set_heater_to(0)
 
-class LEDs:
-    def __init__(self, pins : [int]):
-        self._pins = pins
-    
-    def set(self, state : [bool]):
-        uart_bridge.set_gpio_to([self._pins], state)
-
+class LEDs:    
+    def set_all(self, led0_val, led1_val, led2_val):
+        uart_bridge.set_leds([0,1,2], [led0_val, led1_val, led2_val])
+        
+    def set(self, led_num : int, state : bool):
+        uart_bridge.set_leds(led_num, state)
     
 class LMT01(GetterComponent, PID.PIDSensor):
     _last_reading : uart_bridge.TempuratureReading

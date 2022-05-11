@@ -2,7 +2,7 @@
 
 #define MSG_ID_END_PROGRAM   0 /**< Breaks the infinite while loop and exits the firmware */
 
-#define MSG_ID_SET_GPIO      1
+#define MSG_ID_SET_LEDS      1
 #define MSG_ID_SET_PUMP      2
 #define MSG_ID_SET_SOLENOID  3
 #define MSG_ID_SET_HEATER    4

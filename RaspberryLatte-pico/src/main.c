@@ -12,6 +12,7 @@
 #include "lmt01.h"
 #include "heater.h"
 #include "solenoid.h"
+#include "leds.h"
 
 bool run = true;
 
@@ -51,6 +52,8 @@ int main(){
   lmt01_setup(0, LMT01_DATA_PIN);
 
   solenoid_setup(SOLENOID_PIN);
+  
+  leds_setup(LED0_PIN, LED1_PIN, LED2_PIN);
   
   // Continually look for a message and then run maintenance
   while(run){

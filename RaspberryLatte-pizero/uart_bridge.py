@@ -5,7 +5,7 @@ from time import sleep, time
 
 ser = serial.Serial(port="/dev/ttyS0", baudrate = 115200)
 
-_MSG_ID_SET_GPIO      =  1
+_MSG_ID_SET_LEDS      =  1
 _MSG_ID_SET_PUMP      =  2
 _MSG_ID_SET_SOLENOID  =  3
 _MSG_ID_SET_HEATER    =  4
@@ -128,18 +128,18 @@ def set_pump_to(new_value):
 def set_solenoid_to(new_value):
     ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))
 
-def set_gpio_to(gpio_num : int, val : bool):
-    if gpio_num is list:
-        if len(gpio_num) == 1:
-            ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_GPIO, 1, val[0], gpio_num[0])
-        elif len(gpio_num) == 2:
-            ser.write(_set_2gpio_bs.pack(_MSG_ID_SET_GPIO, 2, val[0], gpio_num[0], val[1], gpio_num[1])
-        elif len(gpio_num) == 3:
-            ser.write(_set_3gpio_bs.pack(_MSG_ID_SET_GPIO, 3, val[0], gpio_num[0], val[1], gpio_num[1], val[2], gpio_num[2])
+def set_leds(led_num, val):
+    if led_num is list:
+        if len(led_num) == 1:
+            ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val[0], led_num[0]))
+        elif len(led_num) == 2:
+            ser.write(_set_2gpio_bs.pack(_MSG_ID_SET_LEDS, 2, val[0], led_num[0], val[1], led_num[1]))
+        elif len(led_num) == 3:
+            ser.write(_set_3gpio_bs.pack(_MSG_ID_SET_LEDS, 3, val[0], led_num[0], val[1], led_num[1], val[2], led_num[2]))
         else:
             print("Can't send more than 3 gpio commands at a time")
     else:
-        ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val, gpio_num)
+        ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val, led_num))
     
 
 if __name__ == "__main__":
@@ -169,4 +169,8 @@ if __name__ == "__main__":
             print("AC is off.")
     elif cmd=="pressure":
         print(f"Current pressure is {get_pressure().in_bar()} bar")
+    elif cmd=="leds":
+        led_num = int(sys.argv[2])
+        val = int(sys.argv[3])
+        set_leds(led_num, val)
     
