@@ -1,10 +1,12 @@
-import serial
-import bitstruct
-import sys
-from time import sleep, time
+""" Links python software with pico firmware over uart. """
+import serial    # writing to serial port
+import bitstruct # Packing the data into bit strings
+import sys       # Running commands manualy from terminal
+from time import time
 
 ser = serial.Serial(port="/dev/ttyS0", baudrate = 115200)
 
+# Message constants. These must match what is found in uart_bridge.h in the pico firmware!
 _MSG_ID_SET_LEDS      =  1
 _MSG_ID_SET_PUMP      =  2
 _MSG_ID_SET_SOLENOID  =  3
@@ -22,6 +24,7 @@ _MSG_LEN_GET_WEIGHT   =  4
 _MSG_LEN_GET_TEMP     =  3
 _MSG_LEN_GET_AC_ON    =  2
 
+# Everything that can be is compiled/computed once for speed
 _get_pressure_msg = bitstruct.pack('u4u4', _MSG_ID_GET_PRESSURE, 0)
 _get_temp_msg     = bitstruct.pack('u4u4', _MSG_ID_GET_TEMP, 0)
 _get_switch_msg   = bitstruct.pack('u4u4', _MSG_ID_GET_SWITCH, 0)
@@ -42,10 +45,12 @@ _set_2gpio_bs        = bitstruct.compile('u4u4u1u7u1u7')
 _set_3gpio_bs        = bitstruct.compile('u4u4u1u7u1u7u1u7')
 
 class Reading:
+    """ Provides a timestep upon creation to every child class """
     def __init__(self) -> None:
         self.timestamp = time()
 
 class PressureReading(Reading):
+    """ Returned by the uart_bridge when the pressure is queried. The method in_bar() converts the pressure to bars """
     def __init__(self, value) -> None:
         super().__init__()
         self._raw_val = value
@@ -54,6 +59,7 @@ class PressureReading(Reading):
         return self._raw_val/1000.0 
 
 class TempuratureReading(Reading):
+    """ Returned by the uart_bridge when the temp is quearied. Methods in_C() and in_F() return the temp in the corrisponding unit """
     def __init__(self, value) -> None:
         super().__init__()
         self._raw_val = value
