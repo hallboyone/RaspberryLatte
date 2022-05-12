@@ -134,7 +134,7 @@ def set_solenoid_to(new_value):
     ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))
 
 def set_leds(led_num, val):
-    if led_num is list:
+    if isinstance(led_num, list):
         if len(led_num) == 1:
             ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val[0], led_num[0]))
         elif len(led_num) == 2:
