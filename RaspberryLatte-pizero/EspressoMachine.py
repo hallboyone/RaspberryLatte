@@ -1,5 +1,5 @@
 import components
-from PID import PIDGains, PID
+from PID import PIDGains, PID, IntegralBounds
 from time import sleep
 
 _PWR_OFF     = -1
@@ -9,43 +9,50 @@ _MANUAL_MODE =  2
 _AUTO_MODE   =  3
 
 class EspressoMachine:
-    power_status = components.ACStatus()
+    def __init__(self) -> None:
+        self.power_status = components.ACStatus()
 
-    heater = components.Heater()
-    temp_sensor = components.LMT01()
-    boiler_gains = PIDGains(3, 0.01, 0.1)
-    boiler_ctrl = PID(boiler_gains, sensor=temp_sensor, output = heater)
-    boiler_setpoints = {"brew":90, "hot":100, "steam":150}
+        self.heater = components.Heater()
+        self.temp_sensor = components.LMT01()
+        self.boiler_gains = PIDGains(3, 0.05, 0.25)
+        self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
+        self.boiler_setpoints = {"brew":90, "hot":100, "steam":150}
 
-    pump = components.Pump()
-    solenoid = components.Solenoid()
+        self.pump = components.Pump()
+        self.solenoid = components.Solenoid()
 
-    leds = components.LEDs()
+        self.leds = components.LEDs()
 
-    switches = components.Switches()
+        self.switches = components.Switches()
 
-    current_mode = _MANUAL_MODE
+        self.current_mode = _MANUAL_MODE
 
-    def _update_mode(self) -> bool:
+    def run(self):
+        while(True):
+            # Check ac switch and dial and update setpoints accordingly 
+            self._update_mode()
+            
+            # Updating boiler
+            self.boiler_ctrl.tick()
+            self.leds.set(1, self.boiler_ctrl.at_setpoint(2.5))
+
+            # Turn pump off or on depending on mode and pump switch
+            self._update_pump()
+            sleep(0.01)
+
+    def _update_mode(self):
         if not self.power_status.read():
-            if current_mode != _PWR_OFF:
-                current_mode = _PWR_OFF
-                return True
-            else:
-                return False
+            print("Machine off")
+            self._powered_down_loop()
+            print("Machine on")
         else:
-            new_mode = self.switches.read()
-            if new_mode != current_mode:
-                current_mode = new_mode
-                return True
-            else:
-                return False
+            new_mode = self.switches.read("dial")
+            if new_mode != self.current_mode:
+                self.current_mode = new_mode
+                print(new_mode)
+                self._update_setpoint
 
     def _update_pump(self):
-        # Pump only comes on if
-        # (a) In manual mode and pump switch is on
-        # (b) TO-DO In auto mode, pump switch is on, and ready to brew
-        # (c) In h0t-water mode and pump switch is on
         if self.switches.read("pump") and self.current_mode==_MANUAL_MODE:
             self.solenoid.open()
             self.pump.on()
@@ -56,18 +63,7 @@ class EspressoMachine:
             self.solenoid.close()
             self.pump.off()
 
-    def update_to_new_mode(self):
-        """
-        (1) Update setpoint
-        """
-        if self.current_mode == _AUTO_MODE or self.current_mode == _MANUAL_MODE:
-            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
-        elif self.current_mode == _HOT_MODE:
-            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["hot"])
-        elif self.current_mode == _STEAM_MODE:
-            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["steam"])
-
-    def _power_down_loop(self):
+    def _powered_down_loop(self):       
         self.leds.set(0, 0)
         self.heater.off()
         while self.current_mode == _PWR_OFF:
@@ -75,24 +71,12 @@ class EspressoMachine:
             self._update_mode()
         self.leds.set(0, 1)
         self.boiler_ctrl.reset()
-        
-    def run(self):
-        while(True):
-            mode_changed = self._update_mode()
-            if self.current_mode == _PWR_OFF:
-                self.leds.set(0, 0)
-                self.heater.off()
-                while not self._update_mode():
-                    # Wait until machine powered on 
-                    pass
-                self.leds.set(0, 1)
-            
-            if mode_changed:
-                self._update_to_new_mode()
-            
-            self.boiler_ctrl.tick()
-            self._update_pump()
-            sleep(0.01)
 
-
+    def _update_setpoint(self):
+        if self.current_mode == _AUTO_MODE or self.current_mode == _MANUAL_MODE:
+            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
+        elif self.current_mode == _HOT_MODE:
+            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["hot"])
+        elif self.current_mode == _STEAM_MODE:
+            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["steam"])
 
