@@ -56,26 +56,26 @@ class EspressoMachine:
 
     def _update_mode(self):
         new_switch_state = self.switches.read()
-        if self.current_mode["dial"] != new_switch_state["dial"]:
-            self.current_mode["dial"] = new_switch_state["dial"] 
+        if self.switch_state["dial"] != new_switch_state["dial"]:
+            self.switch_state["dial"] = new_switch_state["dial"] 
             self._update_setpoint()
             if (new_switch_state["dial"] == _AUTO_MODE):
                 self._auto_brew_schedule.reset()
         
         if not new_switch_state["pump"]:
             self._auto_brew_schedule.reset()
-            self.current_mode["pump"] = False
+            self.switch_state["pump"] = False
         else:
-            self.current_mode["pump"] = True
+            self.switch_state["pump"] = True
 
     def _update_pump(self):
-        if self.current_mode   == {"pump": True, "dial": _MANUAL_MODE}:
+        if self.switch_state   == {"pump": True, "dial": _MANUAL_MODE}:
             self.solenoid.open()
             self.pump.on()
-        elif self.current_mode == {"pump": True, "dial": _HOT_MODE   }:
+        elif self.switch_state == {"pump": True, "dial": _HOT_MODE   }:
             self.solenoid.close()
             self.pump.on()
-        elif self.current_mode == {"pump": True, "dial": _AUTO_MODE  }:
+        elif self.switch_state == {"pump": True, "dial": _AUTO_MODE  }:
             val, val_changed, finished = self._auto_brew_schedule.tick()
             if not finished:
                 self.solenoid.open()
@@ -103,9 +103,9 @@ class EspressoMachine:
         print("Machine on")
 
     def _update_setpoint(self):
-        if self.current_mode == _AUTO_MODE or self.current_mode == _MANUAL_MODE:
+        if self.switch_state["dial"] == _AUTO_MODE or self.switch_state["dial"] == _MANUAL_MODE:
             self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
-        elif self.current_mode == _HOT_MODE:
+        elif self.switch_state["dial"] == _HOT_MODE:
             self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["hot"])
-        elif self.current_mode == _STEAM_MODE:
+        elif self.switch_state["dial"] == _STEAM_MODE:
             self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["steam"])
