@@ -1,4 +1,5 @@
 from time import time
+from util import Bounds
 
 class DiscreteDerivative:
     def __init__(self, filter_span : float = 0) -> None:
@@ -39,7 +40,7 @@ class DiscreteDerivative:
 # DiscreteDerivative
 
 class DiscreteIntegral:
-    def __init__(self, windup_bounds = None) -> None:
+    def __init__(self, windup_bounds : Bounds = None) -> None:
         self._sum : float = 0
         self._windup_bounds = windup_bounds
         self._prev_time = None
@@ -51,10 +52,9 @@ class DiscreteIntegral:
             self._prev_val = point
         else:
             t = time()
-            self._sum = self._sum + ((self._prev_val + point)/2)*(t - self._prev_time)
+            self._sum = self._windup_bounds.clip(self._sum + ((self._prev_val + point)/2)*(t - self._prev_time))
             self._prev_time = t
             self._prev_val = point
-            self._clip_to_bounds()
 
     def reset(self) -> None:
         self._sum = 0
@@ -63,11 +63,6 @@ class DiscreteIntegral:
 
     def sum(self) -> float:
         return self._sum
-
-    def _clip_to_bounds(self):
-        if self._windup_bounds:
-            self._sum = max(self._sum, self._windup_bounds[0])
-            self._sum = min(self._sum, self._windup_bounds[1])
 # DiscreteIntegral
 
 class PIDGains:
@@ -144,6 +139,7 @@ class PID:
             self._output.write(self._gains.Kp * err +
                             self._gains.Ki * self._integral.sum() +
                             self._gains.Kd * self._derivative.slope())
+            print(f"P = {self._gains.Kp * err}, I = {self._gains.Ki * self._integral.sum()}, D = {self._gains.Kd * self._derivative.slope()}")
 
     def reset(self):
         self._derivative.reset()
