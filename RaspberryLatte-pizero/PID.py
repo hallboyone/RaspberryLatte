@@ -1,5 +1,5 @@
 from time import time
-from util import Bounds
+from util import Bounds as IntegralBounds
 
 class DiscreteDerivative:
     def __init__(self, filter_span : float = 0) -> None:
@@ -40,7 +40,7 @@ class DiscreteDerivative:
 # DiscreteDerivative
 
 class DiscreteIntegral:
-    def __init__(self, windup_bounds : Bounds = None) -> None:
+    def __init__(self, windup_bounds : IntegralBounds = None) -> None:
         self._sum : float = 0
         self._windup_bounds = windup_bounds
         self._prev_time = None
@@ -54,7 +54,8 @@ class DiscreteIntegral:
             t = time()
             self._sum = self._windup_bounds.clip(self._sum + ((self._prev_val + point)/2)*(t - self._prev_time))
             self._prev_time = t
-            self._prev_val = point
+            if self._windup_bounds != None:
+                self._prev_val = point
 
     def reset(self) -> None:
         self._sum = 0
@@ -98,12 +99,12 @@ class PID:
     """
     def __init__(self, gains : PIDGains, setpoint : float = 0, 
                  sensor : PIDSensor = None, output : PIDOutput = None,
-                 min_dwell_time = 1) -> None:
+                 min_dwell_time = 1, windup_bounds : IntegralBounds = None) -> None:
         self._gains = gains
         self._sensor : PIDSensor = sensor
         self._output : PIDOutput = output
         self._derivative = DiscreteDerivative()
-        self._integral = DiscreteIntegral()
+        self._integral = DiscreteIntegral(windup_bounds)
         self._setpoint = setpoint
         self._min_dt = min_dwell_time
 
