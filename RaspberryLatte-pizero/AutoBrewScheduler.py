@@ -99,6 +99,8 @@ class AutoBrewScheduler:
         self._cur_leg = 0
 
     def tick(self) -> tuple[(float,bool,bool)]:
+        if self._cur_leg == len(self._legs):
+            return (0, False, True)
         val, updated, finished = self._legs[self._cur_leg].tick()
         if (finished):
             self._cur_leg = self._cur_leg + 1
@@ -107,6 +109,7 @@ class AutoBrewScheduler:
         return (val, updated, False)
 
     def reset(self):
+        self._cur_leg = 0
         for leg in self._legs:
             leg.reset()
 
