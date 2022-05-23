@@ -54,7 +54,7 @@ void hx711_setup(uint8_t pio_num, uint8_t dat_pin, uint8_t clk_pin){
   _sm = pio_claim_unused_sm(_pio, true);
   hx711_program_init(dat_pin, clk_pin, offset);
 
-  assignHandler(MSG_ID_GET_WEIGHT, &hx711_read_handler);
+  registerHandler(MSG_ID_GET_WEIGHT, &hx711_read_handler);
   registerMaintainer(&hx711_maintainer);
 }
 

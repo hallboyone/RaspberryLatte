@@ -82,7 +82,7 @@ void heater_setup(uint8_t pwm_pin){
 
     _duty_cycle = 0;
 
-    assignHandler(MSG_ID_SET_HEATER, &heater_set_duty_handler);
+    registerHandler(MSG_ID_SET_HEATER, &heater_set_duty_handler);
 
     add_alarm_in_ms(0, turn_on, NULL, true);
 }

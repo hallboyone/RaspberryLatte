@@ -22,5 +22,5 @@ void solenoid_setup(uint8_t pin){
     gpio_set_dir(_solenoid_pin, GPIO_OUT);
     gpio_put(_solenoid_pin, 0);
 
-    assignHandler(MSG_ID_SET_SOLENOID, &solenoid_set_state_handler);
+    registerHandler(MSG_ID_SET_SOLENOID, &solenoid_set_state_handler);
 }

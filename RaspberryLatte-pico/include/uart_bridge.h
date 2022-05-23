@@ -38,7 +38,7 @@ typedef uint8_t MessageLen;
  * 
  * @returns 1 if messageID was unclaimed. 0 else. 
  */
-int assignHandler(MessageID id, MessageHandler h);
+int registerHandler(MessageID id, MessageHandler h);
 
 /**
  * Read message over the UART if avalible

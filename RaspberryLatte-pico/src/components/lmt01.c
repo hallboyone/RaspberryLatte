@@ -124,7 +124,7 @@ static inline void lmt01_program_init(uint offset, uint dat_pin) {
     sm_config_set_in_shift(&c, false, true, 32);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
     
-    // Each clock cycle should be 0.5us -> 2000000 Hz
+    // Each clock cycle should be 0.5us -> 2_000_000 Hz
     float div = (float)clock_get_hz(clk_sys)/2000000.0;
     sm_config_set_clkdiv(&c, div);
     
@@ -142,8 +142,8 @@ static void lmt01_maintainer(){
 }
 
 /**
- * @brief Clears the RX buffer and saves the most recent value. The LMT01 takes around 50ms
- * pre reading so this procedure ensures a query can be answered quickly with the
+ * @brief Clears the RX buffer and saves the most recent value. The LMT01 takes around 100ms
+ * per reading so this procedure ensures a query can be answered quickly with the
  * most recent value.
  */
 int lmt01_read(){
@@ -168,7 +168,7 @@ void lmt01_setup(uint8_t pio_num, uint8_t dat_pin){
     lmt01_program_init(offset, dat_pin);
 
     // Register maintainer and message handler
-    assignHandler(MSG_ID_GET_TEMP, &lmt01_read_handler);
+    registerHandler(MSG_ID_GET_TEMP, &lmt01_read_handler);
     registerMaintainer(&lmt01_maintainer);
 
     while(_latest_temp<=0 || _latest_temp>2800){

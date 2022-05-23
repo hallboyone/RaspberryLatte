@@ -16,7 +16,7 @@ static MessageHandler handlers[16] = {NULL,NULL,NULL,NULL,
  * 
  * @returns 1 if messageID was unclaimed. 0 else. 
  */
-int assignHandler(MessageID id, MessageHandler h){
+int registerHandler(MessageID id, MessageHandler h){
   assert(id<=15);
   if(handlers[id] != NULL) return 0;
   

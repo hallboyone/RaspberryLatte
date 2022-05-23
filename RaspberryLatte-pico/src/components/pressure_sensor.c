@@ -42,5 +42,5 @@ void pressure_sensor_setup(uint8_t a_pin){
 
   _a_pin = a_pin;
 
-  assignHandler(MSG_ID_GET_PRESSURE, &pressure_sensor_read_handler);
+  registerHandler(MSG_ID_GET_PRESSURE, &pressure_sensor_read_handler);
 } 

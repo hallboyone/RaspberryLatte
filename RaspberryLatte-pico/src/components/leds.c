@@ -28,7 +28,7 @@ void leds_setup(const uint led0_pin, const uint led1_pin, const uint led2_pin){
         gpio_set_dir(_led_pins[i], true);
         gpio_put(_led_pins[i], 0);
     }
-    assignHandler(MSG_ID_SET_LEDS, &leds_set_handler);
+    registerHandler(MSG_ID_SET_LEDS, &leds_set_handler);
 }
 
 /**

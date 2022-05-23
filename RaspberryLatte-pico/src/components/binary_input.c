@@ -72,7 +72,7 @@ void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir
 
   _num_binary_inputs += 1;
 
-  assignHandler(MSG_ID_GET_SWITCH, &binary_input_read_handler);
+  registerHandler(MSG_ID_GET_SWITCH, &binary_input_read_handler);
 }
 
 /**
