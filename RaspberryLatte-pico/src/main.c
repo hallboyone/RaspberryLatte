@@ -24,7 +24,7 @@ int main(){
   // Setup UART, clear queue, and assign endProgram command
   stdio_init_all();
   while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
-  assignHandler(MSG_ID_END_PROGRAM, &endProgram);
+  registerHandler(MSG_ID_END_PROGRAM, &endProgram);
 
   // Setup the onboard LED
   gpio_init(PICO_DEFAULT_LED_PIN);
