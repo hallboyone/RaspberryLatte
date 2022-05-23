@@ -148,7 +148,7 @@ static void lmt01_maintainer(){
  */
 int lmt01_read(){
     while(!pio_sm_is_rx_fifo_empty(_pio, _sm)){
-        _latest_temp = pulse2Temp(pio_sm_get_blocking(_pio, _sm));
+        _latest_temp = pulse2Temp(0xFFFFFFFF - pio_sm_get_blocking(_pio, _sm));
     }
     return _latest_temp;
 }
