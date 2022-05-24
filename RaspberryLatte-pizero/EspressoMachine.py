@@ -1,4 +1,11 @@
 import components
+
+from Components.ACSensor import ACSensor
+from Components.PressureSensor import PressureSensor
+from Components.Scale import Scale
+from Components.Switches import Switches
+from Components.TempSensor import TempSensor
+
 from brew_config import *
 from PID import PIDGains, PID, IntegralBounds
 import AutoBrewScheduler
@@ -11,24 +18,24 @@ _AUTO_MODE   =  3
 
 class EspressoMachine:
     def __init__(self) -> None:
-        self.power_status = components.ACStatus()
+        # Getters 
+        self.power_status = ACSensor()
+        self.temp_sensor  = TempSensor()
+        self.switches     = Switches()
+        self.scale        = Scale()
+        self.pressure     = PressureSensor()
 
+        # Setters
         self.heater = components.Heater()
-        self.temp_sensor = components.LMT01()
+        self.pump = components.Pump()
+        self.solenoid = components.Solenoid()
+        self.leds = components.LEDs()
+
+        # Controllers
         self.boiler_gains = PIDGains(3, 0.05, 0.25)
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
         self.boiler_setpoints = {"brew":BREW_TEMP, "hot":HOT_TEMP, "steam":STEAM_TEMP}
         self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
-
-        self.pump = components.Pump()
-        self.solenoid = components.Solenoid()
-
-        self.leds = components.LEDs()
-
-        self.switches = components.Switches()
-        self.switch_state = {"dial": _MANUAL_MODE, "pump": False}
-
-        self.scale = components.Scale()
 
         self._auto_brew_routine = [
             AutoBrewScheduler.Ramp(from_pwr = 60, to_pwr = PRE_ON_PWR*0.67+60, in_sec = PRE_ON_TIME),
@@ -55,27 +62,28 @@ class EspressoMachine:
             sleep(0.01)
 
     def _update_mode(self):
-        new_switch_state = self.switches.read()
-        if self.current_mode["dial"] != new_switch_state["dial"]:
-            self.current_mode["dial"] = new_switch_state["dial"] 
+        self.switches.read()
+        # If dial changed value, update the setpoint and, if switched to auto mode, reset
+        # auto brew object
+        if self.switches.did_change['dial']:
+            self.switches.did_change['dial'] = False
             self._update_setpoint()
-            if (new_switch_state["dial"] == _AUTO_MODE):
+            if (self.switches.state('dial') == _AUTO_MODE):
                 self._auto_brew_schedule.reset()
         
-        if not new_switch_state["pump"]:
-            self._auto_brew_schedule.reset()
-            self.current_mode["pump"] = False
-        else:
-            self.current_mode["pump"] = True
+        if self.switches.did_change['pump']:
+            self.switches.did_change['dial'] = False
+            if not self.switches.state('pump'):
+                self._auto_brew_schedule.reset()
 
     def _update_pump(self):
-        if self.current_mode   == {"pump": True, "dial": _MANUAL_MODE}:
+        if self.switches.state()   == {"pump": True, "dial": _MANUAL_MODE}:
             self.solenoid.open()
             self.pump.on()
-        elif self.current_mode == {"pump": True, "dial": _HOT_MODE   }:
+        elif self.switches.state() == {"pump": True, "dial": _HOT_MODE   }:
             self.solenoid.close()
             self.pump.on()
-        elif self.current_mode == {"pump": True, "dial": _AUTO_MODE  }:
+        elif self.switches.state() == {"pump": True, "dial": _AUTO_MODE  }:
             val, val_changed, finished = self._auto_brew_schedule.tick()
             if not finished:
                 self.solenoid.open()
@@ -103,9 +111,9 @@ class EspressoMachine:
         print("Machine on")
 
     def _update_setpoint(self):
-        if self.current_mode == _AUTO_MODE or self.current_mode == _MANUAL_MODE:
+        if self.switches.state('dial') == _AUTO_MODE or self.switches.state('dial') == _MANUAL_MODE:
             self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
-        elif self.current_mode == _HOT_MODE:
+        elif self.switches.state('dial') == _HOT_MODE:
             self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["hot"])
-        elif self.current_mode == _STEAM_MODE:
+        elif self.switches.state('dial') == _STEAM_MODE:
             self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["steam"])
