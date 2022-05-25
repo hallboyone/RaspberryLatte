@@ -7,11 +7,9 @@ static uint _led_pins[3];
  *      [0-3:MSG_ID_SET_GPIO][4-7:len] - [8:val][9-15:pin_idx] - {[16:val][17-23:pin_idx]}...
  */
 static void leds_set_handler(int * data, int len){
-    assert(len>0 && len < 3);
-    for(uint byte_idx = 0; byte_idx < len; byte_idx++){
-        uint led_idx = data[byte_idx] & 0x7F;
-        uint val = data[byte_idx]   & 0x80;
-        leds_set(led_idx, val);
+    assert(len==1);
+    for(uint led_idx = 0; led_idx < 3; led_idx++){
+        leds_set(_led_pins[led_idx], data[0] & (1<<led_idx));
     }
 }
 

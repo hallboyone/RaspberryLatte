@@ -1,5 +1,9 @@
 
 class Bounds:
+    """
+    Object that clips a value to configured upper and lower bounds. If the allow_zero flag is
+    included, then a zero value will not be clipped to a lower bound greater than zero.
+    """
     lower = None
     upper = None
     def __init__(self, lower_bound = None, upper_bound = None, allow_zero = False) -> None:

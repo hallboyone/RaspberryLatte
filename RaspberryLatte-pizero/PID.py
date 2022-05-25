@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 from time import time
 from util import Bounds as IntegralBounds
 
@@ -75,15 +76,17 @@ class PIDGains:
         self.Ki = ki
         self.Kd = kd
 
-class PIDSensor:
+class PIDSensor(metaclass=ABCMeta):
+    @abstractmethod
     def read(self) -> float:
         pass
 
-class PIDOutput:
+class PIDOutput(metaclass=ABCMeta):
     """
     Object that implements the write function called by a PID controller to write the current controller
     value to the plant. Constraints on the output are implemented here.
     """
+    @abstractmethod
     def write(self, val : float) -> float:
         """
         Implement in subclass. Should take the controller value, constrain it (optional), write to plant, and

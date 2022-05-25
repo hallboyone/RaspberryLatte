@@ -1,10 +1,27 @@
+"""
+Provides getter and setter classes for retreiving sensor data and sending commands over uart
+to pico running RaspberryLatte firmware. The module should be primarly used by inheriting
+the Getter and Setter classes which internally call the _send_over_uart function.
+"""
 import serial
+import bitstruct
+import time
 
-_MSG_ID_GET_SWITCH    =  8
-_MSG_ID_GET_PRESSURE  =  9
-_MSG_ID_GET_WEIGHT    = 10
-_MSG_ID_GET_TEMP      = 11
-_MSG_ID_GET_AC_ON     = 12
+MSG_ID_SET_LEDS      =  1
+MSG_ID_SET_PUMP      =  2
+MSG_ID_SET_SOLENOID  =  3
+MSG_ID_SET_HEATER    =  4
+UNUSED0              =  5
+UNUSED1              =  6
+UNUSED2              =  7
+MSG_ID_GET_SWITCH    =  8
+MSG_ID_GET_PRESSURE  =  9
+MSG_ID_GET_WEIGHT    = 10
+MSG_ID_GET_TEMP      = 11
+MSG_ID_GET_AC_ON     = 12
+UNUSED3              = 13
+UNUSED4              = 14
+UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
@@ -12,11 +29,55 @@ _BAUDRATE = 115200
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')
 
-"""
-Send the bytestring message, msg over the _SERIAL_PORT at the _BAUDRATE. If expect_response is
-True, then the function hangs until the full response is recieved.
-"""
-def send(msg, expect_response = False):
+class DataPoint:
+    """
+    Attaches a timestamp to the value passed to the constructor. Access the value with
+    data_point.val and the timestamp with data_point.t
+    """
+    def __init__(self, val) -> None:
+        self.t = time()
+        self.val = val
+
+class Getter:
+    """
+    Abstract class to handles getting values over the uart_bridge. If the value was recently retrieved (not more than
+    min_dwell_time seconds ago), then the value is just reused.
+    """
+    _last_reading : DataPoint = None
+
+    def __init__(self, min_dwell_time : float, request_message, response_decoder) -> None:
+        self._mindt = min_dwell_time
+        self._msg = request_message
+        self._decoder = response_decoder
+
+    def read(self):
+        if (self._last_reading) == None or (time.time() - self._last_reading.t > self._mindt):
+            self._last_reading = DataPoint(self._decoder(_send_over_uart(self._msg, expect_response = True)))
+
+class Setter:
+    """
+    Abstract class to handles setting values over the uart_bridge. If the value is unchanged from
+    the last time it was set, nothing is sent
+    """
+    _last_setting : DataPoint = None
+
+    def __init__(self, min_dwell_time : float, message_packer, message_id, message_len) -> None:
+        self._mindt = min_dwell_time
+        self._msg_packer = message_packer
+        self._msg_id = message_id
+        self._msg_len = message_len
+
+    def write(self, val, force = False):
+        # If forced or value has changed and min-dt has expired
+        if (force or (val != self._last_setting.val and time.time() - self._last_setting.t > self._mindt)):
+            _send_over_uart(self._msg_packer.pack(self._msg_id, self._msg_id, val), expect_response=False)
+            self._last_setting = DataPoint(val)
+
+def _send_over_uart(msg, expect_response = False):
+    """
+    Send the bytestring message, msg over the _SERIAL_PORT at the _BAUDRATE. If expect_response is
+    True, then the function hangs until the full response is recieved.
+    """
     # Clear serial port and write message
     _ser.read()
     _ser.write(msg)
@@ -29,73 +90,3 @@ def send(msg, expect_response = False):
         while(_ser.in_waiting != header[1]):
             pass
         return _ser.read(header[1])
-
-
-_MSG_ID_SET_LEDS      =  1
-_MSG_ID_SET_PUMP      =  2
-_MSG_ID_SET_SOLENOID  =  3
-_MSG_ID_SET_HEATER    =  4
-
-
-_set_heater_bs      = bitstruct.compile('u4u4u8')
-_set_pump_bs        = bitstruct.compile('u4u4u8')
-_set_solenoid_bs    = bitstruct.compile('u4u4u8')
-_set_1gpio_bs        = bitstruct.compile('u4u4u1u7')
-_set_2gpio_bs        = bitstruct.compile('u4u4u1u7u1u7')
-_set_3gpio_bs        = bitstruct.compile('u4u4u1u7u1u7u1u7')
-
-def set_heater_to(new_value):
-    ser.write(_set_heater_bs.pack(_MSG_ID_SET_HEATER, 1, new_value))
-
-def set_pump_to(new_value):
-    ser.write(_set_pump_bs.pack(_MSG_ID_SET_PUMP, 1, new_value))
-
-def set_solenoid_to(new_value):
-    ser.write(_set_solenoid_bs.pack(_MSG_ID_SET_SOLENOID, 1, new_value))
-
-def set_leds(led_num, val):
-    if led_num is list:
-        if len(led_num) == 1:
-            ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val[0], led_num[0]))
-        elif len(led_num) == 2:
-            ser.write(_set_2gpio_bs.pack(_MSG_ID_SET_LEDS, 2, val[0], led_num[0], val[1], led_num[1]))
-        elif len(led_num) == 3:
-            ser.write(_set_3gpio_bs.pack(_MSG_ID_SET_LEDS, 3, val[0], led_num[0], val[1], led_num[1], val[2], led_num[2]))
-        else:
-            print("Can't send more than 3 gpio commands at a time")
-    else:
-        ser.write(_set_1gpio_bs.pack(_MSG_ID_SET_LEDS, 1, val, led_num))
-    
-
-if __name__ == "__main__":
-    cmd = sys.argv[1]
-    if cmd=="solenoid":
-        para = int(sys.argv[2])
-        print(f"Setting solenoid to {para}")
-        set_solenoid_to(para)
-    elif cmd=="pump":
-        para = int(sys.argv[2])
-        print(f"Setting pump to {para}")
-        set_pump_to(para)
-    elif cmd=="heater":
-        para = int(sys.argv[2])
-        print(f"Setting heater to {para}")
-        set_heater_to(para)
-    elif cmd=="scale":
-        print(f"Current weight is {get_weight().in_g()}")
-    elif cmd=="switches":
-        print(f"Current pump switch state is {get_switches().pump()}\nCurrent dial switch state is {get_switches().dial()}")
-    elif cmd=="temp":
-        print(f"Current temp is {get_tempurature().in_C()}")
-    elif cmd=="ac_on":
-        if (get_ac_on()):
-            print("AC is on.")
-        else:
-            print("AC is off.")
-    elif cmd=="pressure":
-        print(f"Current pressure is {get_pressure().in_bar()} bar")
-    elif cmd=="leds":
-        led_num = int(sys.argv[2])
-        val = int(sys.argv[3])
-        set_leds(led_num, val)
-    

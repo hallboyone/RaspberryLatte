@@ -1,10 +1,15 @@
-import components
-
-from Components.ACSensor import ACSensor
+# Getters
+from Components.ACSensor       import ACSensor
 from Components.PressureSensor import PressureSensor
-from Components.Scale import Scale
-from Components.Switches import Switches
-from Components.TempSensor import TempSensor
+from Components.Scale          import Scale
+from Components.Switches       import Switches
+from Components.TempSensor     import TempSensor
+
+# Setters
+from Components.Heater         import Heater
+from Components.LEDs           import LEDs
+from Components.Pump           import Pump
+from Components.Solenoid       import Solenoid
 
 from brew_config import *
 from PID import PIDGains, PID, IntegralBounds
@@ -26,10 +31,10 @@ class EspressoMachine:
         self.pressure     = PressureSensor()
 
         # Setters
-        self.heater = components.Heater()
-        self.pump = components.Pump()
-        self.solenoid = components.Solenoid()
-        self.leds = components.LEDs()
+        self.heater       = Heater()
+        self.pump         = Pump()
+        self.solenoid     = Solenoid()
+        self.leds         = LEDs()
 
         # Controllers
         self.boiler_gains = PIDGains(3, 0.05, 0.25)
