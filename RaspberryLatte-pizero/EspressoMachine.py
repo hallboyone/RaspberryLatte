@@ -1,3 +1,6 @@
+from time import sleep
+import configparser
+
 # Getters
 from Components.ACSensor       import ACSensor
 from Components.PressureSensor import PressureSensor
@@ -11,10 +14,8 @@ from Components.LEDs           import LEDs
 from Components.Pump           import Pump
 from Components.Solenoid       import Solenoid
 
-from brew_config import *
 from PID import PIDGains, PID, IntegralBounds
 import AutoBrewScheduler
-from time import sleep
 
 _STEAM_MODE  =  0
 _HOT_MODE    =  1
@@ -23,8 +24,11 @@ _AUTO_MODE   =  3
 
 class EspressoMachine:
     def __init__(self) -> None:
+        self._config = configparser.ConfigParser()
+        self._config.read(''.join([__file__[0:__file__.rfind('/')+1], "brew_config"]))
+
         # Getters 
-        self.power_status = ACSensor()
+        self.ac_power     = ACSensor()
         self.temp_sensor  = TempSensor()
         self.switches     = Switches()
         self.scale        = Scale()
@@ -37,34 +41,42 @@ class EspressoMachine:
         self.leds         = LEDs()
 
         # Controllers
-        self.boiler_gains = PIDGains(3, 0.05, 0.25)
+        self.boiler_gains = PIDGains(0.3, 0.005, 0.025)
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
-        self.boiler_setpoints = {"brew":BREW_TEMP, "hot":HOT_TEMP, "steam":STEAM_TEMP}
-        self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
+        self.boiler_ctrl.update_setpoint_to(self._config["temps"]["brew"])
 
         self._auto_brew_routine = [
-            AutoBrewScheduler.Ramp(from_pwr = 60, to_pwr = PRE_ON_PWR*0.67+60, in_sec = PRE_ON_TIME),
-            AutoBrewScheduler.ConstantTimed(pwr = 0,  for_sec = PRE_OFF_TIME),
+            AutoBrewScheduler.Ramp(from_pwr = 60, 
+                                   to_pwr = self._config["autobrew"]["PRE_ON_PWR"]*0.67+60, 
+                                   in_sec = self._config["temps"]["PRE_ON_TIME"]),
+            AutoBrewScheduler.ConstantTimed(pwr = 0,  for_sec = self._config["autobrew"]["PRE_OFF_TIME"]),
             AutoBrewScheduler.Ramp(from_pwr = 60, to_pwr = 127, in_sec = 1),
-            AutoBrewScheduler.ConstantTriggered(lambda : self.scale.read() >= YIELD, pwr = 127)]
+            AutoBrewScheduler.ConstantTriggered(lambda : self.scale.read() >= self._config["autobrew"]["YIELD"], pwr = 127)]
         self._auto_brew_schedule = AutoBrewScheduler.AutoBrewScheduler(self._auto_brew_routine)
 
     def run(self):
-        while(True):
-            if not self.power_status.read():
-                self._powered_down_loop()
-            
-            # Check pump switch and dial. Update object accordingly 
-            self._update_mode()
-            
-            # Updating boiler and turn on LED if at setpoint
-            self.boiler_ctrl.tick()
-            self.leds.set(1, self.boiler_ctrl.at_setpoint(2.5))
+        try:
+            while(True):
+                if not self.ac_power.on():
+                    self._powered_down_loop()
+                
+                # Check pump switch and dial. Update object accordingly 
+                self._update_mode()
+                
+                # Updating boiler and turn on LED if at setpoint
+                self.boiler_ctrl.tick()
+                self.leds.set(1, self.boiler_ctrl.at_setpoint(2.5))
 
-            # Turn pump off or on depending on mode and pump switch
-            self._update_pump()
+                # Turn pump off or on depending on mode and pump switch
+                self._update_pump()
 
-            sleep(0.01)
+                sleep(0.01)
+        except:
+            print("Shutting down")
+            self.leds.set_all(0,0,0)
+            self.heater.off()
+            self.solenoid.close()
+            self.pump.off()
 
     def _update_mode(self):
         self.switches.read()
@@ -108,7 +120,7 @@ class EspressoMachine:
         self.heater.off()
         self.solenoid.close()
         self.pump.off()
-        while not self.power_status.read():
+        while not self.ac_power.on():
             pass
         self.leds.set(0, 1)
         self.boiler_ctrl.reset()
@@ -117,8 +129,8 @@ class EspressoMachine:
 
     def _update_setpoint(self):
         if self.switches.state('dial') == _AUTO_MODE or self.switches.state('dial') == _MANUAL_MODE:
-            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["brew"])
+            self.boiler_ctrl.update_setpoint_to(self._config["temps"]["brew"])
         elif self.switches.state('dial') == _HOT_MODE:
-            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["hot"])
+            self.boiler_ctrl.update_setpoint_to(self._config["temps"]["hot"])
         elif self.switches.state('dial') == _STEAM_MODE:
-            self.boiler_ctrl.update_setpoint_to(self.boiler_setpoints["steam"])
+            self.boiler_ctrl.update_setpoint_to(self._config["temps"]["steam"])
