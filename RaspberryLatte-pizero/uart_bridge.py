@@ -25,6 +25,7 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
+_TIMEOUT  = 0.01
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')
@@ -81,12 +82,15 @@ def _send_over_uart(msg, expect_response = False):
     # Clear serial port and write message
     _ser.read()
     _ser.write(msg)
+    send_time = time.time()
 
     # If response is expected, wait until recieved and then return
     if expect_response:
         while(_ser.in_waiting == 0):
-            pass
+            if time.time() - send_time > _TIMEOUT:
+                raise IOError("UART Timeout!")
         header = _header_decoder(_ser.read(1))
         while(_ser.in_waiting != header[1]):
-            pass
+            if time.time() - send_time > _TIMEOUT:
+                raise IOError("UART Timeout!")
         return _ser.read(header[1])
