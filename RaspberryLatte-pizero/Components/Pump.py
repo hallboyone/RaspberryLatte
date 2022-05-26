@@ -15,7 +15,7 @@ class Pump(uart_bridge.Setter, PIDOutput):
             message_len = 1)
 
     def write(self, val : float):
-        uart_bridge.Setter.write(val, force = False)
+        uart_bridge.Setter.write(self._pwr_bounds.clip(val), force = False)
     
     def set(self, pwr : float):
         self.write(pwr)

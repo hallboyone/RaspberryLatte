@@ -1,7 +1,6 @@
-
 class Bounds:
     """
-    Object that clips a value to configured upper and lower bounds. If the allow_zero flag is
+    Clips a value to configured upper and lower bounds. If the allow_zero flag is
     included, then a zero value will not be clipped to a lower bound greater than zero.
     """
     lower = None

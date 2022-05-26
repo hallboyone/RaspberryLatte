@@ -5,7 +5,12 @@ from PID import PIDOutput
 from util import Bounds
 
 class Heater(uart_bridge.Setter, PIDOutput):
-    _pwr_bounds = Bounds(0, 63)
+    """ 
+    Object representing the boiler heater. Calling the write(self, val : float) method
+    will send a message to the pico over the uart bridge that will set the heater's PWM
+    duty cycle. Writing 0 is full off while 1 is full on. 
+    """
+    _pwr_bounds = Bounds(0, 1)
 
     def __init__(self) -> None:
         uart_bridge.Setter.__init__(self, 
@@ -15,7 +20,7 @@ class Heater(uart_bridge.Setter, PIDOutput):
             message_len = 1)
 
     def write(self, val : float):
-        uart_bridge.Setter.write(val, force = False)
+        uart_bridge.Setter.write(63*self._pwr_bounds.clip(val), force = False)
 
     def off(self) -> None:
         self.write(0, force = True)
