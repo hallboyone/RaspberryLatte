@@ -94,13 +94,13 @@ class ConstantTriggered(AutoBrewLeg):
         self._last_val_pair = None
 
 class FunctionCall(AutoBrewLeg):
-    def __init__(self, function, pwr = 0) -> None:
+    def __init__(self, fun : function, pwr = 0) -> None:
         super().__init__()
-        self._function = function
+        self._fun = fun
         self._pwr = pwr
 
     def tick(self) -> tuple[(float, bool, bool)]:
-        self._function()
+        self._fun()
         return (self._pwr, True, True)
 
 class AutoBrewScheduler:
