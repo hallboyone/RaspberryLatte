@@ -46,12 +46,13 @@ class EspressoMachine:
         self.boiler_ctrl.update_setpoint_to(self._config["temps"]["brew"])
 
         self._auto_brew_routine = [
+            AutoBrewScheduler.FunctionCall(self.scale.zero),
             AutoBrewScheduler.Ramp(from_pwr = 60, 
                                    to_pwr = self._config["autobrew"]["PRE_ON_PWR"]*0.67+60, 
                                    in_sec = self._config["temps"]["PRE_ON_TIME"]),
             AutoBrewScheduler.ConstantTimed(pwr = 0,  for_sec = self._config["autobrew"]["PRE_OFF_TIME"]),
             AutoBrewScheduler.Ramp(from_pwr = 60, to_pwr = 127, in_sec = 1),
-            AutoBrewScheduler.ConstantTriggered(lambda : self.scale.read() >= self._config["autobrew"]["YIELD"], pwr = 127)]
+            AutoBrewScheduler.ConstantTriggered(pwr = 127, trigger_callback = lambda : self.scale.read('g') >= self._config["autobrew"]["YIELD"])]
         self._auto_brew_schedule = AutoBrewScheduler.AutoBrewScheduler(self._auto_brew_routine)
 
     def run(self):

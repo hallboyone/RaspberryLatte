@@ -62,7 +62,7 @@ class ConstantTimed(AutoBrewLeg):
         self._end_time = None
         self._last_val_pair = None
 
-    def tick(self) -> tuple[(float, bool)]:
+    def tick(self) -> tuple[(float, bool, bool)]:
         if self._end_time == None:
             self._end_time = time() + self._for_s
             return (self._pwr, True, time() >= self._end_time)
@@ -74,7 +74,7 @@ class ConstantTimed(AutoBrewLeg):
         self._last_val_pair = None
             
 class ConstantTriggered(AutoBrewLeg):
-    def __init__(self, trigger_callback, pwr = 127, timeout_s = 60) -> None:
+    def __init__(self, pwr, trigger_callback, timeout_s = 60) -> None:
         super().__init__()
         self._pwr = pwr
         self._trigger = trigger_callback
@@ -82,7 +82,7 @@ class ConstantTriggered(AutoBrewLeg):
         self._timeout_s = timeout_s
         self._end_time = None
 
-    def tick(self) -> tuple[(float, bool)]:
+    def tick(self) -> tuple[(float, bool, bool)]:
         if self._end_time == None:
             self._end_time = time() + self._timeout_s
             return (self._pwr, True, self._trigger() or time() >= self._end_time)
@@ -93,8 +93,18 @@ class ConstantTriggered(AutoBrewLeg):
         self._end_time = None
         self._last_val_pair = None
 
+class FunctionCall(AutoBrewLeg):
+    def __init__(self, function, pwr = 0) -> None:
+        super().__init__()
+        self._function = function
+        self._pwr = pwr
+
+    def tick(self) -> tuple[(float, bool, bool)]:
+        self._function()
+        return (self._pwr, True, True)
+
 class AutoBrewScheduler:
-    def __init__(self, legs : list[AutoBrewLeg]) -> None:
+    def __init__(self, legs : list[AutoBrewLeg], log : bool = True) -> None:
         self._legs = legs
         self._cur_leg = 0
 
@@ -115,11 +125,12 @@ class AutoBrewScheduler:
 
 if __name__=="__main__":
     print("Testing...")
+    start_time = time()
     pre_infuse_routine = [Ramp(from_pwr = 60, to_pwr = 80, in_sec = 0.5),
                           ConstantTimed(pwr = 80, for_sec = 0.5),
                           ConstantTimed(pwr = 0,  for_sec = 5),
                           Ramp(from_pwr = 60, to_pwr = 127, in_sec = 1),
-                          ConstantTriggered(lambda : 5<3, pwr = 127)]
+                          ConstantTriggered(pwr=127, trigger_callback=lambda : time()-start_time > 10)]
     auto_brew = AutoBrewScheduler(pre_infuse_routine)
     
     val, updated, finished = auto_brew.tick()
