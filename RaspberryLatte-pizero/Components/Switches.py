@@ -35,8 +35,8 @@ class Switches(uart_bridge.Getter):
 
     def state(self, switch = 'all'):
         if switch == 'pump':
-            return self._last_reading.body[0]
+            return self._last_reading.val[0]
         elif switch == 'dial':
-            return self._last_reading.body[1]
+            return self._last_reading.val[1]
         else:
-            return {'pump':self._last_reading.body[0], 'dial':self._last_reading.body[1]}
+            return {'pump':self._last_reading.val[0], 'dial':self._last_reading.val[1]}

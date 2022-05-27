@@ -13,6 +13,6 @@ class TempSensor(uart_bridge.Getter, PIDSensor):
     def read(self, unit = 'C') -> float:
         uart_bridge.Getter.read(self)
         if unit == 'C':
-            return 0.0625 * self._last_reading.body[0]
+            return 0.0625 * self._last_reading.val[0]
         else:
-            return 0.1125 * self._last_reading.body[0] + 32
+            return 0.1125 * self._last_reading.val[0] + 32

@@ -13,6 +13,6 @@ class PressureSensor(uart_bridge.Getter, PIDSensor):
     def read(self, unit = 'bar') -> float:
         uart_bridge.Getter.read(self)
         if unit == 'bar':
-            return 0.001 * self._last_reading.body[0]
+            return 0.001 * self._last_reading.val[0]
         else:
-            return self._last_reading.body[0]
+            return self._last_reading.val[0]

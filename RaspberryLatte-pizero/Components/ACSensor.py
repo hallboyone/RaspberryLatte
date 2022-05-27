@@ -16,7 +16,7 @@ class ACSensor(uart_bridge.Getter):
 
     def read(self)->bool:
         uart_bridge.Getter.read(self)
-        return bool(self._last_reading.body[0])
+        return bool(self._last_reading.val[0])
 
     def on(self)->bool:
         return self.read()
