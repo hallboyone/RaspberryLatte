@@ -1,17 +1,17 @@
 """
 API to log values of the different espresso machine parameters. To set up,
-a logging object is provided with data sources and a sample time. Then frequent
+a logging object is provided with data sources and a sample time using add_source. Then frequent
 polling calls to Logger.log() will read the different data sources and produce
-data points at the sample times if possible. To finish, Logger.finish(filename)
+data points at the sample times if needed. To finish, Logger.finish(filename)
 while write the log to a file and reset the logger.
 """
 from datetime import datetime
-from time import time
+import time
 
 class Logger:
     def __init__(self, sample_time = 0.1) -> None:
         self._ts = sample_time
-        self._sources = {"t" : lambda : time()}
+        self._sources = {"t" : time.time}
         self._data : list[dict[str, float]] = []
         self._t0 = None
     
@@ -21,6 +21,7 @@ class Logger:
         self._sources[name] = source
 
     def log(self):
+        """Records each of the current source values if the sample time has elapsed."""
         if self._t0 == None:
             self._t0 = time()
             self._next_sample_t = self._t0 + self._ts
@@ -30,6 +31,7 @@ class Logger:
             self._next_sample_t = self._next_sample_t + self._ts
 
     def finish(self, filename=None):
+        """Writes all collected data to a brewlog file (or whatever filename is provided)"""
         if filename==None:
             filename = self._datetime_filename_generator()
         file = open(filename, "w")
