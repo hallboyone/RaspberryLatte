@@ -112,17 +112,19 @@ class AutoBrewScheduler:
         self._logger.add_source("stage", lambda : self._cur_leg)
 
     def tick(self) -> tuple[(float,bool,bool)]:
-        if self._cur_leg > len(self._legs):
-            self._logger.log()
-            val, updated, finished = self._legs[self._cur_leg].tick()
-            if (finished):
-                self._cur_leg = self._cur_leg + 1
-                if self._cur_leg == len(self._legs):
-                    self._logger.finish()
-                    return (val, updated, True)
-            return (val, updated, False)
+        if self._cur_leg == len(self._legs):
+            return (0, False, True)
+        self._logger.log()
+        val, updated, finished = self._legs[self._cur_leg].tick()
+        if (finished):
+            self._cur_leg = self._cur_leg + 1
+            if self._cur_leg == len(self._legs):
+                self._logger.finish()
+                return (0, True, True)
+        return (val, updated, False)
 
     def reset(self):
+        self._cur_leg = 0
         for leg in self._legs:
             leg.reset()
 
