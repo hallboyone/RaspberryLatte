@@ -16,6 +16,7 @@ from Components.Solenoid       import Solenoid
 
 from PID import PIDGains, PID, IntegralBounds
 import AutoBrewScheduler
+import Logger
 
 _STEAM_MODE  =  0
 _HOT_MODE    =  1
@@ -45,6 +46,13 @@ class EspressoMachine:
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
         self.boiler_ctrl.update_setpoint_to(self._config["temps"]["brew"])
 
+        self._logger = Logger.Logger(sample_time=0.05)
+        self._logger.add_source("temp", self.temp_sensor.read)
+        self._logger.add_source("scale", self.scale.read)
+        self._logger.add_source("pressure", self.pressure.read)
+        self._logger.add_source("pump", lambda : self.pump._last_setting.val)
+        self._logger.add_source("heater", lambda : self.heater._last_setting.val)
+
         self._auto_brew_routine = [
             AutoBrewScheduler.FunctionCall(self.scale.zero),
             AutoBrewScheduler.Ramp(from_pwr = 60, 
@@ -53,7 +61,7 @@ class EspressoMachine:
             AutoBrewScheduler.ConstantTimed(pwr = 0,  for_sec = self._config["autobrew"]["PRE_OFF_TIME"]),
             AutoBrewScheduler.Ramp(from_pwr = 60, to_pwr = 127, in_sec = 1),
             AutoBrewScheduler.ConstantTriggered(pwr = 127, trigger_callback = lambda : self.scale.read('g') >= self._config["autobrew"]["YIELD"])]
-        self._auto_brew_schedule = AutoBrewScheduler.AutoBrewScheduler(self._auto_brew_routine)
+        self._auto_brew_schedule = AutoBrewScheduler.AutoBrewScheduler(self._auto_brew_routine, logger = self._logger)
 
     def run(self):
         try:

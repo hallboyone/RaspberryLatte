@@ -4,3 +4,4 @@
 *.venv
 RaspberryLatte-pizero/__pycache__/*
 Sandbox/*
+*.brewlog

@@ -4,6 +4,7 @@ brew_cycle = AutoBrewScheduler([Ramp(from_pwr=60, to_pwr = 90, in_sec = 1),
         ])
 """
 from time import time, sleep
+from Logger import Logger
 
 class AutoBrewLeg:
     """
@@ -104,17 +105,22 @@ class FunctionCall(AutoBrewLeg):
         return (self._pwr, True, True)
 
 class AutoBrewScheduler:
-    def __init__(self, legs : list[AutoBrewLeg], log : bool = True) -> None:
+    def __init__(self, legs : list[AutoBrewLeg], logger : Logger = None) -> None:
         self._legs = legs
         self._cur_leg = 0
+        self._logger = logger
+        self._logger.add_source("stage", lambda : self._cur_leg)
 
     def tick(self) -> tuple[(float,bool,bool)]:
-        val, updated, finished = self._legs[self._cur_leg].tick()
-        if (finished):
-            self._cur_leg = self._cur_leg + 1
-            if self._cur_leg == len(self._legs):
-                return (val, updated, True)
-        return (val, updated, False)
+        if self._cur_leg > len(self._legs):
+            self._logger.log()
+            val, updated, finished = self._legs[self._cur_leg].tick()
+            if (finished):
+                self._cur_leg = self._cur_leg + 1
+                if self._cur_leg == len(self._legs):
+                    self._logger.finish()
+                    return (val, updated, True)
+            return (val, updated, False)
 
     def reset(self):
         for leg in self._legs:
