@@ -5,3 +5,4 @@
 RaspberryLatte-pizero/__pycache__/*
 Sandbox/*
 *.brewlog
+*__pycache__*
