@@ -13,6 +13,7 @@ class LEDs(uart_bridge.Setter):
             message_packer = bitstruct.compile('u4u4u8'),
             message_id = uart_bridge.MSG_ID_SET_LEDS,
             message_len = 1)
+        self._last_setting = uart_bridge.DataPoint(0)
 
     def set_all(self, led0_val: bool, led1_val: bool, led2_val: bool):
         self.write(led2_val<<2 | led1_val<<1 | led0_val<<0, force = False)
