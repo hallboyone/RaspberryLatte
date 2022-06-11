@@ -20,7 +20,7 @@ class Heater(uart_bridge.Setter, PIDOutput):
             message_len = 1)
 
     def write(self, val : float):
-        uart_bridge.Setter.write(63*self._pwr_bounds.clip(val), force = False)
+        uart_bridge.Setter.write(self, 63*self._pwr_bounds.clip(val), force = False)
 
     def off(self) -> None:
-        self.write(0, force = True)
+        uart_bridge.Setter.write(self, 0, force = True)
