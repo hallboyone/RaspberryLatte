@@ -36,7 +36,7 @@ class DataPoint:
     data_point.val and the timestamp with data_point.t
     """
     def __init__(self, val) -> None:
-        self.t = time()
+        self.t = time.time()
         self.val = val
 
 class Getter:
@@ -52,8 +52,8 @@ class Getter:
         self._decoder = response_decoder
 
     def read(self):
-        if (self._last_reading) == None or (time.time() - self._last_reading.t > self._mindt):
-            self._last_reading = DataPoint(self._decoder(_send_over_uart(self._msg, expect_response = True)))
+        if (self._last_reading is None) or (time.time() - self._last_reading.t > self._mindt):
+            self._last_reading = DataPoint(self._decoder.unpack(_send_over_uart(self._msg, expect_response = True)))
 
 class Setter:
     """
@@ -70,7 +70,7 @@ class Setter:
 
     def write(self, val, force = False):
         # If forced or value has changed and min-dt has expired
-        if (force or (val != self._last_setting.val and time.time() - self._last_setting.t > self._mindt)):
+        if force or (self._last_setting is None) or (val != self._last_setting.val and time.time() - self._last_setting.t > self._mindt):
             _send_over_uart(self._msg_packer.pack(self._msg_id, self._msg_id, val), expect_response=False)
             self._last_setting = DataPoint(val)
 
@@ -80,7 +80,7 @@ def _send_over_uart(msg, expect_response = False):
     True, then the function hangs until the full response is recieved.
     """
     # Clear serial port and write message
-    _ser.read()
+    _ser.read(_ser.in_waiting)
     _ser.write(msg)
     send_time = time.time()
 
@@ -89,7 +89,7 @@ def _send_over_uart(msg, expect_response = False):
         while(_ser.in_waiting == 0):
             if time.time() - send_time > _TIMEOUT:
                 raise IOError("UART Timeout!")
-        header = _header_decoder(_ser.read(1))
+        header = _header_decoder.unpack(_ser.read(1))
         while(_ser.in_waiting != header[1]):
             if time.time() - send_time > _TIMEOUT:
                 raise IOError("UART Timeout!")
