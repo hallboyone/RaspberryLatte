@@ -23,14 +23,15 @@ class Switches(uart_bridge.Getter):
 
     def __init__(self, min_dwell_time : float = 0.1) -> None:
         super().__init__(min_dwell_time, self._SWITCH_REQUEST, self._SWITCH_DECODER)
-        self.read()
-        self._prev_readings = self._last_reading
         self.did_change = {'pump':False, 'dial':False}
+        uart_bridge.Getter.read(self)
+        self._prev_readings = self._last_reading
+        self.read()
 
     def read(self, switch = 'all'):
         uart_bridge.Getter.read(self)
-        self.did_change['pump'] = self.did_change['pump'] or (self._prev_readings.body[0]==self._last_reading.body[0])
-        self.did_change['dial'] = self.did_change['dial'] or (self._prev_readings.body[1]==self._last_reading.body[1])
+        self.did_change['pump'] = self.did_change['pump'] or (self._prev_readings.val[0]==self._last_reading.val[0])
+        self.did_change['dial'] = self.did_change['dial'] or (self._prev_readings.val[1]==self._last_reading.val[1])
         return self.state(switch)
 
     def state(self, switch = 'all'):
