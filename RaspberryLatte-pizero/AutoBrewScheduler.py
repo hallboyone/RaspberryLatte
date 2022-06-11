@@ -95,7 +95,7 @@ class ConstantTriggered(AutoBrewLeg):
         self._last_val_pair = None
 
 class FunctionCall(AutoBrewLeg):
-    def __init__(self, fun : function, pwr = 0) -> None:
+    def __init__(self, fun, pwr = 0) -> None:
         super().__init__()
         self._fun = fun
         self._pwr = pwr
