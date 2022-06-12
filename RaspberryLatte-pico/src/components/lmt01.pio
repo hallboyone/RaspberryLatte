@@ -21,14 +21,15 @@
 ;     in  y, 32              ; Send counter value to program and restart
 
 .program lmt01
+    mov y, NULL            ; Set counter to all zeros
     mov y, !y              ; Set counter to all ones
     wait 1 pin 0           ; Wait for start of pulse train (rising edge)
-increment:                 
+decrement:                 
     jmp y-- next_line                     
 next_line:
     set x 25               ; Restart timer
     wait 0 pin 0           ; Wait for pin to go low again
 no_pulse:
-    jmp pin increment      ; If rising edge, increment counter and restart timer
+    jmp pin decrement      ; If rising edge, decrement counter and restart timer
     jmp x-- no_pulse       ; Timer not expired. Loop again
     in  y, 32              ; Send counter value to program and restart
