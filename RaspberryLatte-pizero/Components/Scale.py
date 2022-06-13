@@ -26,7 +26,7 @@ class Scale(uart_bridge.Getter, PIDSensor):
 
     def zero(self):
         uart_bridge.Getter.read(self)
-        self._origin = self._last_reading.body[0]
+        self._origin = self._last_reading.val[0]
 
     def read(self, unit = 'g') -> float:
         uart_bridge.Getter.read(self)
