@@ -1,5 +1,6 @@
 from time import sleep
 import configparser
+import traceback
 
 # Getters
 from Components.ACSensor       import ACSensor
@@ -44,7 +45,7 @@ class EspressoMachine:
         # Controllers
         self.boiler_gains = PIDGains(0.3, 0.005, 0.025)
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
-        self.boiler_ctrl.update_setpoint_to(self._config["temps"]["brew"])
+        self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
 
         self._logger = Logger.Logger(sample_time=0.05)
         self._logger.add_source("temp", self.temp_sensor.read)
@@ -82,6 +83,7 @@ class EspressoMachine:
                 sleep(0.01)
         except Exception as e:
             print(str(e))
+            print(traceback.format_exc())
             print("Shutting down")
             self.leds.set_all(0,0,0)
             self.heater.off()
@@ -139,8 +141,8 @@ class EspressoMachine:
 
     def _update_setpoint(self):
         if self.switches.state('dial') == _AUTO_MODE or self.switches.state('dial') == _MANUAL_MODE:
-            self.boiler_ctrl.update_setpoint_to(self._config["temps"]["brew"])
+            self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
         elif self.switches.state('dial') == _HOT_MODE:
-            self.boiler_ctrl.update_setpoint_to(self._config["temps"]["hot"])
+            self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["hot"]))
         elif self.switches.state('dial') == _STEAM_MODE:
-            self.boiler_ctrl.update_setpoint_to(self._config["temps"]["steam"])
+            self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["steam"]))
