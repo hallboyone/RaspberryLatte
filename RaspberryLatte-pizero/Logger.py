@@ -23,10 +23,10 @@ class Logger:
     def log(self):
         """Records each of the current source values if the sample time has elapsed."""
         if self._t0 == None:
-            self._t0 = time()
+            self._t0 = time.time()
             self._next_sample_t = self._t0 + self._ts
             self._log_datapoint()
-        elif self._next_sample_t < time():
+        elif self._next_sample_t < time.time():
             self._log_datapoint()
             self._next_sample_t = self._next_sample_t + self._ts
 
