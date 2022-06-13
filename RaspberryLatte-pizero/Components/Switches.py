@@ -28,11 +28,12 @@ class Switches(uart_bridge.Getter):
         self._prev_readings = self._last_reading
         self.read()
 
-    def read(self, switch = 'all'):
+    def update(self):
         uart_bridge.Getter.read(self)
-        self.did_change['pump'] = self.did_change['pump'] or (self._prev_readings.val[0]==self._last_reading.val[0])
-        self.did_change['dial'] = self.did_change['dial'] or (self._prev_readings.val[1]==self._last_reading.val[1])
-        return self.state(switch)
+        switch_changed = (self._prev_readings.val[0]!=self._last_reading.val[0])
+        dial_changed = (self._prev_readings.val[1]!=self._last_reading.val[1])
+        self._prev_readings = self._last_reading
+        return (dial_changed, switch_changed)
 
     def state(self, switch = 'all'):
         if switch == 'pump':
