@@ -43,7 +43,7 @@ class EspressoMachine:
         self.leds         = LEDs()
 
         # Controllers
-        self.boiler_gains = PIDGains(0.3, 0.005, 0.025)
+        self.boiler_gains = PIDGains(0.05, 0.0005, 0.25)
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
         self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
 
@@ -91,17 +91,13 @@ class EspressoMachine:
             self.pump.off()
 
     def _update_mode(self):
-        self.switches.read()
-        # If dial changed value, update the setpoint and, if switched to auto mode, reset
-        # auto brew object
-        if self.switches.did_change['dial']:
-            self.switches.did_change['dial'] = False
+        (dial_changed, pump_changed) = self.switches.update()
+        if dial_changed:
             self._update_setpoint()
             if (self.switches.state('dial') == _AUTO_MODE):
                 self._auto_brew_schedule.reset()
         
-        if self.switches.did_change['pump']:
-            self.switches.did_change['dial'] = False
+        if pump_changed:
             if not self.switches.state('pump'):
                 self._auto_brew_schedule.reset()
 
@@ -140,6 +136,7 @@ class EspressoMachine:
         print("Machine on")
 
     def _update_setpoint(self):
+        print(self.switches.state('dial'))
         if self.switches.state('dial') == _AUTO_MODE or self.switches.state('dial') == _MANUAL_MODE:
             self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
         elif self.switches.state('dial') == _HOT_MODE:
