@@ -9,7 +9,7 @@ static uint _led_pins[3];
 static void leds_set_handler(int * data, int len){
     assert(len==1);
     for(uint led_idx = 0; led_idx < 3; led_idx++){
-        leds_set(_led_pins[led_idx], data[0] & (1<<led_idx));
+        leds_set(led_idx, data[0] & (1<<led_idx));
     }
 }
 
