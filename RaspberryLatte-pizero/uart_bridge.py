@@ -25,7 +25,7 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-_TIMEOUT  = 0.01
+_TIMEOUT  = 0.025
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')
@@ -71,7 +71,7 @@ class Setter:
     def write(self, val, force = False):
         # If forced or value has changed and min-dt has expired
         if force or (self._last_setting is None) or (val != self._last_setting.val and time.time() - self._last_setting.t > self._mindt):
-            _send_over_uart(self._msg_packer.pack(self._msg_id, self._msg_id, val), expect_response=False)
+            _send_over_uart(self._msg_packer.pack(self._msg_id, self._msg_len, val), expect_response=False)
             self._last_setting = DataPoint(val)
 
 def _send_over_uart(msg, expect_response = False):
