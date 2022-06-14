@@ -7,13 +7,17 @@ while write the log to a file and reset the logger.
 """
 from datetime import datetime
 import time
-
+import socket 
 class Logger:
+    UDP_IP = "192.168.0.126"
+    UDP_PORT = 5005
+
     def __init__(self, sample_time = 0.1) -> None:
         self._ts = sample_time
         self._sources = {"t" : time.time}
         self._data : list[dict[str, float]] = []
         self._t0 = None
+        self.s = socket.socket( socket.AF_INET, socket.SOCK_DGRAM )
     
     def add_source(self, name : str, source):
         """Add a source to the logger. source paramter should be a function that takes no
@@ -38,7 +42,7 @@ class Logger:
 
         for datapoint in self._data:
             for name in datapoint:
-                file.write(f"{name}={datapoint[name]}; ")
+                file.write(f"{name}={datapoint[name]};")
             file.write("\n")
         file.close()
         self._data : list[dict[str, float]] = []
@@ -47,8 +51,11 @@ class Logger:
 
     def _log_datapoint(self):
         datapoint = {}
+        data_str = ""
         for name in self._sources:
             datapoint[name] = self._sources[name]()
+            data_str =  data_str + f"{name}={datapoint[name]};"
+        self.s.sendto(data_str.encode(), (self.UDP_IP, self.UDP_PORT))
         self._data.append(datapoint)
 
     def _datetime_filename_generator(self)->str:
