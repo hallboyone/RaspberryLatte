@@ -3,6 +3,7 @@
 
 #include "binary_input.h"
 #include "uart_bridge.h"
+#include "errors.h"
 
 static uint8_t * _binary_inputs[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static uint8_t _num_binary_inputs = 0;
@@ -22,24 +23,28 @@ static inline uint8_t gpio_get_w_pull(uint pin_idx){
 }
 
 /**
- * Read the physical inputs and return their values over UART
+ * Read the physical inputs and return their values over UART. If no indexes are specified,
+ * the states of all inputs are returned. Else, only the indicies in the message body are
+ * returned. If an index is out of range, an IDX_OUT_OF_RANGE error is returned instead.
  * 
  * @param data Pointer to switch indicies to read. If empty, return all.
  * @param len Number of indicies in data array. 
  */
 static void binary_input_read_handler(int * data, int len){
-  if(len == 0){
-    // Read all switches in order they were added
+  if(len == 0){ // Read all switches in order they were added
     int response[_num_binary_inputs];
     for(uint8_t s_i = 0; s_i < _num_binary_inputs; s_i++){
       response[s_i] = binary_input_read(s_i);
     }
     sendMessage(MSG_ID_GET_SWITCH, response, _num_binary_inputs);
-  } else {
-    // Read only the requested switches
+  } else { // Read only the requested switches
     int response[len];
     for(uint8_t s_i = 0; s_i < len; s_i++){
-      response[s_i] = binary_input_read(data[s_i]);
+      if (data[s_i] < _num_binary_inputs){
+        response[s_i] = binary_input_read(data[s_i]);
+      } else {
+        response[s_i] = IDX_OUT_OF_RANGE;
+      }
     }
     sendMessage(MSG_ID_GET_SWITCH, response, len);
   }
@@ -80,7 +85,7 @@ void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir
  * 
  * @param switch_idx Index of the requested switch. Must have been setup previously. 
  * @returns If switch is not muxed, then the index of the first active pin is returned (1 indexed, 0 if no pin is found)
- * If switch is muxed, then the the state of the pins are encoded into a uint8_t mask (i.e, second of three pins active, 010 returned)
+ * If switch is muxed, then the the state of the pins are encoded into a uint8_t mask (i.e, second of three pins active, 0b10 returned)
  */
 uint8_t binary_input_read(uint8_t switch_idx){
   // Make sure switch has been setup

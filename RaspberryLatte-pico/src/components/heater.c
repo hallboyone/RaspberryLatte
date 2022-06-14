@@ -42,10 +42,10 @@ int64_t turn_off(alarm_id_t id, void *user_data) {
  * @return int64_t New alarm after this many microseconds. Always PWM_PERIOD_MS*1000
  */
 int64_t turn_on(alarm_id_t id, void *user_data){
-    if(_duty_cycle != PWM_INCREMENTS-1){ // if _duty_cycle == 99, don't bother turning off
+    if(_duty_cycle < PWM_INCREMENTS-1){ // if _duty_cycle < 63, schedule off timer
         add_alarm_in_ms((PWM_PERIOD_MS/PWM_INCREMENTS)*_duty_cycle, turn_off, NULL, true);
     }
-    if(_duty_cycle>0){ // If _duty_cylce == 0, don't bother turning on
+    if(_duty_cycle > 0){ // If _duty_cylce > 0, turn on. 
         gpio_put(_pwm_pin, 1);
     }
     return PWM_PERIOD_MS*1000;
@@ -58,13 +58,12 @@ int64_t turn_on(alarm_id_t id, void *user_data){
  * @param len Must be greater than or equal to 1. If less than one, nothing happens. 
  */
 static void heater_set_duty_handler(int * data, int len){
-    if(len>=1){
-        if(*data < 0){
+    if(len==1){
+        _duty_cycle = *data;
+        if(_duty_cycle < 0){
             _duty_cycle = 0;
-        } else if(*data > PWM_INCREMENTS-1){
+        } else if(_duty_cycle> PWM_INCREMENTS-1){
             _duty_cycle = PWM_INCREMENTS-1;
-        } else{
-            _duty_cycle = *data;
         }
     }
 }
@@ -75,7 +74,6 @@ static void heater_set_duty_handler(int * data, int len){
  * @param pwm_pin GPIO pin number that the heater will attach to. Should be unused otherwise.
  */
 void heater_setup(uint8_t pwm_pin){
-    // Setup pwm pin as a digital output
     _pwm_pin = pwm_pin;
     gpio_init(_pwm_pin);
     gpio_set_dir(_pwm_pin, GPIO_OUT);
