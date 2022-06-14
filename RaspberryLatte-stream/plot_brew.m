@@ -47,7 +47,7 @@ end
 
 function tlim = plotdat(dat_buf, tlim)
 limits = struct('temp', [0, 100], 'scale', [0, 50], 'pressure', [0,15],...
-    'pump', [0,150], 'heater', [0, 5], 'stage', [0,5]);
+    'pump', [0,150], 'heater', [0, 65], 'stage', [0,5]);
 if dat_buf(end).t > tlim
     tlim = tlim + 5;
 end
