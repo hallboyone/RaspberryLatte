@@ -1,0 +1,1 @@
+#define IDX_OUT_OF_RANGE 0xF0
