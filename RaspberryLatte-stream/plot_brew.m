@@ -14,6 +14,7 @@ while true
         if ran && posixtime(datetime('now')) - read_time > 5
             f = figure;
             dat_buf = [];
+            start_time = 0;
             f.Position = [1224 1 691 1001];
             tlim = 10;
             ran = false;
@@ -35,7 +36,7 @@ end
 
 function dat = ParseLine(ln)
 dat = struct;
-vars = split(ln, "; ");
+vars = split(ln, ";");
 for i = 1:numel(vars)
     if strlength(vars(i))>1
         name_val_pair = split(vars(i), "=");
