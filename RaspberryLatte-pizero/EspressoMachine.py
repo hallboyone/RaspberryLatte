@@ -25,6 +25,32 @@ _MANUAL_MODE =  2
 _AUTO_MODE   =  3
 
 class EspressoMachine:
+    """
+    Implementation of single boiler espresso machine. The basic run-loop (1) enters powered down loop if ACSensor is not on,
+    (2) updates the mode, (3) ticks the boiler controller, (4) sets the LEDs,
+    and (5) sets the pump value. In more detail, these 5 sections work in the following way
+
+    (1) Enter powered down loop if turned off
+        The powered down loop starts by turning off the heater, LEDs, pump, and solenoid. Then, a dwelling while loop is entered
+        until ACSensor.on() returns true. Then the boiler controller and autobrew routine are reset and the power light is turned on
+
+    (2) Update Mode
+        The machine is either in steam, hot water, manual, or auto mode depending on the setting of the 1T4P dial. The dial state is
+        updated and, if it changed, the boiler setpoint is adjusted accordingly and the autobrew routine is reset. Furthermore, if
+        pump switch has switched to off then the autobrew routine is, again, reset.
+
+    (3) Tick boiler controller
+        Calls the tick method in the boiler's controller. This reads the latest temp and sets the boiler's PWM setting internally.
+
+    (4) Set the LEDs
+        Not yet implemented accept to turn on LED 1 when the boiler is at its setpoint.
+
+    (5) Set the pump value
+        Depending on the machine's mode, the pump (and solenoid) will take different values. When in steam mode, the pump is off
+        and solenoid is closed. When in hot mode, the pump is on if the pump switch is toggled but the solenoid is closed. When in
+        manual mode, the pump is on and solenoid open if the pump switch is toggled. Finally, in autobrew mode the pump's value is 
+        set by the autobrew routine. As the routine progresses, the pumps value is updated based on the current leg. 
+    """
     def __init__(self) -> None:
         self._config = configparser.ConfigParser()
         self._config.read(''.join([__file__[0:__file__.rfind('/')+1], "brew_config"]))
@@ -44,7 +70,7 @@ class EspressoMachine:
 
         # Controllers
         self.boiler_gains = PIDGains(0.05, 0.0005, 0.25)
-        self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output = self.heater, windup_bounds = IntegralBounds(0, 300))
+        self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output=self.heater, windup_bounds=IntegralBounds(0, 300))
         self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
 
         self._logger = Logger.Logger(sample_time=0.05)
@@ -97,9 +123,8 @@ class EspressoMachine:
             if (self.switches.state('dial') == _AUTO_MODE):
                 self._auto_brew_schedule.reset()
         
-        if pump_changed:
-            if not self.switches.state('pump'):
-                self._auto_brew_schedule.reset()
+        if pump_changed and not self.switches.state('pump'):
+            self._auto_brew_schedule.reset()
 
     def _update_pump(self):
         if self.switches.state()   == {"pump": True, "dial": _MANUAL_MODE}:
@@ -113,7 +138,6 @@ class EspressoMachine:
             if not finished:
                 self.solenoid.open()
                 if val_changed:
-                    print(f"Setting pump to {val}")
                     self.pump.set(val)
             else:
                 self.pump.off()
