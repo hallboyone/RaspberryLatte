@@ -75,10 +75,10 @@ class EspressoMachine:
 
         self._logger = Logger.Logger(sample_time=0.05)
         self._logger.add_source("temp", self.temp_sensor.read)
+        self._logger.add_source("heater", lambda : self.heater._last_setting.val)
         self._logger.add_source("scale", self.scale.read)
         self._logger.add_source("pressure", self.pressure.read)
         self._logger.add_source("pump", lambda : self.pump._last_setting.val)
-        self._logger.add_source("heater", lambda : self.heater._last_setting.val)
         
         self._auto_brew_routine = [
             AutoBrewScheduler.FunctionCall(self.scale.zero),
