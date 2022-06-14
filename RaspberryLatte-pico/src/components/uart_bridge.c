@@ -73,3 +73,19 @@ void sendMessage(MessageID id, int * data, int len){
     putchar_raw(data[n]);
   }
 }
+
+/**
+ * Send message over the UART
+ * 
+ * \param id The message id that triggered the send command
+ * \param status A status defined in errors.h
+ * \param data Pointer to an int array of length \p len containing the data to be sent
+ * \param len Integer giving the length of the \p data array.
+ */
+void sendMessageWithStatus(MessageID id, int status, int * data, int len){
+  putchar_raw((id<<4) | len);
+  putchar_raw(status);
+  for(int n = 0; n<len; n++){
+    putchar_raw(data[n]);
+  }
+}

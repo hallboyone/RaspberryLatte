@@ -25,11 +25,11 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-_TIMEOUT  = 0.025
+_TIMEOUT  = 2500
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')
-
+_header_status_decoder = bitstruct.compile('u4u4u8')
 class DataPoint:
     """
     Attaches a timestamp to the value passed to the constructor. Access the value with
@@ -38,6 +38,45 @@ class DataPoint:
     def __init__(self, val) -> None:
         self.t = time.time()
         self.val = val
+
+class UARTMessenger:
+    """
+    Abstract class for communicating over UART bridge. Each message consists of a message ID, body length, and body (optional).
+    The response consists of the same message ID, body length, 
+    status code, and body (optional). 
+    """
+    def __init__(self, min_dwell_time : float = 0.05):
+        self._last_msg_t = 0.0
+        self.mindt = min_dwell_time
+
+        self.avoid_repeat_sends = True
+        self.prev_msg = None
+        self.status : int = None
+        self.response : bytes = None
+
+    def send(self, msg : bytes):
+        """ Send the msg over UART, wait for response header and body, return body and status """
+        if time.time() - self._last_msg_t > self.mindt and (not self.avoid_repeat_sends or self.prev_msg==None or self.prev_msg!=msg):
+            # Clear input and write message
+            _ser.reset_input_buffer()
+            _ser.write(msg)
+            self._last_msg_t = time.time()
+
+            # Read and unpack header
+            while(_ser.in_waiting < 2):
+                if time.time() - self._last_msg_t > _TIMEOUT:
+                    raise IOError("UART Timeout!")
+            body_len : int
+            (_, body_len, self.status) = _header_status_decoder.unpack(_ser.read(2))
+
+            # Read body
+            while(_ser.in_waiting != body_len):
+                if time.time() - self._last_msg_t > _TIMEOUT:
+                    raise IOError("UART Timeout!")
+            self.response : bytes = _ser.read(body_len)
+            self.prev_msg = bytearray(len(msg))
+            self.prev_msg[:] = msg
+        
 
 class Getter:
     """

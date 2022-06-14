@@ -23,6 +23,7 @@
         "phasecontrol.h": "c",
         "malloc.h": "c",
         "memory.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "status_ids.h": "c"
     },
 }

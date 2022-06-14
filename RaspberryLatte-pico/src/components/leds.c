@@ -1,5 +1,6 @@
 #include "leds.h"
 #include "uart_bridge.h"
+#include "status_ids.h"
 
 static uint _led_pins[3];
 /**
@@ -7,9 +8,13 @@ static uint _led_pins[3];
  *      [0-3:MSG_ID_SET_GPIO][4-7:len] - [8:val][9-15:pin_idx] - {[16:val][17-23:pin_idx]}...
  */
 static void leds_set_handler(int * data, int len){
-    assert(len==1);
-    for(uint led_idx = 0; led_idx < 3; led_idx++){
-        leds_set(led_idx, data[0] & (1<<led_idx));
+    if(len != 1){
+        sendMessageWithStatus(MSG_ID_SET_LEDS, MSG_FORMAT_ERROR, NULL, 0);
+    } else {
+        for(uint led_idx = 0; led_idx < 3; led_idx++){
+            leds_set(led_idx, data[0] & (1<<led_idx));
+        }
+        sendMessageWithStatus(MSG_ID_SET_LEDS, SUCCESS, NULL, 0);
     }
 }
 
