@@ -6,7 +6,6 @@ the Getter and Setter classes which internally call the _send_over_uart function
 import serial
 import bitstruct
 import time
-import status_ids
 
 MSG_ID_SET_LEDS      =  1
 MSG_ID_SET_PUMP      =  2
@@ -26,7 +25,7 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-UART_TIMEOUT  = 0.1
+UART_TIMEOUT  = 0.2
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')

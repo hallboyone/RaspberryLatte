@@ -2,6 +2,7 @@
 
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
+#include "status_ids.h"
 
 static uint8_t _a_pin = 255;
 
@@ -28,7 +29,7 @@ static void pressure_sensor_read_handler(int* data, int len){
     response[0] = (pressure>>8) & 0xFF;
     response[1] = (pressure>>0) & 0xFF;
   }
-  sendMessage(MSG_ID_GET_PRESSURE, response, 2);
+  sendMessageWithStatus(MSG_ID_GET_PRESSURE, SUCCESS, response, 2);
 }
 
 /**
