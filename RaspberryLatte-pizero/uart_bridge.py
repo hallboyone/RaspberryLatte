@@ -6,6 +6,7 @@ the Getter and Setter classes which internally call the _send_over_uart function
 import serial
 import bitstruct
 import time
+import status_ids
 
 MSG_ID_SET_LEDS      =  1
 MSG_ID_SET_PUMP      =  2
@@ -69,13 +70,19 @@ class UARTMessenger:
             body_len : int
             (_, body_len, self.status) = _header_status_decoder.unpack(_ser.read(2))
 
+            if self.status != status_ids.SUCCESS:
+                return
+
             # Read body
-            while(_ser.in_waiting != body_len):
+            #print(self.status)
+            #print(f"Waiting for message with length {body_len}")
+            while(_ser.in_waiting < body_len):
                 if time.time() - self._last_msg_t > _TIMEOUT:
                     raise IOError("UART Timeout!")
             self.response : bytes = _ser.read(body_len)
             self.prev_msg = bytearray(len(msg))
             self.prev_msg[:] = msg
+            #print("Done!")
         
 
 class Getter:

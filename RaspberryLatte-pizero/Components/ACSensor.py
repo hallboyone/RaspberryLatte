@@ -1,22 +1,25 @@
-from asyncio import constants
 import bitstruct
 
 import uart_bridge
+import status_ids
 
-class ACSensor(uart_bridge.Getter): 
+class ACSensor(uart_bridge.UARTMessenger): 
     """
     Remote sensor object whose read() method returns True if AC power attached to 
     zerocross circut is hot.
     """
-    _AC_REQUEST = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_AC_ON, 0)
-    _AC_DECODER = bitstruct.compile('u8')
-
-    def __init__(self, min_dwell_time : float = 0.1) -> None:
-        super().__init__(min_dwell_time, self._AC_REQUEST, self._AC_DECODER)
+    def __init__(self, min_dwell_time : float = 0.025):
+        uart_bridge.UARTMessenger.__init__(self, min_dwell_time)
+        self.avoid_repeat_sends = False
+        self.request_msg = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_AC_ON, 0)
+        self._decoder = bitstruct.compile('u8')
 
     def read(self)->bool:
-        uart_bridge.Getter.read(self)
-        return bool(self._last_reading.val[0])
+        uart_bridge.UARTMessenger.send(self, self.request_msg)
+        if self.status != status_ids.SUCCESS:
+            print(f"Something went wrong with the ACStatus's UART bridge: {self.status}")
+            return False
+        return self._decoder.unpack(self.response)[0]!=0
 
     def on(self)->bool:
         return self.read()

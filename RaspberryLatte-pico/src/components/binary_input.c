@@ -3,7 +3,7 @@
 
 #include "binary_input.h"
 #include "uart_bridge.h"
-#include "errors.h"
+#include "status_ids.h"
 
 static uint8_t * _binary_inputs[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static uint8_t _num_binary_inputs = 0;

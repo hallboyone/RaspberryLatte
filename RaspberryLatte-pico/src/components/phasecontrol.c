@@ -11,6 +11,7 @@
 #include "pico/util/queue.h"
 
 #include "uart_bridge.h"
+#include "status_ids.h"
 
 #define PERIOD_1_25        20833
 #define PERIOD_1_00        16667
@@ -133,7 +134,7 @@ static void phasecontrol_set_duty_cycle_handler(int* value, int len){
  */
 static void phasecontrol_is_ac_hot_handler(int* value, int len){
   int response = phasecontrol_is_ac_hot();
-  sendMessage(MSG_ID_GET_AC_ON, &response, 1);
+  sendMessageWithStatus(MSG_ID_GET_AC_ON, SUCCESS, &response, 1);
 }
 
 /**
