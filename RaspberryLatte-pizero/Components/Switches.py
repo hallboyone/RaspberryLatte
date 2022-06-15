@@ -25,13 +25,12 @@ class Switches(uart_bridge.Getter):
         super().__init__(min_dwell_time, self._SWITCH_REQUEST, self._SWITCH_DECODER)
         self.did_change = {'pump':False, 'dial':False}
         uart_bridge.Getter.read(self)
-        self._prev_readings = self._last_reading
-        self.read()
+        self._prev_readings = None
 
     def update(self):
         uart_bridge.Getter.read(self)
-        switch_changed = (self._prev_readings.val[0]!=self._last_reading.val[0])
-        dial_changed = (self._prev_readings.val[1]!=self._last_reading.val[1])
+        switch_changed = (self._prev_readings is None) or (self._prev_readings.val[0]!=self._last_reading.val[0])
+        dial_changed = (self._prev_readings is None) or (self._prev_readings.val[1]!=self._last_reading.val[1])
         self._prev_readings = self._last_reading
         return (dial_changed, switch_changed)
 
