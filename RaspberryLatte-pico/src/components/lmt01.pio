@@ -1,35 +1,17 @@
-
 ; Reads data from the LMT01, a TI tempurature sensor that transmits some number of
 ; pulses porportional to the measured tempurature at ~88KHz (11.36 us per period)
-; Algorithm:
-; (1) Set counter to FF FF FF FF
-; (2) Wait for high.
-
-; .program lmt01
-;     set y, 0               ; Reset counter
-;     wait 1 pin 0           ; Wait for start of pulse train (rising edge)
-; increment:                 
-;     mov x, !y	           ; Count rising edge Increment y using (y+1)=!((!y)-1)
-;     jmp x-- next_line                     
-; next_line:
-;     mov y, !x
-;     set x 25               ; Restart timer
-;     wait 0 pin 0           ; Wait for pin to go low again
-; no_pulse:
-;     jmp pin increment      ; If rising edge, increment counter and restart timer
-;     jmp x-- no_pulse       ; Timer not expired. Loop again
-;     in  y, 32              ; Send counter value to program and restart
 
 .program lmt01
-    mov y, NULL            ; Set counter to all zeros
-    mov y, !y              ; Set counter to all ones
-    wait 1 pin 0           ; Wait for start of pulse train (rising edge)
-decrement:                 
-    jmp y-- next_line                     
+    mov  y   NULL           ; Set counter to 0
+    wait 1   pin 0          ; Wait for start of pulse train (rising edge)
+increment:
+    mov  y   ~y             ; Compute y+1 = ~(~y-1)
+    jmp  y-- next_line      ; Compute y+1 = ~(~y-1)
 next_line:
-    set x 25               ; Restart timer
-    wait 0 pin 0           ; Wait for pin to go low again
+    mov  y   ~y             ; Compute y+1 = ~(~y-1)                   
+    set  x   25             ; Restart timer
+    wait 0   pin 0          ; Wait for pin to go low again
 no_pulse:
-    jmp pin decrement      ; If rising edge, decrement counter and restart timer
-    jmp x-- no_pulse       ; Timer not expired. Loop again
-    in  y, 32              ; Send counter value to program and restart
+    jmp  pin increment      ; If rising edge, decrement counter and restart timer
+    jmp  x-- no_pulse       ; Timer not expired. Loop again
+    in   y   32             ; Send counter value to program and restart
