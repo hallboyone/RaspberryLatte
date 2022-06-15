@@ -26,7 +26,7 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-_TIMEOUT  = 2500
+UART_TIMEOUT  = 0.1
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')
@@ -42,22 +42,36 @@ class DataPoint:
 
 class UARTMessenger:
     """
-    Abstract class for communicating over UART bridge. Each message consists of a message ID, body length, and body (optional).
-    The response consists of the same message ID, body length, 
-    status code, and body (optional). 
+    Object for communicating over UART bridge. The object contains optional restrictions on the minimum time between 
+    messages and avoiding repeat messages. Each message is a bytes or bytearray object where the highest four bits of
+    the first byte correspond to the message's id, the lowest four correspond with the body length (not including first
+    byte), and the next (optional) bytes are the message's body. After a message is sent, a response is expected 
+    consisting of the same message ID, body length, status code, and body (optional). The status and body (if exists)
+    are stored as variables until the next call.
     """
-    def __init__(self, min_dwell_time : float = 0.05):
+
+    def __init__(self, min_dwell_time : float = 0.0, avoid_repeat_sends = False):
         self._last_msg_t = 0.0
         self.mindt = min_dwell_time
 
-        self.avoid_repeat_sends = True
+        self.avoid_repeat_sends = avoid_repeat_sends
         self.prev_msg = None
         self.status : int = None
         self.response : bytes = None
 
-    def send(self, msg : bytes):
-        """ Send the msg over UART, wait for response header and body, return body and status """
-        if time.time() - self._last_msg_t > self.mindt and (not self.avoid_repeat_sends or self.prev_msg==None or self.prev_msg!=msg):
+    def send(self, msg : bytes, force = False):
+        """ 
+        Send the msg over UART, wait for response, and save status and response body into self.status
+        and self.respsonse respectively. If no response is recieved within UART_TIMEOUT, an exception
+        is thrown. 
+
+        Parameters:
+        - msg   : bytes - Message to send over UART. Should be formated as [[7-4 ID][3-0 len]][body0][body1]...
+        - force : bool  - Send msg regardless of dwell time and duplicate checks (default = False) 
+        """
+        dwell_time_up = time.time() - self._last_msg_t > self.mindt
+        non_duplicate = (not self.avoid_repeat_sends or self.prev_msg==None or self.prev_msg!=msg)
+        if (force or (dwell_time_up and non_duplicate)):
             # Clear input and write message
             _ser.reset_input_buffer()
             _ser.write(msg)
@@ -65,24 +79,21 @@ class UARTMessenger:
 
             # Read and unpack header
             while(_ser.in_waiting < 2):
-                if time.time() - self._last_msg_t > _TIMEOUT:
+                if time.time() - self._last_msg_t > UART_TIMEOUT:
                     raise IOError("UART Timeout!")
             body_len : int
             (_, body_len, self.status) = _header_status_decoder.unpack(_ser.read(2))
 
-            if self.status != status_ids.SUCCESS:
-                return
-
             # Read body
-            #print(self.status)
-            #print(f"Waiting for message with length {body_len}")
             while(_ser.in_waiting < body_len):
-                if time.time() - self._last_msg_t > _TIMEOUT:
+                if time.time() - self._last_msg_t > UART_TIMEOUT:
                     raise IOError("UART Timeout!")
             self.response : bytes = _ser.read(body_len)
-            self.prev_msg = bytearray(len(msg))
-            self.prev_msg[:] = msg
-            #print("Done!")
+
+            # Create deep copy of message for next time
+            if self.avoid_repeat_sends:
+                self.prev_msg = bytearray(len(msg))
+                self.prev_msg[:] = msg
         
 
 class Getter:
@@ -133,10 +144,10 @@ def _send_over_uart(msg, expect_response = False):
     # If response is expected, wait until recieved and then return
     if expect_response:
         while(_ser.in_waiting == 0):
-            if time.time() - send_time > _TIMEOUT:
+            if time.time() - send_time > UART_TIMEOUT:
                 raise IOError("UART Timeout!")
         header = _header_decoder.unpack(_ser.read(1))
         while(_ser.in_waiting != header[1]):
-            if time.time() - send_time > _TIMEOUT:
+            if time.time() - send_time > UART_TIMEOUT:
                 raise IOError("UART Timeout!")
         return _ser.read(header[1])

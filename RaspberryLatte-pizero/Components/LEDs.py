@@ -9,7 +9,7 @@ class LEDs(uart_bridge.UARTMessenger):
     using the set method which takes the LED index and its value. 
     """
     def __init__(self) -> None:
-        uart_bridge.UARTMessenger.__init__(self, min_dwell_time = 0)
+        uart_bridge.UARTMessenger.__init__(self, 0, True)
         self.msg_buf = bytearray(2)
         bitstruct.pack_into('u4u4', self.msg_buf, 0, uart_bridge.MSG_ID_SET_LEDS, 1)
         self.set_all(0,0,0)
