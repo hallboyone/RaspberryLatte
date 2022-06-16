@@ -4,7 +4,8 @@ start_time = 0;
 f = figure;
 dat_buf = [];
 ran = false;
-f.Position = [1224 1 691 1001];
+%f.Position = [1224 1 691 1001];
+f.Position = [881 1 560 821];
 tlim = 10;
 while true
     raw_dat = udpr();
@@ -15,7 +16,8 @@ while true
             f = figure;
             dat_buf = [];
             start_time = 0;
-            f.Position = [1224 1 691 1001];
+            %f.Position = [1224 1 691 1001];
+            f.Position = [881 1 560 821];
             tlim = 10;
             ran = false;
         end
