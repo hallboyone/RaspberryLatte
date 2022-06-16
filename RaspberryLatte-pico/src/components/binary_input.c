@@ -31,12 +31,13 @@ static inline uint8_t gpio_get_w_pull(uint pin_idx){
  * @param len Number of indicies in data array. 
  */
 static void binary_input_read_handler(int * data, int len){
+  int status = SUCCESS;
   if(len == 0){ // Read all switches in order they were added
     int response[_num_binary_inputs];
     for(uint8_t s_i = 0; s_i < _num_binary_inputs; s_i++){
       response[s_i] = binary_input_read(s_i);
     }
-    sendMessage(MSG_ID_GET_SWITCH, response, _num_binary_inputs);
+    sendMessageWithStatus(MSG_ID_GET_SWITCH, status, response, _num_binary_inputs);
   } else { // Read only the requested switches
     int response[len];
     for(uint8_t s_i = 0; s_i < len; s_i++){
@@ -44,9 +45,10 @@ static void binary_input_read_handler(int * data, int len){
         response[s_i] = binary_input_read(data[s_i]);
       } else {
         response[s_i] = IDX_OUT_OF_RANGE;
+        status = MSG_FORMAT_ERROR;
       }
     }
-    sendMessage(MSG_ID_GET_SWITCH, response, len);
+    sendMessageWithStatus(MSG_ID_GET_SWITCH, status, response, len);
   }
 }
 

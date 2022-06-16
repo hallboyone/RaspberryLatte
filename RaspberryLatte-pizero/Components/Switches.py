@@ -1,8 +1,9 @@
 import bitstruct
 
 import uart_bridge
+import status_ids
 
-class Switches(uart_bridge.Getter): 
+class Switches(uart_bridge.UARTMessenger): 
     """
     Retreives the switch states from the espresso machine interfacing with the pico 
     firmware. Handles one switch and one dial. 
@@ -17,27 +18,38 @@ class Switches(uart_bridge.Getter):
     flag, did_change indicating of values changed. Flag remain set until cleared by
     calling script. Returns the results of self.state(switch) after update attempt.
     """
-    
-    _SWITCH_REQUEST = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_SWITCH, 0)
-    _SWITCH_DECODER = bitstruct.compile('u8u8')
 
-    def __init__(self, min_dwell_time : float = 0.1) -> None:
-        super().__init__(min_dwell_time, self._SWITCH_REQUEST, self._SWITCH_DECODER)
+    def __init__(self) -> None:
+        uart_bridge.UARTMessenger.__init__(self, 0.1, False)
+        self.request_msg = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_SWITCH, 0)
+        self._decoder = bitstruct.compile('u8u8')
         self.did_change = {'pump':False, 'dial':False}
-        uart_bridge.Getter.read(self)
-        self._prev_readings = None
+        self.reading = None
 
     def update(self):
-        uart_bridge.Getter.read(self)
-        switch_changed = (self._prev_readings is None) or (self._prev_readings.val[0]!=self._last_reading.val[0])
-        dial_changed = (self._prev_readings is None) or (self._prev_readings.val[1]!=self._last_reading.val[1])
-        self._prev_readings = self._last_reading
+        uart_bridge.UARTMessenger.send(self, self.request_msg)
+        if self.status != status_ids.SUCCESS:
+            print(f"Something went wrong with the switches' UART bridge: {self.status}")
+            return False
+        new_reading = self._decoder.unpack(self.response)
+        switch_changed = (self.reading is None) or (new_reading[0]!=self.reading[0])
+        dial_changed = (self.reading is None) or (new_reading[1]!=self.reading[1])
+        self.reading = new_reading
         return (dial_changed, switch_changed)
 
     def state(self, switch = 'all'):
         if switch == 'pump':
-            return self._last_reading.val[0]
+            return self.reading[0]
         elif switch == 'dial':
-            return self._last_reading.val[1]
+            return self.reading[1]
         else:
-            return {'pump':self._last_reading.val[0], 'dial':self._last_reading.val[1]}
+            return {'pump':self.reading[0], 'dial':self.reading[1]}
+
+if __name__=="main":
+    switches = Switches()
+    while True:
+        (dial_changed, switch_changed) = switches.update()
+        if dial_changed:
+            print(f"Dial changed to {switches.state('dial')}")
+        if switch_changed:
+            print(f"Switch changed to {switches.state('switch')}")
