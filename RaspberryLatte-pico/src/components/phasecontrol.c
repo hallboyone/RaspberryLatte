@@ -122,8 +122,12 @@ static void phasecontrol_loop_core1() {
  * @param len length of data array. Must be 1. 
  */
 static void phasecontrol_set_duty_cycle_handler(int* value, int len){
-  assert(len==1);
-  phasecontrol_set_duty_cycle((*value<=127) ? *value : 127);
+  if(len==1){
+    phasecontrol_set_duty_cycle((*value<=127) ? *value : 127);
+    sendMessageWithStatus(MSG_ID_GET_AC_ON, SUCCESS, NULL, 0);
+  } else {
+    sendMessageWithStatus(MSG_ID_GET_AC_ON, MSG_FORMAT_ERROR, NULL, 0);
+  }
 }
 
 /**
