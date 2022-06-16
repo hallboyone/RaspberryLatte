@@ -10,7 +10,6 @@ class ACSensor(uart_bridge.UARTMessenger):
     """
     def __init__(self, min_dwell_time : float = 0.025):
         uart_bridge.UARTMessenger.__init__(self, min_dwell_time)
-        self.avoid_repeat_sends = False
         self.request_msg = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_AC_ON, 0)
         self._decoder = bitstruct.compile('u8')
 

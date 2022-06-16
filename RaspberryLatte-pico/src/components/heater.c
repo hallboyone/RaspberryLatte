@@ -10,6 +10,7 @@
 
 #include "heater.h"         /** Function definitions */
 #include "uart_bridge.h"    /** Message handling */
+#include "status_ids.h"
 
 #define PWM_PERIOD_MS 1050 /** Length of 1 PWM cycle. Set to (1000/60)*63 */
 #define PWM_INCREMENTS  64 /** Number of discrete PWM settings Valid setting will be [0,PWM_INCREMENTS-1]*/
@@ -65,6 +66,10 @@ static void heater_set_duty_handler(int * data, int len){
         } else if(_duty_cycle> PWM_INCREMENTS-1){
             _duty_cycle = PWM_INCREMENTS-1;
         }
+        sendMessageWithStatus(MSG_ID_SET_HEATER, SUCCESS, &_duty_cycle, 1);
+    } else {
+        _duty_cycle = 0;
+        sendMessageWithStatus(MSG_ID_SET_HEATER, MSG_FORMAT_ERROR, &_duty_cycle, 1);
     }
 }
 
