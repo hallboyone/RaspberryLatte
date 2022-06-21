@@ -30,7 +30,7 @@ class Scale(uart_bridge.Getter, PIDSensor):
 
     def read(self, unit = 'g') -> float:
         uart_bridge.Getter.read(self)
-        val_g = -0.000152968191*(self._last_reading.val[0] - self._origin)
+        val_g = -0.000152710615479*(self._last_reading.val[0] - self._origin)
         if unit == 'g':
             return val_g
         elif unit == 'oz':
