@@ -73,12 +73,12 @@ class EspressoMachine:
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output=self.heater, windup_bounds=IntegralBounds(0, 100))
         self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
 
-        self._logger = Logger.Logger(sample_time=0.05)
+        self._logger = Logger.Logger(sample_time=0.1)
         self._logger.add_source("temp", self.temp_sensor.read)
         self._logger.add_source("heater", lambda : self.heater.setting)
         self._logger.add_source("scale", self.scale.read)
-        self._logger.add_source("pressure", self.pressure.read)
-        self._logger.add_source("pump", lambda : self.pump.setting)
+        #self._logger.add_source("pressure", self.pressure.read)
+        #self._logger.add_source("pump", lambda : self.pump.setting)
         
         self._auto_brew_routine = [
             AutoBrewScheduler.FunctionCall(self.scale.zero),
@@ -94,7 +94,10 @@ class EspressoMachine:
 
     def run(self):
         try:
+            #self.scale.zero()
             while(True):
+                #self._logger.log()
+
                 if not self.ac_power.on():
                     self._powered_down_loop()
                 
