@@ -5,6 +5,7 @@
 
 #include "uart_bridge.h"
 #include "maintainer.h"
+#include "status_ids.h"
 
 static PIO _pio;
 static uint _sm;
@@ -44,7 +45,7 @@ static void hx711_read_handler(int * msg, int len){
     response[0] = (_latest_weight >> 16) & 0xFF;
     response[1] = (_latest_weight >>  8) & 0xFF;
     response[2] = (_latest_weight >>  0) & 0xFF;
-    sendMessage(MSG_ID_GET_WEIGHT, response, 3);
+    sendMessageWithStatus(MSG_ID_GET_PRESSURE, SUCCESS, response, 3);
     return;
 }
 
