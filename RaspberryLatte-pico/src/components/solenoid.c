@@ -1,5 +1,6 @@
 #include "solenoid.h"
 #include "uart_bridge.h"
+#include "status_ids.h"
 
 static uint8_t _solenoid_pin;
 
@@ -7,8 +8,12 @@ static uint8_t _solenoid_pin;
  * Write the target duty cycle from 0 to 127 to core1 with 0 being off. 
  */
 static void solenoid_set_state_handler(int* value, int len){
-  assert(len==1);
-  gpio_put(_solenoid_pin, value[0]!=0);
+    if(len==1){
+      gpio_put(_solenoid_pin, value[0]!=0);
+      sendMessageWithStatus(MSG_ID_SET_SOLENOID, SUCCESS, NULL, 0);
+  } else {
+      sendMessageWithStatus(MSG_ID_SET_SOLENOID, MSG_FORMAT_ERROR, NULL, 0);
+  }
 }
 
 /**

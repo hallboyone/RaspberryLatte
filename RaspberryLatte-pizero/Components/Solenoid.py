@@ -1,17 +1,21 @@
 import bitstruct
 
 import uart_bridge
-
-class Solenoid(uart_bridge.Setter):
+import status_ids
+class Solenoid(uart_bridge.UARTMessenger):
     def __init__(self) -> None:
-        uart_bridge.Setter.__init__(self, 
-            min_dwell_time = 0, 
-            message_packer = bitstruct.compile('u4u4u8'),
-            message_id = uart_bridge.MSG_ID_SET_SOLENOID,
-            message_len = 1)
+        uart_bridge.UARTMessenger.__init__(self, min_dwell_time = 0, avoid_repeat_sends = True)
+        self.msg_buf = bytearray(2)
+        bitstruct.pack_into('u4u4', self.msg_buf, 0, uart_bridge.MSG_ID_SET_SOLENOID, 1)
+        self.set(0)
+
     def set(self, on_off : bool):
-        self.write(on_off)
+        bitstruct.pack_into('u8', self.msg_buf, 8, on_off)
+        uart_bridge.UARTMessenger.send(self, self.msg_buf, False)
+        if self.status != status_ids.SUCCESS:
+            print(f"Something went wrong setting the solenoid!: {self.status}")
+        
     def open(self):
-        self.write(1)
+        self.set(1)
     def close(self):
-        self.write(0)
+        self.set(0)
