@@ -5,6 +5,7 @@
 
 #include "uart_bridge.h"
 #include "maintainer.h"
+#include "status_ids.h"
 
 static const int PULSE_COUNTS [21] = { 26, 181, 338, 494, 651, 808,
                                        966, 1125, 1284, 1443, 1603, 
@@ -98,7 +99,7 @@ static inline void lmt01_program_init(uint offset, uint dat_pin) {
 
 static void lmt01_read_handler(int* value, int len){
     int buf [2] = {(_latest_temp >> 8) & 0xFF, (_latest_temp >> 0) & 0xFF};
-    sendMessage(MSG_ID_GET_TEMP, buf, 2);
+    sendMessageWithStatus(MSG_ID_GET_TEMP, SUCCESS, buf, 2);
 }
 
 static void lmt01_maintainer(){
