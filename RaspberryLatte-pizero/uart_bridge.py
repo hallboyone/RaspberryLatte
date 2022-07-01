@@ -7,6 +7,8 @@ import serial
 import bitstruct
 import time
 
+import status_ids
+
 MSG_ID_SET_LEDS      =  1
 MSG_ID_SET_PUMP      =  2
 MSG_ID_SET_SOLENOID  =  3
@@ -94,22 +96,21 @@ class UARTMessenger:
                 self.prev_msg = bytearray(len(msg))
                 self.prev_msg[:] = msg
         
-
-class Getter:
+class Getter(UARTMessenger):
     """
-    Abstract class to handles getting values over the uart_bridge. If the value was recently retrieved (not more than
-    min_dwell_time seconds ago), then the value is just reused.
+    TODO: write documentation
     """
-    _last_reading : DataPoint = None
-
-    def __init__(self, min_dwell_time : float, request_message, response_decoder) -> None:
+    def __init__(self, min_dwell_time : float, avoid_repeat_sends, request_message, response_decoder) -> None:
+        UARTMessenger.__init__(self, min_dwell_time, avoid_repeat_sends)
         self._mindt = min_dwell_time
-        self._msg = request_message
-        self._decoder = response_decoder
+        self.request_msg = request_message
+        self.request_decoder = response_decoder
 
-    def read(self):
-        if (self._last_reading is None) or (time.time() - self._last_reading.t > self._mindt):
-            self._last_reading = DataPoint(self._decoder.unpack(_send_over_uart(self._msg, expect_response = True)))
+    def read(self) -> int:
+        UARTMessenger.send(self, self.request_msg)
+        if self.status == status_ids.SUCCESS:
+            self.unpacked_response = self.request_decoder.unpack(self.response)
+        return self.status
 
 class Setter:
     """
