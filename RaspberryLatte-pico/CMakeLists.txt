@@ -16,13 +16,15 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/heater.c
                PRIVATE src/components/lmt01.c
                PRIVATE src/components/solenoid.c
-               PRIVATE src/components/leds.c)
+               PRIVATE src/components/leds.c
+               PRIVATE src/components/nau7802.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
   pico_multicore
   hardware_adc
-  hardware_pio) 
+  hardware_pio
+  hardware_i2c) 
 
 
 #pico_add_extra_outputs(RaspberryLattePico)
