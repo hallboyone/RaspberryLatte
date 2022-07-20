@@ -25,6 +25,8 @@
         "memory.h": "c",
         "string.h": "c",
         "status_ids.h": "c",
-        "i2c.h": "c"
+        "i2c.h": "c",
+        "solenoid.h": "c",
+        "stdio.h": "c"
     },
 }

@@ -1,8 +1,73 @@
+#include <stdio.h>
 #include <string.h>
 
 #include "nau7802.h"
 #include "uart_bridge.h"
 #include "status_ids.h"
+
+const reg_addr  REG_PU_CTRL      = 0x00;
+const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL};
+const bit_range BITS_PWR_UP_D    = {.from = 1, .to = 1, .in_reg = REG_PU_CTRL};
+const bit_range BITS_PWR_UP_A    = {.from = 2, .to = 2, .in_reg = REG_PU_CTRL};
+const bit_range BITS_READY       = {.from = 3, .to = 3, .in_reg = REG_PU_CTRL};
+const bit_range BITS_CS          = {.from = 4, .to = 4, .in_reg = REG_PU_CTRL};
+const bit_range BITS_CR          = {.from = 5, .to = 5, .in_reg = REG_PU_CTRL};
+const bit_range BITS_OSCS        = {.from = 6, .to = 6, .in_reg = REG_PU_CTRL};
+const bit_range BITS_AVDD_S      = {.from = 7, .to = 7, .in_reg = REG_PU_CTRL};
+
+const reg_addr  REG_CTRL_1       = 0x01;
+const bit_range BITS_GAIN        = {.from = 0, .to = 2, .in_reg = REG_CTRL_1};
+const bit_range BITS_VLDO        = {.from = 3, .to = 5, .in_reg = REG_CTRL_1};
+const bit_range BITS_DRDY_SEL    = {.from = 6, .to = 6, .in_reg = REG_CTRL_1};
+const bit_range BITS_CRP         = {.from = 7, .to = 7, .in_reg = REG_CTRL_1};
+
+const reg_addr  REG_CTRL_2       = 0x02;
+const bit_range BITS_CAL_MODE    = {.from = 0, .to = 1, .in_reg = REG_CTRL_2};
+const bit_range BITS_CALS        = {.from = 2, .to = 2, .in_reg = REG_CTRL_2};
+const bit_range BITS_CAL_ERR     = {.from = 3, .to = 3, .in_reg = REG_CTRL_2};
+const bit_range BITS_CRS         = {.from = 4, .to = 6, .in_reg = REG_CTRL_2};
+const bit_range BITS_CHS         = {.from = 7, .to = 7, .in_reg = REG_CTRL_2};
+
+const reg_addr  REG_I2C_CTRL     = 0x11;
+const bit_range BITS_BGPCP       = {.from = 0, .to = 0, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_TS          = {.from = 1, .to = 1, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_BOPGA       = {.from = 2, .to = 2, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_SI          = {.from = 3, .to = 3, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_WPD         = {.from = 4, .to = 4, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_SPE         = {.from = 5, .to = 5, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_FRD         = {.from = 6, .to = 6, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_CRSD        = {.from = 7, .to = 7, .in_reg = REG_I2C_CTRL};
+    
+const reg_addr  REG_ADCO_B2      = 0x12;
+const bit_range BITS_B23_16      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B2};
+    
+const reg_addr  REG_ADCO_B1      = 0x13;
+const bit_range BITS_B15_08      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B1};
+
+const reg_addr  REG_ADCO_B0      = 0x14;
+const bit_range BITS_B07_00      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B0};
+
+const reg_addr  REG_ADC_CTRL     = 0x15;
+const bit_range BITS_REG_CHP     = {.from = 0, .to = 1, .in_reg = REG_ADC_CTRL};
+const bit_range BITS_ADC_VCM     = {.from = 2, .to = 3, .in_reg = REG_ADC_CTRL};
+const bit_range BITS_REG_CHPS    = {.from = 4, .to = 5, .in_reg = REG_ADC_CTRL};
+
+const reg_addr  REG_PGA          = 0x1B;
+const bit_range BITS_PGA_CHP_DIS = {.from = 0, .to = 0, .in_reg = REG_PGA};
+const bit_range BITS_PGA_INV     = {.from = 3, .to = 3, .in_reg = REG_PGA};
+const bit_range BITS_PGA_BYP_EN  = {.from = 4, .to = 4, .in_reg = REG_PGA};
+const bit_range BITS_PGA_OBUF_EN = {.from = 5, .to = 5, .in_reg = REG_PGA};
+const bit_range BITS_LDO_MODE    = {.from = 6, .to = 6, .in_reg = REG_PGA};
+const bit_range BITS_RD_OTP_SEL  = {.from = 7, .to = 7, .in_reg = REG_PGA};
+
+const reg_addr  REG_PWR_CTRL     = 0x1C;
+const bit_range BITS_PGA_CURR    = {.from = 0, .to = 1, .in_reg = REG_PWR_CTRL};
+const bit_range BITS_ADC_CURR    = {.from = 2, .to = 3, .in_reg = REG_PWR_CTRL};
+const bit_range BITS_MST_BS_CURR = {.from = 4, .to = 6, .in_reg = REG_PWR_CTRL};
+const bit_range BITS_PGA_CAP     = {.from = 7, .to = 7, .in_reg = REG_PWR_CTRL};
+
+const reg_addr  REG_DEV_REV      = 0x1F;
+const bit_range BITS_REVISION_ID = {.from = 0, .to = 3, .in_reg = REG_DEV_REV};
 
 /**
  * \brief Last ADC reading.
@@ -19,10 +84,29 @@ static i2c_inst_t * _nau7802_i2c = i2c_default;
  *               Bit manipulation and display functions 
  * ====================================================================
  */
+/**
+ * \brief Returns the bits within buf specified by the bit_range bits.
+ * 
+ * \param buf Byte storing packed binary data.
+ * \param bits A bit_range structure indicating the bits to extract.
+ * 
+ * \returns The targeted bits in buf with the LS target bit shifted to bit 0.
+ */
 inline uint8_t extractBits(const byte buf, const bit_range bits){
     return (buf<<(7-bits.to))>>(7-bits.to + bits.from);
 }
 
+/**
+ * \brief Sets the bits within buf specified by the bit_range bits. Only the specified bits
+ * are ever written to. If the value does not fit within the specified bits, the highest 
+ * bits are truncated.
+ * 
+ * \param buf  Byte storing packed binary data.
+ * \param bits A bit_range structure indicating the bits to extract.
+ * \param val  The value to store in targeted bits. 
+ * 
+ * \return The original buf with the targeted bits overwritten with the val. 
+ */
 inline uint8_t setBits(const byte buf, const bit_range bits, uint8_t val){
     const uint8_t val_mask = 0xFFu>>(7-(bits.to - bits.from));
     const uint8_t buf_mask = ~(val_mask<<bits.from);
@@ -51,7 +135,7 @@ int nau7802_read_reg(const reg_addr reg_idx, uint8_t len, uint8_t * dst){
 int nau7802_write_reg(const reg_addr reg_idx, uint8_t len, uint8_t * src){
     uint8_t buf [len+1];
     buf[0] = reg_idx;
-    memcpy(buf[1], src, len);
+    memcpy(&buf[1], src, len);
     if(i2c_write_blocking(_nau7802_i2c, ADDR_NAU7802, buf, len+1, false) == PICO_ERROR_GENERIC){
         printf("WARNING: Write operation failed! [nau7802Write2Bit]\n");
         return NAU7802_ERROR_WRITE_FAILURE;
