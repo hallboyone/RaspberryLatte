@@ -24,6 +24,7 @@
         "malloc.h": "c",
         "memory.h": "c",
         "string.h": "c",
-        "status_ids.h": "c"
+        "status_ids.h": "c",
+        "i2c.h": "c"
     },
 }

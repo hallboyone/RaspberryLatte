@@ -6,3 +6,4 @@ RaspberryLatte-pizero/__pycache__/*
 Sandbox/*
 *.brewlog
 *__pycache__*
+RaspberryLatte-pico/src/.DS_Store
