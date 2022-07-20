@@ -9,7 +9,7 @@ from datetime import datetime
 import time
 import socket 
 class Logger:
-    UDP_IP = "192.168.0.126"
+    UDP_IP = "192.168.0.175"
     UDP_PORT = 5005
 
     def __init__(self, sample_time = 0.1) -> None:
