@@ -80,11 +80,6 @@ static uint32_t last_val = 0;
 static i2c_inst_t * _nau7802_i2c = i2c_default;
 
 /**
- * ====================================================================
- *               Bit manipulation and display functions 
- * ====================================================================
- */
-/**
  * \brief Returns the bits within buf specified by the bit_range bits.
  * 
  * \param buf Byte storing packed binary data.
@@ -113,11 +108,6 @@ inline uint8_t setBits(const byte buf, const bit_range bits, uint8_t val){
     return (buf & buf_mask) | ((val & val_mask))<<bits.from;
 }
 
-/**
- * ====================================================================
- *                Register getter and setter functions
- * ====================================================================
- */
 int nau7802_read_reg(const reg_addr reg_idx, uint8_t len, uint8_t * dst){
     // Send the starting register address
     if(i2c_write_blocking(_nau7802_i2c, ADDR_NAU7802, &reg_idx, 1, true) == PICO_ERROR_GENERIC){
@@ -165,11 +155,6 @@ int nau7802_write_bits(const bit_range bits, uint8_t val){
     return NAU7802_SUCCESS;
 }
 
-/**
- * ====================================================================
- *                      NAU7802 Basic Operations
- * ====================================================================
- */
 void nau7802_reset(){
     if(nau7802_write_bits(BITS_RESET, 1) != NAU7802_SUCCESS){
         printf("Failed to set the reset bit to 1\n");
@@ -254,11 +239,7 @@ bool nau7802_data_ready(){
     }
     return (is_ready==1);
 }
-/**
- * ====================================================================
- *                     NAU7802 Setup and Reading
- * ====================================================================
- */
+
 void nau7802_read(uint32_t * dst){
     if (nau7802_data_ready()){
         nau7802_read_reg(REG_ADCO_B2, 1, ((uint8_t *) dst)+2);
