@@ -61,15 +61,17 @@ int64_t turn_on(alarm_id_t id, void *user_data){
 static void heater_set_duty_handler(int * data, int len){
     if(len==1){
         _duty_cycle = *data;
+        int val = _duty_cycle;
         if(_duty_cycle < 0){
             _duty_cycle = 0;
         } else if(_duty_cycle> PWM_INCREMENTS-1){
             _duty_cycle = PWM_INCREMENTS-1;
         }
-        sendMessageWithStatus(MSG_ID_SET_HEATER, SUCCESS, &_duty_cycle, 1);
+        sendMessageWithStatus(MSG_ID_SET_HEATER, SUCCESS, &val, 1);
     } else {
         _duty_cycle = 0;
-        sendMessageWithStatus(MSG_ID_SET_HEATER, MSG_FORMAT_ERROR, &_duty_cycle, 1);
+        int val = _duty_cycle;
+        sendMessageWithStatus(MSG_ID_SET_HEATER, MSG_FORMAT_ERROR, &val, 1);
     }
 }
 
