@@ -1,13 +1,15 @@
 #include "pico/stdlib.h"
 
 typedef struct datapoint_{
-    uint32_t t;
-    float d;
+    uint64_t t;
+    float v;
 } datapoint;
 
 typedef struct discrete_derivative_{
     uint filter_span_ms;
-    datapoint * data;
+    datapoint * _data;
+    uint16_t _buf_len;
+    uint16_t _num_el;
 } discrete_derivative;
 
 typedef struct pid_gains_{
@@ -31,15 +33,15 @@ typedef struct pid_ctrl_{
 void discrete_derivative_init(discrete_derivative * d, uint filter_span_ms);
 
 /**
- * \brief Updates the internally managed time series and computes its linear slope. 
- * \returns The slope of the previous datapoints withint the filter_span of d. If only
- * 1 point, returns 0.
- */
-float discrete_derivative_add_point(discrete_derivative * d, datapoint p);
-
-/**
  * \brief Computes the linear slope of the current datapoints.
  * \returns The slope of the previous datapoints withint the filter_span of d. If only
  * 0 or 1 point, returns 0.
  */
 float discrete_derivative_read(discrete_derivative * d);
+
+/**
+ * \brief Updates the internally managed time series and computes its linear slope. 
+ * \returns The slope of the previous datapoints withint the filter_span of d. If only
+ * 1 point, returns 0.
+ */
+float discrete_derivative_add_point(discrete_derivative * d, datapoint p);
