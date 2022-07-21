@@ -1,0 +1,2 @@
+bitstruct==8.14.0
+pyserial==3.5
