@@ -52,7 +52,7 @@ int main(){
     .zerocross_shift = PHASE_CONTROL_0CROSS_SHIFT};
     phasecontrol_setup(&pump_config);
 
-    nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c_default);
+    nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
 
     heater_setup(HEATER_PWM_PIN);
 
