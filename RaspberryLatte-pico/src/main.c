@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "pico/cyw43_arch.h"
 
 #include "pinout.h"
 
@@ -15,39 +16,26 @@
 #include "leds.h"
 
 bool run = true;
-bool led = false;
 
 void endProgram(int * data, int len){
     run = false;
 }
 
 static bool toggle_led(repeating_timer_t *rt){
-  led = !led;
-  gpio_put(PICO_DEFAULT_LED_PIN, led);
+  cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, !cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN));
   return true;
 }
-
-#ifdef PICO_DEFAULT_LED_PIN
-static bool toggle_led(repeating_timer_t *rt){
-  led = !led;
-  gpio_put(PICO_DEFAULT_LED_PIN, led);
-  return true;
-}
-#endif
 
 int main(){
+    // Setup wifi module NOTE: JUST LED FOR NOW. ADJUST CMAKE WHEN EXPANDED
+    if (cyw43_arch_init()) return -1;
+    repeating_timer_t led_timer;
+    add_repeating_timer_ms(1000, &toggle_led, NULL, &led_timer);
+
     // Setup UART, clear queue, and assign endProgram command
     stdio_init_all();
     while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
     registerHandler(MSG_ID_END_PROGRAM, &endProgram);
-
-    #ifdef PICO_DEFAULT_LED_PIN
-    // Setup the onboard LED
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-    repeating_timer_t led_timer;
-    add_repeating_timer_ms(1000, &toggle_led, NULL, &led_timer);
-    #endif
 
     pressure_sensor_setup(PRESSURE_SENSOR_PIN);
 

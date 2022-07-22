@@ -24,7 +24,8 @@ target_link_libraries(RaspberryLattePico PRIVATE
   pico_multicore
   hardware_adc
   hardware_pio
-  hardware_i2c) 
+  hardware_i2c
+  pico_cyw43_arch_none) 
 
 
 #pico_add_extra_outputs(RaspberryLattePico)
