@@ -1,11 +1,20 @@
-#include "pid.h"
+#include <stdlib.h>
 #include <string.h>
+
+#include "pid.h"
 
 void discrete_derivative_init(discrete_derivative * d, uint filter_span_ms){
     d->filter_span_ms = filter_span_ms;
     d->_buf_len = 10;
     d->_num_el = 0;
     d->_data = malloc((d->_buf_len)*sizeof(datapoint));
+}
+
+void discrete_derivative_deinit(discrete_derivative * d){
+    d->filter_span_ms = 0;
+    d->_buf_len = 0;
+    d->_num_el = 0;
+    free(d->_data);
 }
 
 float discrete_derivative_read(discrete_derivative * d){

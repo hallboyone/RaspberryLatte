@@ -33,6 +33,11 @@ typedef struct pid_ctrl_{
 void discrete_derivative_init(discrete_derivative * d, uint filter_span_ms);
 
 /**
+ * \brief Release internal memory and reset object.
+ */
+void discrete_derivative_deinit(discrete_derivative * d);
+
+/**
  * \brief Computes the linear slope of the current datapoints.
  * \returns The slope of the previous datapoints withint the filter_span of d. If only
  * 0 or 1 point, returns 0.
