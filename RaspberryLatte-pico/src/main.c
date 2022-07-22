@@ -21,11 +21,13 @@ void endProgram(int * data, int len){
   run = false;
 }
 
+#ifdef PICO_DEFAULT_LED_PIN
 static bool toggle_led(repeating_timer_t *rt){
   led = !led;
   gpio_put(PICO_DEFAULT_LED_PIN, led);
   return true;
 }
+#endif
 
 int main(){
   // Setup UART, clear queue, and assign endProgram command
@@ -33,9 +35,13 @@ int main(){
   while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
   registerHandler(MSG_ID_END_PROGRAM, &endProgram);
 
+  #ifdef PICO_DEFAULT_LED_PIN
   // Setup the onboard LED
   gpio_init(PICO_DEFAULT_LED_PIN);
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+  repeating_timer_t led_timer;
+  add_repeating_timer_ms(1000, &toggle_led, NULL, &led_timer);
+  #endif
 
   pressure_sensor_setup(PRESSURE_SENSOR_PIN);
 
@@ -61,10 +67,6 @@ int main(){
   solenoid_setup(SOLENOID_PIN);
   
   leds_setup(LED0_PIN, LED1_PIN, LED2_PIN);
-  
-  
-  repeating_timer_t led_timer;
-  add_repeating_timer_ms(1000, &toggle_led, NULL, &led_timer);
 
   // Continually look for a message and then run maintenance
   while(run){
