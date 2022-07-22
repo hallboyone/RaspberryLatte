@@ -60,6 +60,8 @@ int main(){
 
     solenoid_setup(SOLENOID_PIN);
 
+    leds_setup(LED0_PIN, LED1_PIN, LED2_PIN);
+
     repeating_timer_t led_timer;
     add_repeating_timer_ms(1000, &toggle_led, NULL, &led_timer);
 
