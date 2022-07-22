@@ -19,7 +19,18 @@ typedef const struct{
     const reg_addr in_reg;
 } bit_range;
 
-const reg_addr  REG_PU_CTRL;      //= 0x00;
+#define REG_PU_CTRL  0x0
+#define REG_CTRL_1   0x01
+#define REG_CTRL_2   0x02
+#define REG_I2C_CTRL 0x11
+#define REG_ADCO_B2  0x12
+#define REG_ADCO_B1  0x13
+#define REG_ADCO_B0  0x14
+#define REG_ADC_CTRL 0x15
+#define REG_PGA      0x1B
+#define REG_PWR_CTRL 0x1C
+#define REG_DEV_REV  0x1F
+
 const bit_range BITS_RESET;
 const bit_range BITS_PWR_UP_D;
 const bit_range BITS_PWR_UP_A;
@@ -29,20 +40,17 @@ const bit_range BITS_CR;
 const bit_range BITS_OSCS;
 const bit_range BITS_AVDD_S;
 
-const reg_addr  REG_CTRL_1;       //= 0x01;
 const bit_range BITS_GAIN;
 const bit_range BITS_VLDO;
 const bit_range BITS_DRDY_SEL;
 const bit_range BITS_CRP;
  
-const reg_addr  REG_CTRL_2;       //= 0x02;
 const bit_range BITS_CAL_MODE;
 const bit_range BITS_CALS;
 const bit_range BITS_CAL_ERR;
 const bit_range BITS_CRS;
 const bit_range BITS_CHS;
 
-const reg_addr  REG_I2C_CTRL;     //= 0x11;
 const bit_range BITS_BGPCP;
 const bit_range BITS_TS;
 const bit_range BITS_BOPGA;
@@ -52,21 +60,16 @@ const bit_range BITS_SPE;
 const bit_range BITS_FRD;
 const bit_range BITS_CRSD;
 
-const reg_addr  REG_ADCO_B2;      //= 0x12;
 const bit_range BITS_B23_16;
 
-const reg_addr  REG_ADCO_B1;      //= 0x13;
 const bit_range BITS_B15_08;
 
-const reg_addr  REG_ADCO_B0;      //= 0x14;
 const bit_range BITS_B07_00;
 
-const reg_addr  REG_ADC_CTRL;     //= 0x15;
 const bit_range BITS_REG_CHP;
 const bit_range BITS_ADC_VCM;
 const bit_range BITS_REG_CHPS;
 
-const reg_addr  REG_PGA;          //= 0x1B;
 const bit_range BITS_PGA_CHP_DIS;
 const bit_range BITS_PGA_INV;
 const bit_range BITS_PGA_BYP_EN;
@@ -74,14 +77,13 @@ const bit_range BITS_PGA_OBUF_EN;
 const bit_range BITS_LDO_MODE;
 const bit_range BITS_RD_OTP_SEL;
 
-const reg_addr  REG_PWR_CTRL;     //= 0x1C;
 const bit_range BITS_PGA_CURR;
 const bit_range BITS_ADC_CURR;
 const bit_range BITS_MST_BS_CURR;
 const bit_range BITS_PGA_CAP;
 
-const reg_addr  REG_DEV_REV;      //= 0x1F;
 const bit_range BITS_REVISION_ID;
+
 typedef enum _ldo_voltage{ 
     VLDO_2_4 = 0b111,
     VLDO_2_7 = 0b110,
