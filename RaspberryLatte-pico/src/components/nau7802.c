@@ -254,11 +254,11 @@ void nau7802_read(uint32_t * dst){
  * \param len Length of message
  */
 static void _nau7802_read_handler(int * msg, int len){
-    if(len==1){
+    if(len==0){
         uint32_t val = 0;
         nau7802_read(&val);
         int response [3] = {(val >> 16) & 0xFF, (val >>  8) & 0xFF, (val >>  0) & 0xFF};
-        sendMessageWithStatus(MSG_ID_GET_WEIGHT, MSG_READ_SUCCESS, response, 3);
+        sendMessageWithStatus(MSG_ID_GET_WEIGHT, SUCCESS, response, 3);
     } else {
         sendMessageWithStatus(MSG_ID_SET_HEATER, MSG_FORMAT_ERROR, NULL, 0);
     }
@@ -299,8 +299,4 @@ void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c){
     nau7802_set_conversions(CONVERSIONS_ON);
 
     registerHandler(MSG_ID_GET_WEIGHT, &_nau7802_read_handler);
-    uint32_t val = 0;
-    while(true){
-        nau7802_read(&val);
-    }
 }

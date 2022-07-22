@@ -35,7 +35,7 @@ class Scale(uart_bridge.UARTMessenger, PIDSensor):
             print(f"Something went wrong with the scale's UART bridge: {self.status}")
             return 0
         else:
-            val_g = -0.000152710615479*(self._decoder.unpack(self.response)[0] - self._origin)
+            val_g = 0.000152710615479*(self._decoder.unpack(self.response)[0] - self._origin)
             if unit == 'g':
                 return val_g
             else:
