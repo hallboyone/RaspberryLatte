@@ -12,21 +12,6 @@ typedef struct discrete_derivative_{
     uint16_t _num_el;
 } discrete_derivative;
 
-typedef struct pid_gains_{
-    float p;
-    float i;
-    float d;
-} pid_gains;
-
-typedef float (*sensor_reader)();
-
-typedef struct pid_ctrl_{
-    pid_gains K;
-    sensor_reader s;
-    float setpoint;
-
-} pid_ctrl;
-
 /**
  * \brief Clear the internal fields of struct d and initalize.
  */
@@ -50,3 +35,39 @@ float discrete_derivative_read(discrete_derivative * d);
  * 1 point, returns 0.
  */
 float discrete_derivative_add_point(discrete_derivative * d, datapoint p);
+
+/**
+ * \brief Resets the discrete_derivative to initial values. Memory is not freed.
+ */
+void discrete_derivative_clear(discrete_derivative * d);
+
+typedef struct discrete_integral_{
+    float sum;
+    float lower_bound;
+    float upper_bound;
+    datapoint prev_p;
+} discrete_integral;
+
+void discrete_integral_init(discrete_integral * d, const float * lower_bound, const float * upper_bound);
+
+float discrete_integral_read(discrete_integral * i);
+
+float discrete_integral_add_point(discrete_integral * i, datapoint p);
+
+void discrete_integral_clear(discrete_integral * i);
+
+
+typedef struct pid_gains_{
+    float p;
+    float i;
+    float d;
+} pid_gains;
+
+typedef float (*sensor_reader)();
+
+typedef struct pid_ctrl_{
+    pid_gains K;
+    sensor_reader s;
+    float setpoint;
+
+} pid_ctrl;

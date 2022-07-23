@@ -3,6 +3,9 @@
 
 #include "pid.h"
 
+#define _WINDUP_LOWER_BOUND_MIN -10000
+#define _WINDUP_UPPER_BOUND_MAX  10000
+
 void discrete_derivative_init(discrete_derivative * d, uint filter_span_ms){
     d->filter_span_ms = filter_span_ms;
     d->_buf_len = 10;
@@ -81,4 +84,46 @@ float discrete_derivative_add_point(discrete_derivative * d, datapoint p){
     d->_data[d->_num_el] = p;
     d->_num_el += 1;
     return discrete_derivative_read(d);
+}
+
+void discrete_derivative_clear(discrete_derivative * d){
+    d->_num_el = 0;
+}
+
+void discrete_integral_init(discrete_integral * i, const float * lower_bound, const float * upper_bound){
+    discrete_integral_clear(i);
+
+    if (lower_bound!=NULL){
+        i->lower_bound = *lower_bound;
+    } else { // Not great but works
+        i->lower_bound = _WINDUP_LOWER_BOUND_MIN;
+    }
+    if (upper_bound!=NULL){
+        i->upper_bound = *upper_bound;
+    } else { // Not great but works
+        i->upper_bound = _WINDUP_UPPER_BOUND_MAX;
+    }
+}
+
+float discrete_integral_read(discrete_integral * i){
+    return i->sum;
+}
+
+float discrete_integral_add_point(discrete_integral * i, datapoint p){
+    if (i->prev_p.t == 0){
+        i->prev_p = p;
+        return 0;
+    } else {
+        i->sum += ((p.v+i->prev_p.v)/2.0) * (p.t - i->prev_p.t);
+        i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
+        i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
+        i->prev_p = p;
+        return i->sum;
+    }
+}
+
+void discrete_integral_clear(discrete_integral * i){
+    datapoint init_p = {.t = 0, .v = 0};
+    i->prev_p = init_p;
+    i->sum = 0;
 }
