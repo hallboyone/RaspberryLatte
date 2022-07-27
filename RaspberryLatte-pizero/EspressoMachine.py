@@ -1,6 +1,7 @@
 from time import sleep
 import configparser
 import traceback
+import RPi.GPIO as GPIO
 
 # Getters
 from Components.ACSensor       import ACSensor
@@ -52,6 +53,11 @@ class EspressoMachine:
         set by the autobrew routine. As the routine progresses, the pumps value is updated based on the current leg. 
     """
     def __init__(self) -> None:
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(16, GPIO.OUT)
+        GPIO.output(16, 0)
+        self.reset()
+        
         self._config = configparser.ConfigParser()
         self._config.read(''.join([__file__[0:__file__.rfind('/')+1], "brew_config"]))
 
@@ -177,3 +183,8 @@ class EspressoMachine:
             self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["hot"]))
         elif self.switches.state('dial') == _STEAM_MODE:
             self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["steam"]))
+
+    def reset(self):
+        GPIO.output(16, 1)
+        sleep(0.01)
+        GPIO.output(16, 0)

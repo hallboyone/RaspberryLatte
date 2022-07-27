@@ -16,13 +16,14 @@
 #include "leds.h"
 
 bool run = true;
+volatile bool led = false;
 
 void endProgram(int * data, int len){
     run = false;
 }
 
 static bool toggle_led(repeating_timer_t *rt){
-  cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, !cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN));
+    led = !led;
   return true;
 }
 
@@ -66,5 +67,6 @@ int main(){
     while(run){
         readMessage();
         runMaintenance();
+        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
     }
 }
