@@ -23,25 +23,22 @@ void endProgram(int * data, int len){
   run = false;
 }
 
+float sensor_val = 1;
+float latest_u = 0;
+
+float dummy_sensor(){
+  sensor_val *= -0.95;
+  return sensor_val;
+}
+
+void dummy_plant(float u){
+  latest_u = u;
+  volatile int var = 0;
+  var++;
+}
+
 int main(){
-  discrete_integral i;
-  const float ub = 5;
-  discrete_integral_init(&i, NULL, &ub);
-  volatile float val = 0;
-  datapoint p = {.v = 0, .t = 10};
-  val = discrete_integral_add_point(&i, p);
-  p.v = 1;
-  p.t = 11;
-  val = discrete_integral_add_point(&i, p);
-  p.v = 2;
-  p.t = 12;
-  val = discrete_integral_add_point(&i, p);
-  p.v = 2;
-  p.t = 13;
-  val = discrete_integral_add_point(&i, p);
-  p.v = 4;
-  p.t = 15;
-  val = discrete_integral_add_point(&i, p);
-  val = val + 1;
+  pid_ctrl boiler_ctrl = {.K={.p = 1, .i = 0.1, .d = 0.025}, .setpoint = 0, .sensor = &dummy_sensor, .plant = &dummy_plant};
+  pid_tick(boiler_ctrl);
   return 1;
 }
