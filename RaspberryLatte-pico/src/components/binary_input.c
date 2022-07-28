@@ -5,21 +5,26 @@
 #include "uart_bridge.h"
 #include "status_ids.h"
 
-static uint8_t * _binary_inputs[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+typedef struct {
+  uint8_t num_pins;
+  uint8_t * pins;
+  bool muxed;
+  bool inverted;
+} binary_input;
+
+static binary_input * _binary_inputs[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static uint8_t _num_binary_inputs = 0;
 
-#define NUM_PIN_IDX   0
-#define MUXED_IDX     1
-#define PIN_OFFSET    2
-
 /**
- * @brief Reads the indicated GPIO pin and inverts the results if the pin is pulled up
+ * @brief Reads the indicated GPIO pin and inverts the results if the pin is pulled up. Inverts again if invert is true
  * 
  * @param pin_idx GPIO number to read
+ * \param invert Inverts the result if true. 
  * @return True if pin is high and pulled down or pin is low and pulled up. False otherwise.
  */
-static inline uint8_t gpio_get_w_pull(uint pin_idx){
-  return (gpio_is_pulled_down(pin_idx) ? gpio_get(pin_idx) : !gpio_get(pin_idx));
+static inline uint8_t gpio_get_w_pull_and_invert(uint pin_idx, bool invert){
+  bool var = (gpio_is_pulled_down(pin_idx) ? gpio_get(pin_idx) : !gpio_get(pin_idx));
+  return invert ? !var : var;
 }
 
 /**
@@ -62,19 +67,21 @@ static void binary_input_read_handler(int * data, int len){
  * @param pull_down True if pins should be pulled down. False else. 
  * @param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  */
-void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool muxed){
+void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed){
   assert(_num_binary_inputs < 8);
   // Copy data to _binary_inputs. Data is stored as [num_pins, pull_down, muxed, pin1, pin2, ... , pin_num_throw]
-  _binary_inputs[_num_binary_inputs] = (uint8_t*)malloc((3+num_pins)*sizeof(uint8_t));
-  _binary_inputs[_num_binary_inputs][NUM_PIN_IDX] = num_pins;
-  _binary_inputs[_num_binary_inputs][MUXED_IDX] = muxed;
-  memcpy(_binary_inputs[_num_binary_inputs]+PIN_OFFSET, pins, num_pins);
+  _binary_inputs[_num_binary_inputs] = (binary_input*)malloc(sizeof(binary_input));
+  _binary_inputs[_num_binary_inputs]->num_pins = num_pins;
+  _binary_inputs[_num_binary_inputs]->pins = (uint8_t*)malloc(sizeof(uint8_t)*num_pins);
+  memcpy(_binary_inputs[_num_binary_inputs]->pins, pins, num_pins);
+  _binary_inputs[_num_binary_inputs]->muxed =  muxed;
+  _binary_inputs[_num_binary_inputs]->inverted = invert;
 
   // Setup each pin.
-  for (uint8_t p = 0; p < _binary_inputs[_num_binary_inputs][NUM_PIN_IDX]; p++){
-    gpio_init(_binary_inputs[_num_binary_inputs][p+PIN_OFFSET]);
-    gpio_set_dir(_binary_inputs[_num_binary_inputs][p+PIN_OFFSET], false);
-    gpio_set_pulls(_binary_inputs[_num_binary_inputs][p+PIN_OFFSET], pull_dir==PULL_UP, pull_dir!=PULL_UP);
+  for (uint8_t p = 0; p < _binary_inputs[_num_binary_inputs]->num_pins; p++){
+    gpio_init(_binary_inputs[_num_binary_inputs]->pins[p]);
+    gpio_set_dir(_binary_inputs[_num_binary_inputs]->pins[p], false);
+    gpio_set_pulls(_binary_inputs[_num_binary_inputs]->pins[p], pull_dir==PULL_UP, pull_dir!=PULL_UP);
   }
 
   _num_binary_inputs += 1;
@@ -93,15 +100,15 @@ uint8_t binary_input_read(uint8_t switch_idx){
   // Make sure switch has been setup
   assert(switch_idx<_num_binary_inputs);
 
-  if(_binary_inputs[switch_idx][MUXED_IDX]){ // If muxed,
+  if(_binary_inputs[switch_idx]->muxed){ // If muxed,
   uint8_t pin_mask = 0;
-    for(uint8_t n = 0; n < _binary_inputs[switch_idx][NUM_PIN_IDX]; n++){
-      pin_mask = pin_mask | (gpio_get_w_pull(_binary_inputs[switch_idx][n+PIN_OFFSET])<<n);
+    for(uint8_t n = 0; n < _binary_inputs[switch_idx]->num_pins; n++){
+      pin_mask = pin_mask | (gpio_get_w_pull_and_invert(_binary_inputs[switch_idx]->pins[n], _binary_inputs[switch_idx]->inverted)<<n);
     }
     return pin_mask;
   } else{
-    for(uint8_t n = 0; n < _binary_inputs[switch_idx][NUM_PIN_IDX]; n++){
-      if(gpio_get_w_pull(_binary_inputs[switch_idx][n+PIN_OFFSET])) return n+1;
+    for(uint8_t n = 0; n < _binary_inputs[switch_idx]->num_pins; n++){
+      if(gpio_get_w_pull_and_invert(_binary_inputs[switch_idx]->pins[n], _binary_inputs[switch_idx]->inverted)) return n+1;
     }
     return 0;
   }

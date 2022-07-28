@@ -21,7 +21,7 @@
  * @param pull_dir Set to either PULL_UP or PULL_DOWN 
  * @param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  */
-void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool muxed);
+void binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed);
 
 /**
  * Reads the requested switch. If switch is muxed, returns the bit mask of the pins. Else returns the index of first high pin
