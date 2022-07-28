@@ -151,3 +151,6 @@ def _send_over_uart(msg, expect_response = False):
             if time.time() - send_time > UART_TIMEOUT:
                 raise IOError("UART Timeout!")
         return _ser.read(header[1])
+
+def clearUART():
+    _ser.read_all()

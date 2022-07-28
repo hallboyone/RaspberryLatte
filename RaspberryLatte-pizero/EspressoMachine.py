@@ -19,6 +19,7 @@ from Components.Solenoid       import Solenoid
 from PID import PIDGains, PID, IntegralBounds
 import AutoBrewScheduler
 import Logger
+from uart_bridge import clearUART
 
 _STEAM_MODE  =  0
 _HOT_MODE    =  1
@@ -57,7 +58,9 @@ class EspressoMachine:
         GPIO.setup(16, GPIO.OUT)
         GPIO.output(16, 0)
         self.reset()
-        
+        sleep(1)
+        clearUART()
+
         self._config = configparser.ConfigParser()
         self._config.read(''.join([__file__[0:__file__.rfind('/')+1], "brew_config"]))
 
@@ -105,7 +108,7 @@ class EspressoMachine:
                 #self._logger.log()
 
                 if not self.ac_power.on():
-                    self._powered_down_loop()
+                   self._powered_down_loop()
                 
                 # Check pump switch and dial. Update object accordingly 
                 self._update_mode()
