@@ -39,6 +39,9 @@ void dummy_plant(float u){
 
 int main(){
   pid_ctrl boiler_ctrl = {.K={.p = 1, .i = 0.1, .d = 0.025}, .setpoint = 0, .sensor = &dummy_sensor, .plant = &dummy_plant};
-  pid_tick(boiler_ctrl);
+  float ub = 0.15;
+  pid_gains K = {.p = 1, .i = 0.1, .d = 0.025};
+  pid_init(&boiler_ctrl, 0, K, &dummy_sensor, &dummy_plant, NULL, &ub, 250);
+  pid_tick(&boiler_ctrl);
   return 1;
 }

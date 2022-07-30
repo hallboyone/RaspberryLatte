@@ -123,3 +123,20 @@ void discrete_integral_clear(discrete_integral *i) {
     i->prev_p = init_p;
     i->sum = 0;
 }
+
+void pid_init(pid_ctrl * controller, float setpoint, pid_gains K, 
+              read_sensor sensor, apply_input plant, const float * windup_lb, 
+              const float * windup_ub, uint derivative_filter_span_ms){
+    controller->setpoint = setpoint;
+    controller->K = K;
+    controller->sensor = sensor;
+    controller->plant = plant;
+
+    discrete_integral_init(&(controller->err_sum), windup_lb, windup_ub);
+    discrete_derivative_init(&(controller->err_slope), derivative_filter_span_ms);
+}
+
+float pid_tick(pid_ctrl * controller){
+
+    return 0;
+}

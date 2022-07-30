@@ -106,9 +106,19 @@ typedef float (*read_sensor)();
 typedef void (*apply_input)(float);
 
 typedef struct pid_ctrl_ {
-    pid_gains K;
     float setpoint;
+
+    pid_gains K;
 
     read_sensor sensor;
     apply_input plant;
+
+    discrete_derivative err_slope;
+    discrete_integral err_sum;
 } pid_ctrl;
+
+void pid_init(pid_ctrl * controller, float setpoint, pid_gains K, 
+              read_sensor sensor, apply_input plant, const float * windup_lb, 
+              const float * windup_ub, uint derivative_filter_span_ms);
+
+float pid_tick(pid_ctrl * controller);
