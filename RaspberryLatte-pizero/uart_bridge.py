@@ -27,7 +27,7 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-UART_TIMEOUT  = 0.2
+UART_TIMEOUT  = 2000
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_decoder = bitstruct.compile('u4u4')
