@@ -27,6 +27,7 @@
         "status_ids.h": "c",
         "i2c.h": "c",
         "solenoid.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "uart_bridge.h": "c"
     },
 }

@@ -7,6 +7,7 @@
 #include "maintainer.h"
 #include "phasecontrol.h"
 #include "binary_input.h"
+#include "binary_output.h"
 #include "pressure_sensor.h"
 #include "uart_bridge.h"
 #include "nau7802.h"
@@ -44,6 +45,9 @@ int main(){
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
     binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, true, false);
     binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, false, true);
+    
+    const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
+    int leds_id = binary_output_setup(led_pins, 3);
 
     // Set up phase control
     PhasecontrolConfig pump_config = 
@@ -60,10 +64,8 @@ int main(){
     lmt01_setup(0, LMT01_DATA_PIN);
 
     solenoid_setup(SOLENOID_PIN);
-  
-    leds_setup(LED0_PIN, LED1_PIN, LED2_PIN);
 
-    // Continually look for a message and then run maintenance
+    // Continually look for a messege and then run maintenance
     while(run){
         readMessage();
         runMaintenance();

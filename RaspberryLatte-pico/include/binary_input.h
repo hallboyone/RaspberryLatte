@@ -1,10 +1,3 @@
-/**
- * Handles the setup and reading of up to 8 multi-throw switches. Each switch
- * is setup by calling <binary_inputs_setup> with its throw count, pins, and
- * pull-down settings. This also registers an internal packer function as the
- * UART handler for MSG_ID_GET_SWITCH messages.
- */
-
 #include "pico/stdlib.h"
 
 
