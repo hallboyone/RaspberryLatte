@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "binary_input.h"
 
 #include <string.h>
@@ -30,7 +31,7 @@ static uint8_t _num_binary_inputs = 0;
  * 
  * \returns !invert if pin reads opposite its pull. Otherwise returns invert.
  */
-inline uint8_t gpio_get_w_pull_and_invert(uint pin_idx, bool invert) {
+static inline uint8_t gpio_get_w_pull_and_invert(uint pin_idx, bool invert) {
     bool var = (gpio_is_pulled_down(pin_idx) ? gpio_get(pin_idx) : !gpio_get(pin_idx));
     return invert ? !var : var;
 }
@@ -76,11 +77,11 @@ static void binary_input_read_handler(int* data, int len) {
  * \param invert Flag indicating if the pins should be inverted. 
  * \param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  * 
- * \returns A unique ID assigned to the binary input.
+ * \returns A unique ID assigned to the binary input or -1 if no input was created
  */
-uint8_t binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed){
+int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed){
     if (_num_binary_inputs >= MAX_NUM_BINARY_INPUTS) {
-        return;
+        return -1;
     }
     // Copy data into next _binary_inputs slot.
     _binary_inputs[_num_binary_inputs].num_pins = num_pins;

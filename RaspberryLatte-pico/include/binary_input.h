@@ -15,9 +15,9 @@
  * \param invert Flag indicating if the pins should be inverted. 
  * \param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  * 
- * \returns A unique, uint8_t ID assigned to the binary input. 
+ * \returns A unique ID assigned to the binary input or -1 if no input was created
  */
-uint8_t binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed);
+int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed);
 
 /**
  * \brief Reads the requested switch. If switch is muxed, returns the bit mask of the pins. Else
