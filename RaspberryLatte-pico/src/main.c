@@ -42,8 +42,8 @@ int main(){
 
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
-    binary_input_setup(1, &pump_switch_gpio, PULL_UP, true, false);
-    binary_input_setup(2, mode_select_gpio, PULL_UP, false, true);
+    binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, true, false);
+    binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, false, true);
 
     // Set up phase control
     PhasecontrolConfig pump_config = 
