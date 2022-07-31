@@ -105,18 +105,22 @@ class EspressoMachine:
         try:
             #self.scale.zero()
             while(True):
-                self.leds.set_all([0,0,0])
-                sleep(0.25)
-                self.leds.set_all([0,0,1])
-                sleep(0.25)
-                self.leds.set_all([0,1,1])
-                sleep(0.25)
-                self.leds.set_all([1,1,1])
-                sleep(0.25)
-                self.leds.set_all([1,1,0])
-                sleep(0.25)
-                self.leds.set_all([1,0,0])
-                sleep(0.25)
+                #self._logger.log()
+
+                if not self.ac_power.on():
+                   self._powered_down_loop()
+
+                # Check pump switch and dial. Update object accordingly 
+                self._update_mode()
+
+                # Updating boiler and turn on LED if at setpoint
+                self.boiler_ctrl.tick()
+                self.leds.set(1, self.boiler_ctrl.at_setpoint(2.5))
+
+                # Turn pump off or on depending on mode and pump switch
+                self._update_pump()
+
+                sleep(0.01)
         except Exception as e:
             print(str(e))
             print(traceback.format_exc())
