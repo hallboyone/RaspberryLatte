@@ -146,6 +146,10 @@ static void phasecontrol_is_ac_hot_handler(int* value, int len){
  */
 void phasecontrol_setup(PhasecontrolConfig * user_config) {
   config = *user_config;
+
+  gpio_init(config.zerocross_pin);
+  gpio_set_dir(config.zerocross_pin, GPIO_IN);
+  gpio_set_pulls(config.zerocross_pin, false, true);
   
   // Set up queues and initialize the power queue with -1
   queue_init(&power_queue, sizeof(int8_t), 1);
