@@ -16,7 +16,6 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/heater.c
                PRIVATE src/components/lmt01.c
                PRIVATE src/components/solenoid.c
-               PRIVATE src/components/leds.c
                PRIVATE src/components/nau7802.c
                PRIVATE src/components/binary_output.c)
 
