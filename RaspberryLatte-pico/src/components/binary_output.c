@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <string.h>
 
 #include "binary_output.h"
@@ -78,8 +79,10 @@ bool binary_output_put(uint8_t id, uint8_t offset, bool val){
     if(id < _num_binary_outputs){
         if(offset < _binary_outputs[id].num_pins){
             gpio_put(_binary_outputs[id].pins[offset], val);
+            return true;
         }
     }
+    return false;
 }
 
 /**
