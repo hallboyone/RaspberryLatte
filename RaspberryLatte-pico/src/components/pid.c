@@ -6,6 +6,17 @@
 #define _WINDUP_LOWER_BOUND_MIN -10000
 #define _WINDUP_UPPER_BOUND_MAX 10000
 
+/**
+ * \brief Return the difference in milliseconds between two timestamps.
+ * 
+ * \param from	the first timestamp
+ * \param to	the second timestamp
+ * \returns the number of milliseconds between the two timestamps (positive if to is after from except in case of overflow).
+ */
+static int64_t absolute_time_diff_ms(absolute_time_t from, absolute_time_t to){
+    return absolute_time_diff_us(from, to)/1000;
+}
+
 void discrete_derivative_init(discrete_derivative *d, uint filter_span_ms) {
     d->filter_span_ms = filter_span_ms;
     d->_buf_len = 10;
@@ -137,6 +148,12 @@ void pid_init(pid_ctrl * controller, float setpoint, pid_gains K,
 }
 
 float pid_tick(pid_ctrl * controller){
-
+    datapoint new_reading = {.t = get_absolute_time(), .v = controller->sensor()};
+    float err = controller->setpoint - new_reading.v;
+    float input =   (controller->K.p)*err 
+                  + (controller->K.i)*discrete_integral_add_point(&(controller->err_sum), new_reading)
+                  + (controller->K.d)*discrete_derivative_add_point(&(controller->err_slope), new_reading);
+    input = (input < 0 ? 0 : input);
+    input = (input > 1 ? 1 : input);
     return 0;
 }

@@ -1,7 +1,8 @@
 #include "pico/stdlib.h"
+#include "pico/time.h"
 
 typedef struct datapoint_ {
-    uint64_t t;
+    absolute_time_t t;
     float v;
 } datapoint;
 
