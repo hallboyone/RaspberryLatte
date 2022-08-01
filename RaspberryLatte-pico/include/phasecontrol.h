@@ -1,43 +1,38 @@
-/**
- * Reads a duty cycle values from 0 to 100 over i2c and switches an ssr 
- * accordingly relative to zerocross times. Designed to provide adjustment
- * to ac-driven inductive loads where simple pwm with and ssr would result
- * in inductive voltage spikes
- */
-
 #include "pico/stdlib.h"
 
-#define RISING             0x08
-#define FALLING            0x04
+#define ZEROCROSS_EVENT_RISING   0x08
+#define ZEROCROSS_EVENT_FALLING  0x04
 
 /**
  * Structure holding the configuration values of a phase controller for and
  * inductive load.
  */
 typedef struct {
-  uint8_t event;             ///< RISING or FALLING
-  uint8_t zerocross_pin;     ///< GPIO that senses event at every zerocrossing
-  int64_t zerocross_shift;   ///< Time between zerocross trigger and actual zero cross
-  uint8_t out_pin;           ///< Load output pin
+  uint8_t event;             // RISING or FALLING
+  uint8_t zerocross_pin;     // GPIO that senses event at every zerocrossing
+  int64_t zerocross_shift;   // Time between zerocross trigger and actual zero cross
+  uint8_t out_pin;           // Load output pin
 } PhasecontrolConfig;
 
 /**
- * Called from core 0. Launches core 1 and passes it the required data.
+ * \brief Setup for phasecontrol. Pins are configured and a callback is attached to the zerocross pin.
+ * The phasecontroller is also registered with the UART bridge. 
  * 
- * @param[in] user_config Configuration data with pin numbers, trigger event type, and zerocross shift values. 
+ * \param user_config A constant configuration object containing the desired pin number, and other fields. 
  */
-void phasecontrol_setup(PhasecontrolConfig * user_config);
+void phasecontrol_setup(const PhasecontrolConfig * user_config);
 
 /**
- * Set duty cycle for phase controller.
+ * \brief Update the duty cycle. If value is out of range (0<=val<=127), it is clipped.
  * 
- * @param[in] duty_cycle A value from -1 to 127 where -1 is off and 127 is full on. 
+ * \param duty_cycle New duty cycle value between 0 and 127 inclusive.
  */
-void phasecontrol_set_duty_cycle(int8_t duty_cycle);
+void phasecontrol_set_duty_cycle(uint8_t duty_cycle);
 
 /**
- * Checks if the zerocross pin has changed within 1 period of a 60Hz sine wave
+ * \brief Check if zerocross pin has triggered in the last 16766us (period of 60Hz signal plus 100us), 
+ * indicating active AC.
  * 
- * @returns True if zerocrossing had been recorded within 16.67ms. False otherwise. 
+ * \return true if zerocross pin triggered in the last 16,766us. False otherwise.
  */
 bool phasecontrol_is_ac_hot();
