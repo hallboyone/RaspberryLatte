@@ -125,7 +125,7 @@ class EspressoMachine:
             print(str(e))
             print(traceback.format_exc())
             print("Shutting down")
-            self.leds.set_all(0,0,0)
+            self.leds.set_all([0,0,0])
             self.heater.off()
             self.solenoid.close()
             self.pump.off()
@@ -168,7 +168,7 @@ class EspressoMachine:
 
     def _powered_down_loop(self): 
         print("Machine off")      
-        self.leds.set_all(0,0,0)
+        self.leds.set_all([0,0,0])
         self.heater.off()
         self.solenoid.close()
         self.pump.off()
