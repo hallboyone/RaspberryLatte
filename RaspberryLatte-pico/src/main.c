@@ -43,8 +43,8 @@ int main(){
     int leds_id = binary_output_setup(led_pins, 3);
 
     // Set up phase control
-    PhasecontrolConfig pump_config = 
-    {.event          = RISING,
+    const PhasecontrolConfig pump_config = 
+    {.event          = ZEROCROSS_EVENT_RISING,
     .zerocross_pin   = PHASE_CONTROL_0CROSS_PIN,
     .out_pin         = PHASE_CONTROL_OUT_PIN,
     .zerocross_shift = PHASE_CONTROL_0CROSS_SHIFT};
