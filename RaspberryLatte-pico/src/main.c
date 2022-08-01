@@ -1,6 +1,5 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
-#include "pico/cyw43_arch.h"
 
 #include "pinout.h"
 
@@ -28,11 +27,6 @@ static bool toggle_led(repeating_timer_t *rt){
 }
 
 int main(){
-    // Setup wifi module NOTE: JUST LED FOR NOW. ADJUST CMAKE WHEN EXPANDED
-    if (cyw43_arch_init()) return -1;
-    repeating_timer_t led_timer;
-    add_repeating_timer_ms(1000, &toggle_led, NULL, &led_timer);
-
     // Setup UART, clear queue, and assign endProgram command
     stdio_init_all();
     while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
@@ -50,7 +44,7 @@ int main(){
 
     // Set up phase control
     PhasecontrolConfig pump_config = 
-    {.event          = FALLING,
+    {.event          = RISING,
     .zerocross_pin   = PHASE_CONTROL_0CROSS_PIN,
     .out_pin         = PHASE_CONTROL_OUT_PIN,
     .zerocross_shift = PHASE_CONTROL_0CROSS_SHIFT};
@@ -68,6 +62,5 @@ int main(){
     while(run){
         readMessage();
         runMaintenance();
-        cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, led);
     }
 }

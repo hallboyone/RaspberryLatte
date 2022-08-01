@@ -21,11 +21,13 @@ target_sources(RaspberryLattePico
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
-  pico_multicore
+  #pico_multicore
   hardware_adc
   hardware_pio
-  hardware_i2c
-  pico_cyw43_arch_none) 
+  hardware_i2c)
+  #pico_cyw43_arch_none
+  #hardware_flash
+  #pico_bootrom) 
 
 
 #pico_add_extra_outputs(RaspberryLattePico)
