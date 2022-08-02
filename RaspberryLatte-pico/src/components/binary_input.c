@@ -115,7 +115,7 @@ int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir,
  * uint8_t mask (i.e, second of three pins active, 010 returned).
  */
 uint8_t binary_input_read(uint8_t switch_idx) {
-    if(switch_idx < _num_binary_inputs){
+    if(switch_idx >= _num_binary_inputs){
         return 0;
     }
 
