@@ -25,16 +25,16 @@ static uint8_t _num_binary_outputs = 0;
  */
 static void binary_output_read_handler(int* data, int len) {
     if(len%3 != 0){
-        sendMessageWithStatus(MSG_ID_GET_SWITCH, MSG_FORMAT_ERROR, NULL, 0);
+        sendMessageWithStatus(MSG_ID_SET_BIN_OUT, MSG_FORMAT_ERROR, NULL, 0);
         return;
     }
     for(int n = 0; n<len; n += 3){
         if(!binary_output_put(data[n], data[n+1], data[n+2])){
-            sendMessageWithStatus(MSG_ID_GET_SWITCH, IDX_OUT_OF_RANGE, NULL, 0);
+            sendMessageWithStatus(MSG_ID_SET_BIN_OUT, IDX_OUT_OF_RANGE, NULL, 0);
             return;
         }
     }
-    sendMessageWithStatus(MSG_ID_GET_SWITCH, SUCCESS, NULL, 0);
+    sendMessageWithStatus(MSG_ID_SET_BIN_OUT, SUCCESS, NULL, 0);
 }
 
 /**
