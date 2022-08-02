@@ -57,7 +57,7 @@ class EspressoMachine:
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(16, GPIO.OUT)
         GPIO.output(16, 0)
-        self.reset()
+        #self.reset()
         sleep(1)
         clearUART()
 
@@ -119,7 +119,7 @@ class EspressoMachine:
                 # Turn pump off or on depending on mode and pump switch
                 self._update_pump()
 
-                sleep(0.01)
+                sleep(0.05)
         except Exception as e:
             print(str(e))
             print(traceback.format_exc())
