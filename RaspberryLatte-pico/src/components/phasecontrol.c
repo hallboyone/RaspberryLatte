@@ -37,7 +37,8 @@ static volatile uint8_t timeout_idx = 0;
 static void phasecontrol_set_duty_cycle_handler(int* value, int len){
   if(len==1){
     phasecontrol_set_duty_cycle(*value);
-    sendMessageWithStatus(MSG_ID_SET_PUMP, SUCCESS, NULL, 0);
+    int response = timeout_idx;
+    sendMessageWithStatus(MSG_ID_SET_PUMP, SUCCESS, &response, 1);
   } else {
     sendMessageWithStatus(MSG_ID_SET_PUMP, MSG_FORMAT_ERROR, NULL, 0);
   }
@@ -129,5 +130,5 @@ void phasecontrol_set_duty_cycle(uint8_t duty_cycle){
  * \return true if zerocross pin triggered in the last 16,766us. False otherwise.
  */
 bool phasecontrol_is_ac_hot(){
-  return zerocross_time + PERIOD_1_00 + 100 < time_us_64();
+  return zerocross_time + PERIOD_1_00 + 100 > time_us_64();
 }
