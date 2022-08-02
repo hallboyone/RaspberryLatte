@@ -1,9 +1,6 @@
 import serial
 import bitstruct
-from copy import deepcopy
 from time import time
-
-import status_ids
 
 MSG_ID_SET_LEDS      =  1
 MSG_ID_SET_PUMP      =  2
