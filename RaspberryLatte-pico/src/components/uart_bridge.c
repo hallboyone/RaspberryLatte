@@ -31,7 +31,7 @@ int registerHandler(MessageID id, MessageHandler h){
  */
 int readMessage(){
   // Read message header. Return if none found
-  int msg_header = getchar_timeout_us(10);
+  int msg_header = getchar_timeout_us(0);
   if(msg_header == PICO_ERROR_TIMEOUT){
     // If no message was found
     return MSG_READ_FAIL_NO_MSG;
@@ -49,7 +49,7 @@ int readMessage(){
   // Get message data
   int msg_body[len];
   for(uint8_t n = 0; n < len; n++){
-    if((msg_body[n]=getchar_timeout_us(1000)) == PICO_ERROR_TIMEOUT){
+    if((msg_body[n]=getchar_timeout_us(5000)) == PICO_ERROR_TIMEOUT){
       // If not enough data, return -2
       return MSG_READ_FAIL_INVALID_MSG;
     }
