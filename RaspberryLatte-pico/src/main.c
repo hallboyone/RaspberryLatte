@@ -59,8 +59,14 @@ int main(){
     solenoid_setup(SOLENOID_PIN);
 
     // Continually look for a messege and then run maintenance
+    bool led1_state = false;
+    bool led2_state = false;
+
     while(run){
-        readMessage();
+        binary_output_put(0, 1, led1_state);
+        binary_output_put(0, 2, led2_state);
+        led1_state = !led1_state;
+        led2_state = (led2_state || MSG_READ_FAIL_UNCONF_MSG==readMessage());
         runMaintenance();
     }
 }
