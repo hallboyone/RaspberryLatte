@@ -20,18 +20,16 @@ class Switches(uart_bridge.UARTMessenger):
     """
 
     def __init__(self) -> None:
-        uart_bridge.UARTMessenger.__init__(self, 0.1, False)
-        self.request_msg = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_SWITCH, 0)
-        self._decoder = bitstruct.compile('u8u8')
+        uart_bridge.UARTMessenger.__init__(self, uart_bridge.MSG_ID_GET_SWITCH, 0.1, False)
+        self._switch_decoder = bitstruct.compile('u8u8')
         self.did_change = {'pump':False, 'dial':False}
         self.reading = None
 
     def update(self):
-        uart_bridge.UARTMessenger.send(self, self.request_msg)
-        if self.status != status_ids.SUCCESS:
+        if uart_bridge.UARTMessenger.send(self) != status_ids.SUCCESS:
             print(f"Something went wrong with the switches' UART bridge: {self.status}")
             return False
-        new_reading = self._decoder.unpack(self.response)
+        new_reading = self._switch_decoder.unpack(self.response)
         switch_changed = (self.reading is None) or (new_reading[0]!=self.reading[0])
         dial_changed = (self.reading is None) or (new_reading[1]!=self.reading[1])
         self.reading = new_reading

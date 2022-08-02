@@ -20,22 +20,19 @@ class Scale(uart_bridge.UARTMessenger, PIDSensor):
     """
 
     def __init__(self, min_dwell_time : float = 0.1) -> None:
-        uart_bridge.UARTMessenger.__init__(self, 0.1, False)
-        self.request_msg = bitstruct.pack('u4u4', uart_bridge.MSG_ID_GET_WEIGHT, 0)
-        self._decoder = bitstruct.compile('u24')
-        self._origin = 0
+        uart_bridge.UARTMessenger.__init__(self, uart_bridge.MSG_ID_GET_WEIGHT, 0.1, False)
+        self._scale_decoder = bitstruct.compile('u24')
+        self._origin_g = 0
 
     def zero(self):
-        uart_bridge.UARTMessenger.send(self, self.request_msg)
-        self._origin = self._decoder.unpack(self.response)[0]
+        self._origin_g = self.read()
 
     def read(self, unit = 'g') -> float:
-        uart_bridge.UARTMessenger.send(self, self.request_msg)
-        if self.status != status_ids.SUCCESS:
+        if uart_bridge.UARTMessenger.send(self) != status_ids.SUCCESS:
             print(f"Something went wrong with the scale's UART bridge: {self.status}")
             return 0
         else:
-            val_g = 0.000152710615479*(self._decoder.unpack(self.response)[0] - self._origin)
+            val_g = 0.000152710615479*(self._scale_decoder.unpack(self.response)[0]) - self._origin_g
             if unit == 'g':
                 return val_g
             else:
