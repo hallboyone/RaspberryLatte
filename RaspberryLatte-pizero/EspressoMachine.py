@@ -66,16 +66,16 @@ class EspressoMachine:
 
         # Getters 
         self.ac_power     = ACSensor()
-        self.temp_sensor  = TempSensor()
-        self.switches     = Switches()
-        self.scale        = Scale()
         self.pressure     = PressureSensor()
+        self.scale        = Scale()
+        self.switches     = Switches()
+        self.temp_sensor  = TempSensor()
 
         # Setters
         self.heater       = Heater()
+        self.leds         = LEDs()
         self.pump         = Pump()
         self.solenoid     = Solenoid()
-        self.leds         = LEDs()
 
         # Controllers
         self.boiler_gains = PIDGains(0.05, 0.005, 0.25)
@@ -103,7 +103,6 @@ class EspressoMachine:
 
     def run(self):
         try:
-            #self.scale.zero()
             while(True):
                 #self._logger.log()
 
