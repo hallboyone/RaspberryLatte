@@ -29,6 +29,7 @@
         "solenoid.h": "c",
         "stdio.h": "c",
         "uart_bridge.h": "c",
-        "binary_input.h": "c"
+        "binary_input.h": "c",
+        "pinout.h": "c"
     },
 }
