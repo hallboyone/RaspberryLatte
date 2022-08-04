@@ -172,6 +172,7 @@ class EspressoMachine:
         self.solenoid.close()
         self.pump.off()
         while not self.ac_power.on():
+            sleep(0.01)
             pass
         self.leds.set(0, 1)
         self.boiler_ctrl.reset()
