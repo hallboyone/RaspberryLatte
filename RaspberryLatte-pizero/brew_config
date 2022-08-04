@@ -8,3 +8,4 @@ PRE_ON_TIME  = 4
 PRE_ON_PWR   = 25
 PRE_OFF_TIME = 4 
 YIELD        = 30
+DOSE         = 16
