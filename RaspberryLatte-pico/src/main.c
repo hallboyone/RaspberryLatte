@@ -28,7 +28,7 @@ static bool toggle_led(repeating_timer_t *rt){
 
 int main(){
     // Setup UART, clear queue, and assign endProgram command
-    stdio_init_all();
+    stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
     while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
     registerHandler(MSG_ID_END_PROGRAM, &endProgram);
 
@@ -59,14 +59,13 @@ int main(){
     solenoid_setup(SOLENOID_PIN);
 
     // Continually look for a messege and then run maintenance
-    bool led1_state = false;
-    bool led2_state = false;
-
     while(run){
-        binary_output_put(0, 1, led1_state);
-        binary_output_put(0, 2, led2_state);
-        led1_state = !led1_state;
-        led2_state = (led2_state || MSG_READ_FAIL_UNCONF_MSG==readMessage());
+        uint64_t start_time = time_us_64();
+        readMessage();
         runMaintenance();
+        uint64_t delta_time = time_us_64() - start_time;
+        if(delta_time < 50){
+            sleep_us(50 - delta_time);
+        }
     }
 }
