@@ -103,9 +103,9 @@ class EspressoMachine:
 
     def run(self):
         try:
+            self.scale.zero()
+            self.leds.set(0, 1)
             while(True):
-                #self._logger.log()
-
                 if not self.ac_power.on():
                    self._powered_down_loop()
 
@@ -118,6 +118,11 @@ class EspressoMachine:
 
                 # Turn pump off or on depending on mode and pump switch
                 self._update_pump()
+
+                if self.switches.state('pump') == 0:
+                    self.leds.set(2, self.scale.read() > int(self._config["autobrew"]["DOSE"]))
+                else:
+                    self.leds.set(2, 0)
 
                 sleep(0.05)
         except Exception as e:
@@ -134,6 +139,7 @@ class EspressoMachine:
         if dial_changed:
             self._update_setpoint()
             self._pump_lock = True
+            self.scale.zero()
             if (self.switches.state('dial') == _AUTO_MODE):
                 self._auto_brew_schedule.reset()
         
