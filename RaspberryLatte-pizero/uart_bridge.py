@@ -1,6 +1,6 @@
 import serial
 import bitstruct
-from time import time
+from time import time, sleep
 
 MSG_ID_SET_LEDS      =  1
 MSG_ID_SET_PUMP      =  2
@@ -20,7 +20,8 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-UART_TIMEOUT  = 2000
+UART_TIMEOUT  = 0.25
+RESEND_COUNT = 3
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
 _header_encoding = bitstruct.compile('u4u4')
@@ -80,42 +81,54 @@ class UARTMessenger:
         dwell_time_expired = time() - self._last_msg_t > self.mindt
         non_duplicate = (not self.avoid_repeat_sends or self.prev_body is None or self.prev_body != msg_body)
         if (force or (dwell_time_expired and non_duplicate)):
-            if msg_body is None:
-                body_len = 0
-            else:
-                body_len = len(msg_body)
-            
-            # Clear input buffer and write message
-            _ser.reset_input_buffer()
-            _ser.write(_header_encoding.pack(self.msg_id, body_len))
-            if msg_body is not None:
-                _ser.write(msg_body)
-            self._last_msg_t = time()
-
-            # Read and unpack header and status bytes
-            while(_ser.in_waiting < 2):
-                if time() - self._last_msg_t > UART_TIMEOUT:
-                    raise IOError("UART Timeout! Timeout occured while waiting for header")
-            
-            (repsonse_id, repsonse_body_len, self.status) = _header_status_encoding.unpack(_ser.read(2))
-            if repsonse_id != self.msg_id:
-                raise IOError("Invalid reponse: message IDs don't match")
-
-            # Read body
-            while(_ser.in_waiting < repsonse_body_len):
-                if time() - self._last_msg_t > UART_TIMEOUT:
-                    raise IOError("UART Timeout! Timeout occured while waiting for body")
-            self.response : bytes = _ser.read(repsonse_body_len)
-
-            # Create deep copy of message for next time
-            if self.avoid_repeat_sends:
-                if msg_body is None:
-                    self.prev_msg = None
+            for i in range(RESEND_COUNT):
+                try:
+                    self._send(msg_body, force)
+                except Exception as e:
+                    if i < RESEND_COUNT:
+                        print(f"Failure {i}/{RESEND_COUNT}: {e}\nTrying again...")
+                        sleep(0.1)
+                    else:
+                        raise e
                 else:
-                    self.prev_msg = bytearray(len(msg_body))
-                    self.prev_msg[:] = msg_body
-
+                    break
         return self.status
+
+    def _send(self, msg_body : bytes, force : bool):
+        if msg_body is None:
+            body_len = 0
+        else:
+            body_len = len(msg_body)
+        
+        # Clear input buffer and write message
+        _ser.reset_input_buffer()
+        _ser.write(_header_encoding.pack(self.msg_id, body_len))
+        if msg_body is not None:
+            _ser.write(msg_body)
+        self._last_msg_t = time()
+
+        # Read and unpack header and status bytes
+        while(_ser.in_waiting < 2):
+            if time() - self._last_msg_t > UART_TIMEOUT:
+                raise IOError("UART Timeout! Timeout occured while waiting for header")
+        
+        (response_id, response_body_len, self.status) = _header_status_encoding.unpack(_ser.read(2))
+        if response_id != self.msg_id:
+            raise IOError(f"Invalid reponse: message IDs don't match ({self.msg_id} vs. {response_id}x{response_body_len}x{self.status})")
+
+        # Read body
+        while(_ser.in_waiting < response_body_len):
+            if time() - self._last_msg_t > UART_TIMEOUT:
+                raise IOError("UART Timeout! Timeout occured while waiting for body")
+        self.response : bytes = _ser.read(response_body_len)
+
+        # Create deep copy of message for next time
+        if self.avoid_repeat_sends:
+            if msg_body is None:
+                self.prev_msg = None
+            else:
+                self.prev_msg = bytearray(len(msg_body))
+                self.prev_msg[:] = msg_body
 
 def clearUART():
     _ser.read_all()
