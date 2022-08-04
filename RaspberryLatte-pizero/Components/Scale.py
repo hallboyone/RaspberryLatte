@@ -25,10 +25,10 @@ class Scale(uart_bridge.UARTMessenger, PIDSensor):
         self._origin_g = 0
 
     def zero(self):
-        self._origin_g = self.read()
+        self._origin_g = self._origin_g + self.read(force_send = True)
 
-    def read(self, unit = 'g') -> float:
-        if uart_bridge.UARTMessenger.send(self) != status_ids.SUCCESS:
+    def read(self, unit = 'g', force_send = False) -> float:
+        if uart_bridge.UARTMessenger.send(self, force = force_send) != status_ids.SUCCESS:
             print(f"Something went wrong with the scale's UART bridge: {self.status}")
             return 0
         else:
