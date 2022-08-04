@@ -124,7 +124,7 @@ class PID:
 
     def at_setpoint(self, err_tol = 5) -> bool:
         val = self._sensor.read()
-        if (val-self._setpoint < err_tol) and (val-self._setpoint > err_tol):
+        if (val-self._setpoint < err_tol) and (val-self._setpoint > -err_tol):
             return True
         else:
             return False
