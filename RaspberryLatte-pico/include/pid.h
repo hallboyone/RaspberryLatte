@@ -1,8 +1,8 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
-#define PID_NO_WINDUP_LB -10000
-#define PID_NO_WINDUP_UB  10000
+#define PID_NO_WINDUP_LB -1000000
+#define PID_NO_WINDUP_UB  1000000
 
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read

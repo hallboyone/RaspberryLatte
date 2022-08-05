@@ -4,9 +4,6 @@
 
 #include "pid.h"
 
-#define _WINDUP_LOWER_BOUND_MIN -10000
-#define _WINDUP_UPPER_BOUND_MAX 10000
-
 /**
  * \brief Helper function returning the microseconds since booting
  */
