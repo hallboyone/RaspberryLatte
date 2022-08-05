@@ -32,15 +32,12 @@ int main(){
   heater_setup(HEATER_PWM_PIN);
 
   pid_ctrl boiler_ctrl = {.setpoint = 95, .K = {.p = 0.05, .i = 0.0015, .d = 0.000}, 
-                          .sensor = &lmt01_read_float, .plant = &heater_pid_input};
+                          .sensor = &lmt01_read_float, .plant = &heater_pid_input,
+                          .min_time_between_ticks_ms = 100};
   pid_init(&boiler_ctrl, 0, 100, 0);
 
   while(true){
     pid_tick(&boiler_ctrl);
-    sleep_ms(50);
-    if(to_us_since_boot(get_absolute_time()) > 10000000){
-      boiler_ctrl.setpoint = 100;
-    }
   }
 
   return 1;
