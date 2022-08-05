@@ -1,3 +1,20 @@
+/**
+ * \brief Header file defining objects and functions for implementing PID controllers on the RP2040.
+ * 
+ * The PID controller is defined as a pid_ctrl struct containing the required elements such as the gains
+ * (.K), sensor, and plant. The sensor is a pointer to a function that takes no parameters and returns a
+ * float while the plant is a pointer to a void function that takes a single float parameter.
+ * 
+ * \example  Once every 100ms, this code will call sensor_read_float(), compute the resulting input u, and 
+ * then call plant_apply_float(u).
+ * || pid_ctrl boiler_ctrl = {.setpoint = 95, .K = {.p = 0.05, .i = 0.0015, .d = 0.0005}, 
+ * ||                        .sensor = &sensor_read_float, .plant = &plant_apply_float,
+ * ||                        .min_time_between_ticks_ms = 100};
+ * || pid_init(&boiler_ctrl, 0, 100, 0);
+ * || 
+ * || while(true) pid_tick(&boiler_ctrl);
+ */
+
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
@@ -21,23 +38,35 @@ typedef struct discrete_derivative_ {
 
 /**
  * \brief Clear the internal fields of struct d and initalize.
+ * 
+ * \param d Pointer to discrete_derivative that will be initalized
+ * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
  */
 void discrete_derivative_init(discrete_derivative* d, uint filter_span_ms);
 
 /**
  * \brief Release internal memory and reset object.
+ * 
+ * \param d Pointer to discrete_derivative that will be destroyed
  */
 void discrete_derivative_deinit(discrete_derivative* d);
 
 /**
  * \brief Computes the linear slope of the current datapoints.
- * \returns The slope of the previous datapoints withint the filter_span of d. If only
+ * 
+ * \param d Pointer to discrete_derivative that will be read
+ * 
+ * \returns The slope of the previous datapoints within the filter_span of d. If only
  * 0 or 1 point, returns 0.
  */
 float discrete_derivative_read(discrete_derivative* d);
 
 /**
  * \brief Updates the internally managed time series and computes its linear slope.
+ * 
+ * \param d Pointer to discrete_derivative that the point will be added to
+ * \param p Datapoint struct with the value and timestamp of the new reading.
+ * 
  * \returns The slope of the previous datapoints withint the filter_span of d. If only
  * 1 point, returns 0.
  */
@@ -100,17 +129,23 @@ typedef struct pid_gains_ {
     float i;
     float d;
 } pid_gains;
+
 /**
  * \brief Typedef of pointer to function taking no parameters but returning float. Used to gather
  * sensor data.
  */
 typedef float (*read_sensor)();
+
 /**
  * \brief Typedef of pointer to function that takes a float and applies it to some plant. Used to
  * apply inputs from controller.
  */
 typedef void (*apply_input)(float);
 
+/**
+ * \brief Struct defining a PID object. The setpoint, K, sensor, plant, and min_time_between_ticks_ms must be set explicitly. 
+ * The others are set by pid_init.
+ */
 typedef struct pid_ctrl_ {
     float setpoint;
 
@@ -127,12 +162,29 @@ typedef struct pid_ctrl_ {
 } pid_ctrl;
 
 /**
- * \brief Setup a PID controller.
+ * \brief Sets a PID controller. Sets the appropriate parameters in internal sum and slope objects.
+ * 
+ * \param controller Pointer to pid_ctrl that will be initalized
+ * \param windup_lb The minimum value the error sum can have.
+ * \param windup_ub The maximum value the error sum can have.
+ * \param derivative_filter_span_ms The length of time in ms overwhich to compute the average slope.
  */
 void pid_init(pid_ctrl * controller, const float windup_lb, const float windup_ub, uint derivative_filter_span_ms);
 
+/**
+ * \brief If the minimum time between ticks has elapsed, run one loop of the controller. This requires reading the sensor,
+ * updateing the sum and slope terms, computing the input, and applying it to the plant. 
+ * 
+ * \param controller Pointer to PID controller object to update.
+ */
 float pid_tick(pid_ctrl * controller);
 
+/**
+ * \brief Reset the internal fields of the PID controller
+ */
 void pid_reset(pid_ctrl * controller);
 
+/**
+ * \brief Destroy the internal fields of the PID controller (frees memory)
+ */
 void pid_deinit(pid_ctrl * controller);
