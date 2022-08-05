@@ -73,6 +73,15 @@ static void heater_set_duty_handler(int * data, int len){
     }
 }
 
+void heater_pid_input(float u){
+    _duty_cycle = u*(PWM_INCREMENTS-1);
+    if(_duty_cycle < 0){
+        _duty_cycle = 0;
+    } else if(_duty_cycle> PWM_INCREMENTS-1){
+        _duty_cycle = PWM_INCREMENTS-1;
+    }
+}
+
 /**
  * @brief Configure heater GPIO, assign UART handler, reset duty cycle to 0, and start alarms.
  * 

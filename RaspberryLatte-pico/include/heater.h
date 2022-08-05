@@ -16,3 +16,5 @@
  * @param pwm_pin GPIO pin number that the heater will attach to. Should be unused otherwise.
  */
 void heater_setup(uint8_t pwm_pin);
+
+void heater_pid_input(float u);
