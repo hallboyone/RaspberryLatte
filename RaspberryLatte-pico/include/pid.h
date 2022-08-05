@@ -4,8 +4,11 @@
 #define PID_NO_WINDUP_LB -10000
 #define PID_NO_WINDUP_UB  10000
 
+/**
+ * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
+ */
 typedef struct datapoint_ {
-    uint64_t t;
+    float t;
     float v;
 } datapoint;
 
@@ -118,6 +121,9 @@ typedef struct pid_ctrl_ {
 
     discrete_derivative err_slope;
     discrete_integral err_sum;
+
+    uint16_t min_time_between_ticks_ms;
+    absolute_time_t _next_tick_time;
 } pid_ctrl;
 
 /**
