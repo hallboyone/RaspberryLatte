@@ -42,6 +42,16 @@ int main(){
   float ub = 0.15;
   pid_gains K = {.p = 1, .i = 0.1, .d = 0.025};
   pid_init(&boiler_ctrl, 0, K, &dummy_sensor, &dummy_plant, NULL, &ub, 250);
-  pid_tick(&boiler_ctrl);
+
+  for (int i=0; i<10; i++){
+    pid_tick(&boiler_ctrl);
+    sleep_ms(50);
+  }
+
+  pid_reset(&boiler_ctrl);
+  for (int i=0; i<10; i++){
+    pid_tick(&boiler_ctrl);
+    sleep_ms(50);
+  }
   return 1;
 }

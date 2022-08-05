@@ -123,3 +123,5 @@ void pid_init(pid_ctrl * controller, float setpoint, pid_gains K,
               const float * windup_ub, uint derivative_filter_span_ms);
 
 float pid_tick(pid_ctrl * controller);
+void pid_reset(pid_ctrl * controller);
+void pid_deinit(pid_ctrl * controller);
