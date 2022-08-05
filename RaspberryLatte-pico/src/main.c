@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
@@ -13,6 +15,8 @@
 #include "lmt01.h"
 #include "heater.h"
 #include "solenoid.h"
+
+#include "pid.h"
 
 bool run = true;
 volatile bool led = false;

@@ -119,6 +119,13 @@ int lmt01_read(){
 }
 
 /**
+ * @brief Returns the current tempurature in C.
+ */
+float lmt01_read_float(){
+    return lmt01_read()/16.;
+}
+
+/**
  * @brief Configures the signal pin attached to a LMT01 temp sensor and starts a PIO 
  * program that counts the sensors pulse train
  * 

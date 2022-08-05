@@ -2,3 +2,7 @@
 
 void lmt01_setup(uint8_t pio_num, uint8_t sig_pin);
 int lmt01_read();
+/**
+ * @brief Returns the current tempurature in C.
+ */
+float lmt01_read_float();
