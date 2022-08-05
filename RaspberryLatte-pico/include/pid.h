@@ -1,8 +1,11 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
+#define PID_NO_WINDUP_LB -10000
+#define PID_NO_WINDUP_UB  10000
+
 typedef struct datapoint_ {
-    absolute_time_t t;
+    uint64_t t;
     float v;
 } datapoint;
 
@@ -40,7 +43,7 @@ float discrete_derivative_add_point(discrete_derivative* d, datapoint p);
 /**
  * \brief Resets the discrete_derivative to initial values. Memory is not freed.
  */
-void discrete_derivative_clear(discrete_derivative* d);
+void discrete_derivative_reset(discrete_derivative* d);
 
 typedef struct discrete_integral_ {
     float sum;
@@ -54,12 +57,11 @@ typedef struct discrete_integral_ {
  * bounds.
  *
  * \param d Pointer to discrete_integral stuct that will be initalized.
- * \param lower_bound Pointer to a floating point lower bound on the integral's value. If NULL, set
- * to -10000. 
- * \param upper_bound Pointer to a floating point upper bound on the integral's value. If NULL, set to 10000.
+ * \param lower_bound A floating point lower bound on the integral's value.
+ * \param upper_bound A floating point upper bound on the integral's value.
  */
-void discrete_integral_init(discrete_integral* d, const float* lower_bound,
-                            const float* upper_bound);
+void discrete_integral_init(discrete_integral* d, const float lower_bound,
+                            const float upper_bound);
 
 /**
  * \brief Helper function that returns the value of the integral's sum field.
@@ -88,7 +90,7 @@ float discrete_integral_add_point(discrete_integral* i, datapoint p);
  *
  * \param i Pointer to discrete_integral stuct that will be cleared.
  */
-void discrete_integral_clear(discrete_integral* i);
+void discrete_integral_reset(discrete_integral* i);
 
 typedef struct pid_gains_ {
     float p;
@@ -118,10 +120,13 @@ typedef struct pid_ctrl_ {
     discrete_integral err_sum;
 } pid_ctrl;
 
-void pid_init(pid_ctrl * controller, float setpoint, pid_gains K, 
-              read_sensor sensor, apply_input plant, const float * windup_lb, 
-              const float * windup_ub, uint derivative_filter_span_ms);
+/**
+ * \brief Setup a PID controller.
+ */
+void pid_init(pid_ctrl * controller, const float windup_lb, const float windup_ub, uint derivative_filter_span_ms);
 
 float pid_tick(pid_ctrl * controller);
+
 void pid_reset(pid_ctrl * controller);
+
 void pid_deinit(pid_ctrl * controller);

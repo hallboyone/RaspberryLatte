@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
@@ -23,35 +25,23 @@ void endProgram(int * data, int len){
   run = false;
 }
 
-float sensor_val = 1;
-float latest_u = 0;
-
-float dummy_sensor(){
-  sensor_val *= -0.95;
-  return sensor_val;
-}
-
-void dummy_plant(float u){
-  latest_u = u;
-  volatile int var = 0;
-  var++;
-}
-
 int main(){
-  pid_ctrl boiler_ctrl = {.K={.p = 1, .i = 0.1, .d = 0.025}, .setpoint = 0, .sensor = &dummy_sensor, .plant = &dummy_plant};
-  float ub = 0.15;
-  pid_gains K = {.p = 1, .i = 0.1, .d = 0.025};
-  pid_init(&boiler_ctrl, 0, K, &dummy_sensor, &dummy_plant, NULL, &ub, 250);
+  stdio_init_all();
 
-  for (int i=0; i<10; i++){
+  lmt01_setup(0, LMT01_DATA_PIN);
+  heater_setup(HEATER_PWM_PIN);
+
+  pid_ctrl boiler_ctrl = {.setpoint = 95, .K = {.p = 0.05, .i = 0.0015, .d = 0.000}, 
+                          .sensor = &lmt01_read_float, .plant = &heater_pid_input};
+  pid_init(&boiler_ctrl, 0, 100, 0);
+
+  while(true){
     pid_tick(&boiler_ctrl);
     sleep_ms(50);
+    if(to_us_since_boot(get_absolute_time()) > 10000000){
+      boiler_ctrl.setpoint = 100;
+    }
   }
 
-  pid_reset(&boiler_ctrl);
-  for (int i=0; i<10; i++){
-    pid_tick(&boiler_ctrl);
-    sleep_ms(50);
-  }
   return 1;
 }

@@ -1,20 +1,17 @@
-#include "pid.h"
-
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
+#include "pid.h"
 
 #define _WINDUP_LOWER_BOUND_MIN -10000
 #define _WINDUP_UPPER_BOUND_MAX 10000
 
 /**
- * \brief Return the difference in milliseconds between two timestamps.
- * 
- * \param from	the first timestamp
- * \param to	the second timestamp
- * \returns the number of milliseconds between the two timestamps (positive if to is after from except in case of overflow).
+ * \brief Helper function returning the microseconds since booting
  */
-static int64_t absolute_time_diff_ms(absolute_time_t from, absolute_time_t to){
-    return absolute_time_diff_us(from, to)/1000;
+static uint64_t us_since_boot(){
+    return to_us_since_boot(get_absolute_time());
 }
 
 void discrete_derivative_init(discrete_derivative *d, uint filter_span_ms) {
@@ -96,25 +93,20 @@ float discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
     return discrete_derivative_read(d);
 }
 
-void discrete_derivative_clear(discrete_derivative *d) { d->_num_el = 0; }
-
-void discrete_integral_init(discrete_integral *i, const float *lower_bound,
-                            const float *upper_bound) {
-    discrete_integral_clear(i);
-
-    if (lower_bound != NULL) {
-        i->lower_bound = *lower_bound;
-    } else {  // Not great but works
-        i->lower_bound = _WINDUP_LOWER_BOUND_MIN;
-    }
-    if (upper_bound != NULL) {
-        i->upper_bound = *upper_bound;
-    } else {  // Not great but works
-        i->upper_bound = _WINDUP_UPPER_BOUND_MAX;
-    }
+void discrete_derivative_reset(discrete_derivative *d) { 
+    d->_num_el = 0; 
 }
 
-float discrete_integral_read(discrete_integral *i) { return i->sum; }
+void discrete_integral_init(discrete_integral *i, const float lower_bound,
+                            const float upper_bound) {
+    discrete_integral_reset(i);
+    i->lower_bound = lower_bound;
+    i->upper_bound = upper_bound;
+}
+
+float discrete_integral_read(discrete_integral *i) { 
+    return i->sum; 
+}
 
 float discrete_integral_add_point(discrete_integral *i, datapoint p) {
     if (i->prev_p.t == 0) {
@@ -129,31 +121,40 @@ float discrete_integral_add_point(discrete_integral *i, datapoint p) {
     }
 }
 
-void discrete_integral_clear(discrete_integral *i) {
+void discrete_integral_reset(discrete_integral *i) {
     datapoint init_p = {.t = 0, .v = 0};
     i->prev_p = init_p;
     i->sum = 0;
 }
 
-void pid_init(pid_ctrl * controller, float setpoint, pid_gains K, 
-              read_sensor sensor, apply_input plant, const float * windup_lb, 
-              const float * windup_ub, uint derivative_filter_span_ms){
-    controller->setpoint = setpoint;
-    controller->K = K;
-    controller->sensor = sensor;
-    controller->plant = plant;
-
-    discrete_integral_init(&(controller->err_sum), windup_lb, windup_ub);
+void pid_init(pid_ctrl * controller, const float windup_lb, const float windup_ub, uint derivative_filter_span_ms){
+    discrete_integral_init(&(controller->err_sum), windup_lb*1000000, windup_ub*1000000);
     discrete_derivative_init(&(controller->err_slope), derivative_filter_span_ms);
 }
 
 float pid_tick(pid_ctrl * controller){
-    datapoint new_reading = {.t = get_absolute_time(), .v = controller->sensor()};
-    float err = controller->setpoint - new_reading.v;
-    float input =   (controller->K.p)*err 
-                  + (controller->K.i)*discrete_integral_add_point(&(controller->err_sum), new_reading)
-                  + (controller->K.d)*discrete_derivative_add_point(&(controller->err_slope), new_reading);
-    input = (input < 0 ? 0 : input);
-    input = (input > 1 ? 1 : input);
+    datapoint new_reading = {.t = us_since_boot(), .v = controller->sensor()};
+    datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
+
+    // If Ki (Kd) non-zero, compute the error sum (slope). Convert from us to s.
+    float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_add_point(&(controller->err_sum), new_err)/1000000.);
+    float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_add_point(&(controller->err_slope), new_err)*1000000.);
+
+    float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope;
+
+    printf("Temp: %0.2fC, Error: %0.2fC, Error Sum: %0.4fC*s, Error Slope: %0.4fC/s, Input: %0.4f\n",
+            new_reading.v, new_err.v, discrete_integral_read(&(controller->err_sum))/1000000., 
+            discrete_derivative_read(&(controller->err_slope))*1000000., input);
+
+    controller->plant(input);
     return 0;
+}
+
+void pid_reset(pid_ctrl * controller){
+    discrete_derivative_reset(&(controller->err_slope));
+    discrete_integral_reset(&(controller->err_sum));
+}
+
+void pid_deinit(pid_ctrl * controller){
+    discrete_derivative_deinit(&(controller->err_slope));
 }
