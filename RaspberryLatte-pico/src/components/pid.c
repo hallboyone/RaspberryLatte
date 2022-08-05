@@ -217,10 +217,6 @@ float pid_tick(pid_ctrl * controller){
 
         float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope;
 
-        printf("Temp: %0.2fC, Error: %0.2fC, Error Sum: %0.4fC*s, Error Slope: %0.4fC/s, Input: %0.4f\n",
-                new_reading.v, new_err.v, discrete_integral_read(&(controller->err_sum)), 
-                discrete_derivative_read(&(controller->err_slope)), input);
-
         controller->plant(input);
         return input;
     }
