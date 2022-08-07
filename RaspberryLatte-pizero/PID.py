@@ -137,12 +137,12 @@ class PID:
             self._last_tick_time = time()
             val = self._sensor.read()
             err = self._setpoint - val
-            print(f"Temp is {round(val,1)} so error is {round(err,1)}")
             self._derivative.add_point(-val)
             self._integral.add_point(err)
             self._output.write(self._gains.Kp * err +
                             self._gains.Ki * self._integral.sum() +
                             self._gains.Kd * self._derivative.slope())
+            print(f"Temp is {round(val,1)} so error is {round(err,1)}. Error sum = {round(self._integral.sum(),4)}")
     def reset(self):
         self._derivative.reset()
         self._integral.reset()
