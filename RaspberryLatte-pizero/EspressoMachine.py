@@ -79,7 +79,7 @@ class EspressoMachine:
         self.solenoid     = Solenoid()
 
         # Controllers
-        self.boiler_gains = PIDGains(0.05, 0.005, 0.25)
+        self.boiler_gains = PIDGains(0.05, 0.0015, 0.0)
         self.boiler_ctrl = PID(self.boiler_gains, sensor=self.temp_sensor, output=self.heater, windup_bounds=IntegralBounds(0, 100))
         self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
 
