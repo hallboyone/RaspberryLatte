@@ -12,7 +12,7 @@
 #include "analog_input.h"
 #include "binary_output.h"
 #include "binary_input.h"
-// #include "phasecontrol.h"
+#include "phasecontrol.h"
 // #include "pressure_sensor.h"
 
 // #include "nau7802.h"
@@ -53,13 +53,11 @@ int main(){
     uart_bridge_register_handler(MSG_ID_GET_SWITCH, &pump_switch, &binary_input_uart_callback);
     uart_bridge_register_handler(MSG_ID_GET_DIAL, &mode_dial, &binary_input_uart_callback);
 
-    // // Set up phase control
-    // const PhasecontrolConfig pump_config = 
-    // {.event          = ZEROCROSS_EVENT_RISING,
-    // .zerocross_pin   = PHASE_CONTROL_0CROSS_PIN,
-    // .out_pin         = PHASE_CONTROL_OUT_PIN,
-    // .zerocross_shift = PHASE_CONTROL_0CROSS_SHIFT};
-    // phasecontrol_setup(&pump_config);
+    // Set up phase control
+    phasecontrol pump;
+    phasecontrol_setup(&pump,PHASE_CONTROL_0CROSS_PIN,PHASE_CONTROL_OUT_PIN,PHASE_CONTROL_0CROSS_SHIFT,ZEROCROSS_EVENT_RISING);
+    uart_bridge_register_handler(MSG_ID_GET_AC_ON, &pump, &phasecontrol_is_ac_hot_uart_callback);
+    uart_bridge_register_handler(MSG_ID_SET_PUMP, &pump, phasecontrol_set_duty_uart_callback);
 
     // nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
 

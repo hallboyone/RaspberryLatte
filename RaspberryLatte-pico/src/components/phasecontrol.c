@@ -1,18 +1,13 @@
 #include "pico/time.h"
 
 #include "phasecontrol.h"
-#include "uart_bridge.h"
 #include "status_ids.h"
 
 #define PERIOD_1_00        16667
 #define PERIOD_0_75        12500
 #define PERIOD_0_50         8333
 
-// Pointer to a constant configuration object. 
-const PhasecontrolConfig * config;
-
-// Timestamp of last zerocross time
-static volatile uint64_t   zerocross_time = 0;
+phasecontrol * _configured_phasecontrollers [32]; //indexed by their out_pin.
 
 // All possible timeouts. Spaced so that the area under the curve is split into 127 equal boxes.
 const uint16_t timeouts_us[128] =
@@ -25,41 +20,12 @@ const uint16_t timeouts_us[128] =
    2741,2693,2643,2593,2542,2491,2439,2386,2332,2277,2222,2165,2107,2048,1987,1925,
    1861,1795,1728,1658,1585,1509,1430,1346,1257,1162,1060, 947, 819, 668, 471,   0};	
 
-// Index of current timeout drawn from timeouts_us
-static volatile uint8_t timeout_idx = 0;  
-
-/**
- * Parses a single byte message sent over UART with id MSG_ID_SET_PUMP
- * 
- * \param value a pointer to a single integer containing the data from message
- * \param len length of data array. Must be 1. 
- */
-static void phasecontrol_set_duty_cycle_handler(int* value, int len){
-  if(len==1){
-    phasecontrol_set_duty_cycle(*value);
-    int response = timeout_idx;
-    sendMessageWithStatus(MSG_ID_SET_PUMP, SUCCESS, &response, 1);
-  } else {
-    sendMessageWithStatus(MSG_ID_SET_PUMP, MSG_FORMAT_ERROR, NULL, 0);
-  }
-}
-
-/**
- * Returns 1 over UART if AC is hot. 0 else.
- * 
- * \param value Pointer to an unused integer array
- * \param len Length of unused integer array
- */
-static void phasecontrol_is_ac_hot_handler(int* value, int len){
-  int response = phasecontrol_is_ac_hot();
-  sendMessageWithStatus(MSG_ID_GET_AC_ON, SUCCESS, &response, 1);
-}
-
 /**
  * \brief Alarm callback writing 0 to the output GPIO to disable SSR or other switch.
  */
 int64_t phasecontrol_set_output_low(int32_t alarm_num, void * data){
-  gpio_put(config->out_pin, 0);
+  phasecontrol* p = (phasecontrol*)data;
+  gpio_put(p->out_pin, 0);
   return 0;
 }
 
@@ -67,7 +33,8 @@ int64_t phasecontrol_set_output_low(int32_t alarm_num, void * data){
  * \brief Alarm callback writing 1 to the output GPIO to trigger SSR or other switch.
  */
 int64_t phasecontrol_set_output_high(int32_t alarm_num, void * data){
-  gpio_put(config->out_pin, 1);
+  phasecontrol* p = (phasecontrol*)data;
+  gpio_put(p->out_pin, 1);
   return 0;
 }
 
@@ -76,59 +43,101 @@ int64_t phasecontrol_set_output_high(int32_t alarm_num, void * data){
  * of off (after 0.75 a period).
  */
 void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
-  // Make sure we aren't re-sensing the same zerocrossing
-  if(zerocross_time + PERIOD_0_75 < time_us_64()){
-    zerocross_time = time_us_64();
-    if (timeout_idx > 0){
+  phasecontrol * p = _configured_phasecontrollers[gpio];
+  // Make sure we aren't re-sensing the same zero crossing
+  if(p->_zerocross_time + PERIOD_0_75 < time_us_64()){
+    p->_zerocross_time = time_us_64();
+    if (p->_timeout_idx > 0){
       // Schedule stop time after 0.75 period
-      add_alarm_in_us(config->zerocross_shift + PERIOD_0_75, &phasecontrol_set_output_low, NULL, false);
+      add_alarm_in_us(p->_zerocross_time + PERIOD_0_75, &phasecontrol_set_output_low, p, false);
       // Schedule start time after the given timeout
-      add_alarm_in_us(config->zerocross_shift + timeouts_us[timeout_idx], &phasecontrol_set_output_high, NULL, true);
+      add_alarm_in_us(p->_zerocross_time + timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, p, true);
     }
   }
 }
 
 /**
  * \brief Setup for phasecontrol. Pins are configured and a callback is attached to the zerocross pin.
- * The phasecontroller is also registered with the UART bridge. 
  * 
- * \param user_config A constant configuration object containing the desired pin number, and other fields. 
+ * \param p A pointer to a phasecontrol struct representing the object.
+ * \param zerocross_pin Pin that senses zero crossing
+ * \param out_pin Pin that switches the load
+ * \param zerocross_shift Time in us that the zerocross is from the sensing time.
+ * \param event Event to trigger zerocross on. Either ZEROCROSS_EVENT_RISING or ZEROCROSS_EVENT_FALLING. 
  */
-void phasecontrol_setup(const PhasecontrolConfig * user_config) {
-  config = user_config;
+void phasecontrol_setup(phasecontrol * p, uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocross_shift, uint8_t event){
+  _configured_phasecontrollers[out_pin] = p;
+
+  p->zerocross_pin = zerocross_pin;
+  p->out_pin = out_pin;
+  p->zerocross_shift = zerocross_shift;
+  p->event = event;
 
   // Setup SSR output pin
-  gpio_init(config->out_pin);
-  gpio_set_dir(config->out_pin, GPIO_OUT);
+  gpio_init(p->out_pin);
+  gpio_set_dir(p->out_pin, GPIO_OUT);
 
   // Setup zero-cross input pin
-  gpio_init(config->zerocross_pin);
-  gpio_set_dir(config->zerocross_pin, GPIO_IN);
-  gpio_set_pulls(config->zerocross_pin, false, true);
-  gpio_set_irq_enabled_with_callback(config->zerocross_pin, config->event, true, &phasecontrol_switch_scheduler);
-
-  // Setup UART handlers
-  registerHandler(MSG_ID_SET_PUMP, &phasecontrol_set_duty_cycle_handler);
-  registerHandler(MSG_ID_GET_AC_ON, &phasecontrol_is_ac_hot_handler);
+  gpio_init(p->zerocross_pin);
+  gpio_set_dir(p->zerocross_pin, GPIO_IN);
+  gpio_set_pulls(p->zerocross_pin, false, true);
+  gpio_set_irq_enabled_with_callback(p->zerocross_pin, p->event, true, &phasecontrol_switch_scheduler);
   return;
 }
 
 /**
  * \brief Update the duty cycle. If value is out of range (0<=val<=127), it is clipped.
  * 
+ * \param p Pointer to phase control object that will be updated
  * \param duty_cycle New duty cycle value between 0 and 127 inclusive.
+ * 
+ * \returns The duty cycle after clipping.
  */
-void phasecontrol_set_duty_cycle(uint8_t duty_cycle){
+int phasecontrol_set_duty_cycle(phasecontrol * p, uint8_t duty_cycle){
   if(duty_cycle>127) duty_cycle = 127;
-  timeout_idx = duty_cycle;
+  p->_timeout_idx = duty_cycle;
+  return p->_timeout_idx;
 }
 
 /**
  * \brief Check if zerocross pin has triggered in the last 16766us (period of 60Hz signal plus 100us), 
  * indicating active AC.
  * 
+ * \param p Pointer to phase control object that will be read.
+ * 
  * \return true if zerocross pin triggered in the last 16,766us. False otherwise.
  */
-bool phasecontrol_is_ac_hot(){
-  return zerocross_time + PERIOD_1_00 + 100 > time_us_64();
+bool phasecontrol_is_ac_hot(phasecontrol * p){
+  return p->_zerocross_time + PERIOD_1_00 + 100 > time_us_64();
+}
+
+/**
+ * \brief Callback that reads if the ac is on for the phasecontrol struct pointed to by local_data.
+ * 
+ * \param id The ID of the callback. Each registered callback must have a unique callback ID.
+ * \param local_data Void pointer which MUST point at an phasecontrol object.
+ * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
+ * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
+ */
+void phasecontrol_is_ac_hot_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
+  int response = phasecontrol_is_ac_hot((phasecontrol*)local_data);
+  sendMessageWithStatus(id, SUCCESS, &response, 1);
+}
+
+/**
+ * \brief Callback that sets the duty cycle for the phasecontrol struct pointed to by local_data. The
+ * duty cycle after clipping is returned over the UART bridge.
+ * 
+ * \param id The ID of the callback. Each registered callback must have a unique callback ID.
+ * \param local_data Void pointer which MUST point at an phasecontrol object.
+ * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
+ * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
+ */
+void phasecontrol_set_duty_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
+  if(uart_data_len==1){
+    int response = phasecontrol_set_duty_cycle((phasecontrol*)local_data, *uart_data);
+    sendMessageWithStatus(id, SUCCESS, &response, 1);
+  } else {
+    sendMessageWithStatus(id, MSG_FORMAT_ERROR, NULL, 0);
+  }
 }
