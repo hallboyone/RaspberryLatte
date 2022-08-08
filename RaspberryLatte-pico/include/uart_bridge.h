@@ -1,3 +1,6 @@
+#ifndef _UART_BRIDGE_H
+#define _UART_BRIDGE_H
+
 #include "pico/stdlib.h"
 
 #define MSG_READ_SUCCESS           1
@@ -13,6 +16,9 @@
  */
 typedef void (*MessageHandler)(int * data, int len);
 
+typedef uint8_t message_id;
+typedef uint8_t message_len;
+
 /** 
  * \brief A function that handles UART messages with a certain ID.
  * 
@@ -20,13 +26,10 @@ typedef void (*MessageHandler)(int * data, int len);
  * \param uart_data An int pointer to the data recieved over UART. Each integer containing one byte of data.
  * \param uart_data_len The number of bytes in the message's body 
  */
-typedef void (*message_callback)(void * local_data, int * uart_data, int uart_data_len);
+typedef void (*message_callback)(message_id id, void * local_data, int * uart_data, int uart_data_len);
 
 typedef uint8_t MessageID;
 typedef uint8_t MessageLen;
-
-typedef uint8_t message_id;
-typedef uint8_t message_len;
 
 typedef struct{
     message_id id;
@@ -62,17 +65,10 @@ int readMessage();
  * Send message over the UART
  * 
  * \param id The message id that triggered the send command
- * \param data Pointer to an int array of length \p len containing the data to be sent
- * \param len Integer giving the length of the \p data array.
- */
-void sendMessage(MessageID id, int * data, int len);
-
-/**
- * Send message over the UART
- * 
- * \param id The message id that triggered the send command
  * \param status A status defined in errors.h
  * \param data Pointer to an int array of length \p len containing the data to be sent
  * \param len Integer giving the length of the \p data array.
  */
 void sendMessageWithStatus(MessageID id, int status, int * data, int len);
+
+#endif
