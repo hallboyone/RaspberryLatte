@@ -1,20 +1,5 @@
 #include "pico/stdlib.h"
 
-#define MSG_ID_END_PROGRAM   0 /**< Breaks the infinite while loop and exits the firmware */
-
-#define MSG_ID_SET_LEDS      1
-#define MSG_ID_SET_BIN_OUT   1
-#define MSG_ID_SET_PUMP      2
-#define MSG_ID_SET_SOLENOID  3
-#define MSG_ID_SET_HEATER    4
-
-#define MSG_ID_GET_SWITCH    8
-#define MSG_ID_GET_PRESSURE  9
-#define MSG_ID_GET_WEIGHT   10 
-#define MSG_ID_GET_TEMP     11
-#define MSG_ID_GET_AC_ON    12 /**< Returns true if the AC is on */
-
-
 #define MSG_READ_SUCCESS           1
 #define MSG_READ_FAIL_NO_MSG       0
 #define MSG_READ_FAIL_UNCONF_MSG  -1
@@ -28,18 +13,42 @@
  */
 typedef void (*MessageHandler)(int * data, int len);
 
+/** 
+ * \brief A function that handles UART messages with a certain ID.
+ * 
+ * \param local_data A pointer to a struct containing specific details needed by the callback
+ * \param uart_data An int pointer to the data recieved over UART. Each integer containing one byte of data.
+ * \param uart_data_len The number of bytes in the message's body 
+ */
+typedef void (*message_callback)(void * local_data, int * uart_data, int uart_data_len);
+
 typedef uint8_t MessageID;
 typedef uint8_t MessageLen;
 
+typedef uint8_t message_id;
+typedef uint8_t message_len;
+
+typedef struct{
+    message_id id;
+    message_callback callback;
+    void * local_data;
+} msg_handler;
+
 /**
- * Define the indicated function as the message's handler
- * 
- * @param h Pointer to function set to handle id
- * @param id ID of message to be handled. Value in [0,15].
- * 
- * @returns 1 if messageID was unclaimed. 0 else. 
+ * \brief Setup UART pins
  */
-int registerHandler(MessageID id, MessageHandler h);
+void uart_bridge_setup();
+
+/**
+ * \brief Define the indicated function as the message's handler
+ * 
+ * \param local_data A pointer to a struct containing specific details needed by the callback.
+ * \param id ID of message to be handled. Value in [0,15].
+ * \param callback A pointer to the callback function.
+ * 
+ * \returns 1 if messageID was unclaimed. 0 else. 
+ */
+int uart_bridge_register_handler(message_id id, void * local_data, message_callback callback);
 
 /**
  * Read message over the UART if avalible

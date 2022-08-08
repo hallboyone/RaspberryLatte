@@ -4,6 +4,7 @@
 #include "pico/time.h"
 
 #include "pinout.h"
+#include "message_ids.h"
 
 #include "maintainer.h"
 #include "phasecontrol.h"
@@ -19,22 +20,15 @@
 #include "pid.h"
 
 bool run = true;
-volatile bool led = false;
 
-void endProgram(int * data, int len){
+void end_program(void * local_data, int * uart_data, int uart_data_len){
     run = false;
-}
-
-static bool toggle_led(repeating_timer_t *rt){
-    led = !led;
-  return true;
 }
 
 int main(){
     // Setup UART, clear queue, and assign endProgram command
-    stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
-    while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
-    registerHandler(MSG_ID_END_PROGRAM, &endProgram);
+    uart_bridge_setup();
+    uart_bridge_register_handler(MSG_ID_END_PROGRAM, NULL, &end_program);
 
     pressure_sensor_setup(PRESSURE_SENSOR_PIN);
 

@@ -1,27 +1,43 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "uart_bridge.h"
 #include "pico/time.h"
 
-/** Static array of the functions set to handle each of the 16 message types*/
-static MessageHandler handlers[16] = {NULL,NULL,NULL,NULL,
-                                      NULL,NULL,NULL,NULL,
-                                      NULL,NULL,NULL,NULL,
-                                      NULL,NULL,NULL,NULL};
+#define NUM_HANDLERS 256
+static msg_handler * _handlers = NULL;
 
 /**
- * Define the indicated function as the message's handler
- * 
- * @param h Pointer to function set to handle id
- * @param id ID of message to be handled. Value in [0,15].
- * 
- * @returns 1 if messageID was unclaimed. 0 else. 
+ * \brief Setup UART pins
  */
-int registerHandler(MessageID id, MessageHandler h){
-  assert(id<=15);
-  if(handlers[id] != NULL) return 0;
-  
-  handlers[id] = h;
-  return 1;
+void uart_bridge_setup(){
+    stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
+    while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
+    if(_handlers != NULL){
+        _handlers = malloc(sizeof(msg_handler)*NUM_HANDLERS);
+        for(uint i = 0; i < NUM_HANDLERS; i++){
+            _handlers[i].callback = NULL;
+            _handlers[i].id = 0;
+            _handlers[i].local_data = NULL;
+        }
+    }
+}
+
+/**
+ * \brief Define the indicated function as the message's handler
+ * 
+ * \param local_data A pointer to a struct containing specific details needed by the callback.
+ * \param id ID of message to be handled. Value in [0,15].
+ * \param callback A pointer to the callback function.
+ * 
+ * \returns 1 if messageID was unclaimed. 0 else. 
+ */
+int uart_bridge_register_handler(message_id id, void * local_data, message_callback callback){
+    if (_handlers == NULL){
+        uart_bridge_setup();
+    }
+    _handlers[id].callback = callback;
+    _handlers[id].id = id;
+    _handlers[id].local_data = local_data;
 }
 
 /**
@@ -40,7 +56,7 @@ int readMessage(){
   // Parse header and check if message is valid
   MessageID id   = (msg_header & 0xF0)>>4;
   MessageLen len = (msg_header & 0x0F);
-  if (handlers[id]==NULL){
+  if (_handlers[id].callback==NULL){
     // Unkown handler. Empty buffer and return.
     while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
     return MSG_READ_FAIL_UNCONF_MSG;
@@ -56,7 +72,8 @@ int readMessage(){
   }
 
   // Call handler
-  handlers[id](msg_body, len);
+  //handlers[id](msg_body, len);
+  _handlers[id].callback(_handlers[id].local_data, msg_body, len);
   return MSG_READ_SUCCESS;
 }
 
