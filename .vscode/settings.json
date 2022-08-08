@@ -31,6 +31,7 @@
         "uart_bridge.h": "c",
         "binary_input.h": "c",
         "pinout.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "binary_output.h": "c"
     },
 }

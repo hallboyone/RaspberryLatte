@@ -13,10 +13,9 @@
 #include "binary_output.h"
 #include "binary_input.h"
 #include "phasecontrol.h"
-
-// #include "nau7802.h"
-// #include "lmt01.h"
-// #include "heater.h"
+#include "nau7802.h"
+#include "slow_pwm.h"
+#include "lmt01.h"
 
 // #include "pid.h"
 
@@ -59,21 +58,28 @@ int main(){
 
     // Setup solenoid as a binary output
     binary_output solenoid;
-    uint solenoid_pin [1] = SOLENOID_PIN;
-    binary_output_setup(&solenoid, &solenoid_pin, 1);
+    uint8_t solenoid_pin [1] = {SOLENOID_PIN};
+    binary_output_setup(&solenoid, solenoid_pin, 1);
     uart_bridge_register_handler(MSG_ID_SET_SOLENOID, &solenoid, &binary_output_uart_callback);
 
-    // nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
+    // Setup nau7802. This is the only non-struct based object. 
+    nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
+    uart_bridge_register_handler(MSG_ID_GET_WEIGHT, NULL, &nau7802_read_uart_callback);
 
-    // heater_setup(HEATER_PWM_PIN);
+    // Setup heater and register its handler.
+    slow_pwm heater;
+    slow_pwm_setup(&heater, HEATER_PWM_PIN);
+    uart_bridge_register_handler(MSG_ID_SET_HEATER, &heater, &slow_pwm_set_uart_callback);
     
-    // lmt01_setup(0, LMT01_DATA_PIN);
+    // Setup thermometer and register its handler.
+    lmt01 thermo;
+    lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
+    uart_bridge_register_handler(MSG_ID_GET_TEMP, &thermo, &lmt01_read_uart_callback);
 
     // Continually look for a messege and then run maintenance
     while(run){
         uint64_t start_time = time_us_64();
         readMessage();
-        runMaintenance();
         uint64_t delta_time = time_us_64() - start_time;
         if(delta_time < 50){
             sleep_us(50 - delta_time);

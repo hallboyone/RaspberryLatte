@@ -1,8 +1,10 @@
-#ifndef NAU7802_HEADER_
-#define NAU7802_HEADER_
+#ifndef _NAU7802_H
+#define _NAU7802_H
 
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
+
+#include "uart_bridge.h"
 
 #define ADDR_NAU7802 0x2A
 
@@ -342,4 +344,6 @@ void nau7802_read(uint32_t * dst);
  * \param nau7802_i2c pointer to desired I2C instance. If NULL, default I2C instane is used.
  */
 void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c);
+
+void nau7802_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
 #endif

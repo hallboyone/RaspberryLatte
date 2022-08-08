@@ -3,8 +3,6 @@
 #include "lmt01.h"
 #include "lmt01.pio.h"
 
-#include "uart_bridge.h"
-#include "maintainer.h"
 #include "status_ids.h"
 
 static const int PULSE_COUNTS [21] = { 26, 181, 338, 494, 651, 808,
@@ -22,15 +20,11 @@ static const int PULSE_SHIFTS [20] = {-827, -824, -827, -823, -823,
                                       -802, -791, -791, -791, -777, 
                                       -777, -777, -777, -742, -798};
 
-static PIO _pio;
-static uint _sm;
-static int _latest_temp = 0;
-
 /**
- * @brief Converts a pulse count to the corresponding tempurature multiplied by 16
+ * \brief Converts a pulse count to the corresponding tempurature multiplied by 16
  * 
- * @param pulse_count the number of pulses from the LMT01 sensor
- * @return The corresponding temp. Divide by 16 to get temp in C
+ * \param pulse_count the number of pulses from the LMT01 sensor
+ * \return The corresponding temp. Divide by 16 to get temp in C
  */
 static inline int pulse2Temp(const int pulse_count){
     if (pulse_count < PULSE_COUNTS[1]){
@@ -76,15 +70,15 @@ static inline int pulse2Temp(const int pulse_count){
     }
 }
 
-static inline void lmt01_program_init(uint offset, uint dat_pin) {
+static inline void lmt01_program_init(lmt01 * l, uint offset) {
     // Setup dat_pin
-    pio_sm_set_consecutive_pindirs(_pio, _sm, dat_pin, 1, false);
-    pio_gpio_init(_pio, dat_pin);
+    pio_sm_set_consecutive_pindirs(l->_pio, l->_sm, l->_dat_pin, 1, false);
+    pio_gpio_init(l->_pio, l->_dat_pin);
 
     pio_sm_config c = lmt01_program_get_default_config(offset);
     
-    sm_config_set_jmp_pin(&c, dat_pin);
-    sm_config_set_in_pins(&c, dat_pin);
+    sm_config_set_jmp_pin(&c, l->_dat_pin);
+    sm_config_set_in_pins(&c, l->_dat_pin);
     
     sm_config_set_in_shift(&c, false, true, 32);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
@@ -93,36 +87,25 @@ static inline void lmt01_program_init(uint offset, uint dat_pin) {
     float div = (float)clock_get_hz(clk_sys)/2000000.0;
     sm_config_set_clkdiv(&c, div);
     
-    pio_sm_init(_pio, _sm, offset, &c);
-    pio_sm_set_enabled(_pio, _sm, true);
-}
-
-static void lmt01_read_handler(int* value, int len){
-    int buf [2] = {(_latest_temp >> 8) & 0xFF, (_latest_temp >> 0) & 0xFF};
-    sendMessageWithStatus(MSG_ID_GET_TEMP, SUCCESS, buf, 2);
-}
-
-static void lmt01_maintainer(){
-    lmt01_read();
+    pio_sm_init(l->_pio, l->_sm, offset, &c);
+    pio_sm_set_enabled(l->_pio, l->_sm, true);
 }
 
 /**
- * @brief Clears the RX buffer and saves the most recent value. The LMT01 takes around 100ms
- * per reading so this procedure ensures a query can be answered quickly with the
- * most recent value.
+ * \brief Returns the current temputature in 16*C. Divide by 16 6o conver to C
  */
-int lmt01_read(){
-    while(!pio_sm_is_rx_fifo_empty(_pio, _sm)){
-        _latest_temp = pulse2Temp(pio_sm_get_blocking(_pio, _sm));
+int lmt01_read(lmt01 * l){
+    while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
+        l->_latest_temp = pulse2Temp(pio_sm_get_blocking(l->_pio, l->_sm));
     }
-    return _latest_temp;
+    return l->_latest_temp;
 }
 
 /**
- * @brief Returns the current tempurature in C.
+ * \brief Returns the current tempurature in C.
  */
-float lmt01_read_float(){
-    return lmt01_read()/16.;
+float lmt01_read_float(lmt01 * l){
+    return lmt01_read(l)/16.;
 }
 
 /**
@@ -132,19 +115,32 @@ float lmt01_read_float(){
  * @param pio_num Either 0 or 1 indicating if PIO #0 or #1 should be used
  * @param sig_pin Pin that the LMT01 is attached to
  */
-void lmt01_setup(uint8_t pio_num, uint8_t dat_pin){
+void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
+    l->_dat_pin = dat_pin;
+
     // Load pio program into memory
-    _pio =  (pio_num==0 ? pio0 : pio1);
-    uint offset = pio_add_program(_pio, &lmt01_program);
-    _sm = pio_claim_unused_sm(_pio, true);
-    lmt01_program_init(offset, dat_pin);
+    l->_pio =  (pio_num==0 ? pio0 : pio1);
+    uint offset = pio_add_program(l->_pio, &lmt01_program);
+    l->_sm = pio_claim_unused_sm(l->_pio, true);
+    lmt01_program_init(l, offset);
 
-    // Register maintainer and message handler
-    registerHandler(MSG_ID_GET_TEMP, &lmt01_read_handler);
-    registerMaintainer(&lmt01_maintainer);
-
-    while(_latest_temp<=0 || _latest_temp>2800){
+    while(l->_latest_temp<=0 || l->_latest_temp>2800){
         // Wait till a valid tempurature is measured
-        lmt01_read();
+        lmt01_read(l);
     }
+}
+
+/**
+ * \brief Callback that reads the current tempurature and returns it as a 2 byte value over UART
+ * 
+ * \param id The ID of the callback. Each registered callback must have a unique callback ID.
+ * \param local_data Void pointer which MUST point at an binary_input object.
+ * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
+ * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
+ */
+void lmt01_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
+    lmt01 * l = (lmt01*)local_data;
+    int val = lmt01_read(l);
+    int buf [2] = {(val >> 8) & 0xFF, (val >> 0) & 0xFF};
+    sendMessageWithStatus(id, SUCCESS, buf, 2);
 }

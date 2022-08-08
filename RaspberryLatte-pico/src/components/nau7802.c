@@ -2,7 +2,6 @@
 #include <string.h>
 
 #include "nau7802.h"
-#include "uart_bridge.h"
 #include "status_ids.h"
 
 const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL};
@@ -253,14 +252,14 @@ void nau7802_read(uint32_t * dst){
  * \param msg Pointer to message
  * \param len Length of message
  */
-static void _nau7802_read_handler(int * msg, int len){
-    if(len==0){
+void nau7802_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
+    if(uart_data_len==0){
         uint32_t val = 0;
         nau7802_read(&val);
         int response [3] = {(val >> 16) & 0xFF, (val >>  8) & 0xFF, (val >>  0) & 0xFF};
-        sendMessageWithStatus(MSG_ID_GET_WEIGHT, SUCCESS, response, 3);
+        sendMessageWithStatus(id, SUCCESS, response, 3);
     } else {
-        sendMessageWithStatus(MSG_ID_SET_HEATER, MSG_FORMAT_ERROR, NULL, 0);
+        sendMessageWithStatus(id, MSG_FORMAT_ERROR, NULL, 0);
     }
 }
 
@@ -297,6 +296,4 @@ void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c){
     nau7802_set_pga_filter(PGA_ON);
 
     nau7802_set_conversions(CONVERSIONS_ON);
-
-    registerHandler(MSG_ID_GET_WEIGHT, &_nau7802_read_handler);
 }
