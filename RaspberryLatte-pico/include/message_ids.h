@@ -14,5 +14,6 @@
 #define MSG_ID_GET_WEIGHT   10 
 #define MSG_ID_GET_TEMP     11
 #define MSG_ID_GET_AC_ON    12 /**< Returns true if the AC is on */
+#define MSG_ID_GET_DIAL     13
 
 #endif

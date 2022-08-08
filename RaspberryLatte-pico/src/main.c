@@ -11,8 +11,8 @@
 
 #include "analog_input.h"
 #include "binary_output.h"
+#include "binary_input.h"
 // #include "phasecontrol.h"
-// #include "binary_input.h"
 // #include "pressure_sensor.h"
 
 // #include "nau7802.h"
@@ -29,7 +29,7 @@ void end_program(message_id id, void * local_data, int * uart_data, int uart_dat
 }
 
 int main(){
-    // Setup UART, clear queue, and assign endProgram command
+    // Setup UART and assign endProgram command
     uart_bridge_setup();
     uart_bridge_register_handler(MSG_ID_END_PROGRAM, NULL, &end_program);
 
@@ -44,10 +44,14 @@ int main(){
     binary_output_setup(&leds, led_pins, 3);
     uart_bridge_register_handler(MSG_ID_SET_LEDS, &leds, &binary_output_uart_callback);
 
-    // const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
-    // const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
-    // binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, true, false);
-    // binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, false, true);
+    // Define binary inputs for pump switch and mode dial. Setup and register their callbacks.
+    binary_input pump_switch, mode_dial;
+    const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
+    const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
+    binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, true, false);
+    binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, false, true);
+    uart_bridge_register_handler(MSG_ID_GET_SWITCH, &pump_switch, &binary_input_uart_callback);
+    uart_bridge_register_handler(MSG_ID_GET_DIAL, &mode_dial, &binary_input_uart_callback);
 
     // // Set up phase control
     // const PhasecontrolConfig pump_config = 

@@ -10,7 +10,8 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/maintainer.c
                PRIVATE src/components/uart_bridge.c
                PRIVATE src/components/analog_input.c
-               PRIVATE src/components/binary_output.c) 
+               PRIVATE src/components/binary_output.c
+               PRIVATE src/components/binary_input.c) 
               #  PRIVATE src/components/pid.c 
               #  PRIVATE src/components/lmt01.c
               #  PRIVATE src/components/solenoid.c
