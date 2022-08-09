@@ -54,7 +54,7 @@ int main(){
     phasecontrol pump;
     phasecontrol_setup(&pump,PHASE_CONTROL_0CROSS_PIN,PHASE_CONTROL_OUT_PIN,PHASE_CONTROL_0CROSS_SHIFT,ZEROCROSS_EVENT_RISING);
     uart_bridge_register_handler(MSG_ID_GET_AC_ON, &pump, &phasecontrol_is_ac_hot_uart_callback);
-    uart_bridge_register_handler(MSG_ID_SET_PUMP, &pump, phasecontrol_set_duty_uart_callback);
+    uart_bridge_register_handler(MSG_ID_SET_PUMP, &pump, &phasecontrol_set_duty_uart_callback);
 
     // Setup solenoid as a binary output
     binary_output solenoid;
