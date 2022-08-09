@@ -14,7 +14,7 @@ MSG_ID_GET_PRESSURE  =  9
 MSG_ID_GET_WEIGHT    = 10
 MSG_ID_GET_TEMP      = 11
 MSG_ID_GET_AC_ON     = 12
-UNUSED3              = 13
+MSG_ID_GET_DIAL      = 13
 UNUSED4              = 14
 UNUSED5              = 15
 
@@ -24,8 +24,8 @@ UART_TIMEOUT  = 0.25
 RESEND_COUNT = 3
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
-_header_encoding = bitstruct.compile('u4u4')
-_header_status_encoding = bitstruct.compile('u4u4u8')
+_header_encoding = bitstruct.compile('u8u8')
+_header_status_encoding = bitstruct.compile('u8u8u8')
 class DataPoint:
     """
     Attaches a timestamp to the value passed to the constructor. Access the value with
@@ -108,11 +108,11 @@ class UARTMessenger:
         self._last_msg_t = time()
 
         # Read and unpack header and status bytes
-        while(_ser.in_waiting < 2):
+        while(_ser.in_waiting < 3):
             if time() - self._last_msg_t > UART_TIMEOUT:
                 raise IOError("UART Timeout! Timeout occured while waiting for header")
         
-        (response_id, response_body_len, self.status) = _header_status_encoding.unpack(_ser.read(2))
+        (response_id, response_body_len, self.status) = _header_status_encoding.unpack(_ser.read(3))
         if response_id != self.msg_id:
             raise IOError(f"Invalid reponse: message IDs don't match ({self.msg_id} vs. {response_id}x{response_body_len}x{self.status})")
 

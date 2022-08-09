@@ -8,6 +8,8 @@ from Components.ACSensor       import ACSensor
 from Components.PressureSensor import PressureSensor
 from Components.Scale          import Scale
 from Components.Switches       import Switches
+from Components.PumpSwitch     import PumpSwitch
+from Components.ModeDial       import ModeDial
 from Components.TempSensor     import TempSensor
 
 # Setters
@@ -69,7 +71,8 @@ class EspressoMachine:
         self.ac_power     = ACSensor()
         self.pressure     = PressureSensor()
         self.scale        = Scale()
-        self.switches     = Switches()
+        self.pump_switch  = PumpSwitch()
+        self.mode_dial    = ModeDial()
         self.temp_sensor  = TempSensor()
 
         # Setters
@@ -104,7 +107,7 @@ class EspressoMachine:
 
     def run(self):
         try:
-            self.scale.zero()
+            # self.scale.zero()
             self.leds.set(0, 1)
             while(True):
                 if not self.ac_power.on():
@@ -120,12 +123,13 @@ class EspressoMachine:
                 # Turn pump off or on depending on mode and pump switch
                 self._update_pump()
 
-                if self.switches.state('pump') == 0:
+                if not self.pump_switch.read():
                     self.leds.set(2, self.scale.read() > int(self._config["autobrew"]["DOSE"]))
                 else:
                     self.leds.set(2, 0)
 
                 sleep(0.05)
+
         except Exception as e:
             print(str(e))
             print(traceback.format_exc())
@@ -136,30 +140,30 @@ class EspressoMachine:
             self.pump.off()
 
     def _update_mode(self):
-        (dial_changed, pump_changed) = self.switches.update()
-        if dial_changed:
+        self.mode_dial.read()
+        if self.mode_dial.changed:
             self._update_setpoint()
             self._pump_lock = True
             self.scale.zero()
-            if (self.switches.state('dial') == _AUTO_MODE):
+            if (self.mode_dial.state == _AUTO_MODE):
                 self._auto_brew_schedule.reset()
         
-        if not self.switches.state('pump'):
+        if not self.pump_switch.read():
             self._pump_lock = False
-            if pump_changed:
+            if self.pump_switch.changed:
                 self._auto_brew_schedule.reset()
 
     def _update_pump(self):
         if self._pump_lock:
             self.solenoid.close()
             self.pump.off()
-        elif self.switches.state()   == {"pump": True, "dial": _MANUAL_MODE}:
+        elif self.mode_dial.state == _MANUAL_MODE and self.pump_switch.state == True:
             self.solenoid.open()
             self.pump.on()
-        elif self.switches.state() == {"pump": True, "dial": _HOT_MODE   }:
+        elif self.mode_dial.state == _HOT_MODE and self.pump_switch.state == True:
             self.solenoid.close()
             self.pump.on()
-        elif self.switches.state() == {"pump": True, "dial": _AUTO_MODE  }:
+        elif self.mode_dial.state == _AUTO_MODE and self.pump_switch.state == True:
             val, val_changed, finished = self._auto_brew_schedule.tick()
             if not finished:
                 self.solenoid.open()
@@ -187,11 +191,11 @@ class EspressoMachine:
         print("Machine on")
 
     def _update_setpoint(self):
-        if self.switches.state('dial') == _AUTO_MODE or self.switches.state('dial') == _MANUAL_MODE:
+        if self.mode_dial.read() == _AUTO_MODE or self.mode_dial.read() == _MANUAL_MODE:
             self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["brew"]))
-        elif self.switches.state('dial') == _HOT_MODE:
+        elif self.mode_dial.read() == _HOT_MODE:
             self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["hot"]))
-        elif self.switches.state('dial') == _STEAM_MODE:
+        elif self.mode_dial.read() == _STEAM_MODE:
             self.boiler_ctrl.update_setpoint_to(float(self._config["temps"]["steam"]))
 
     def reset(self):

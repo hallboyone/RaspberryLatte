@@ -2,68 +2,28 @@
 #include <string.h>
 
 #include "binary_output.h"
-#include "uart_bridge.h"
 #include "status_ids.h"
-
-#define MAX_NUM_BINARY_OUTPUTS 32
-
-typedef struct {
-    uint8_t num_pins;
-    uint8_t * pins;
-} binary_output;
-
-static binary_output _binary_outputs[MAX_NUM_BINARY_OUTPUTS];
-static uint8_t _num_binary_outputs = 0;
-
-/**
- * \brief Write to binary outputs over UART. Each write takes three bytes in the form 
- * [BLOCK_ID]-[PIN_ID]-[VALUE]. A SUCCESS messege is returned if the messege is valid.
- * Else, a IDX_OUT_OF_RANGE messege is returned.
- *
- * \param data Pointer to 3n bytes indicating the block id, pin offset, and value of each consecutive write.
- * \param len Number of indicies in data array.
- */
-static void binary_output_read_handler(int* data, int len) {
-    if(len%3 != 0){
-        sendMessageWithStatus(MSG_ID_SET_BIN_OUT, MSG_FORMAT_ERROR, NULL, 0);
-        return;
-    }
-    for(int n = 0; n<len; n += 3){
-        if(!binary_output_put(data[n], data[n+1], data[n+2])){
-            sendMessageWithStatus(MSG_ID_SET_BIN_OUT, IDX_OUT_OF_RANGE, NULL, 0);
-            return;
-        }
-    }
-    sendMessageWithStatus(MSG_ID_SET_BIN_OUT, SUCCESS, NULL, 0);
-}
 
 /**
  * \brief Setup a bank of binary outputs with 1 or more pins.
  *
+ * \param b Pointer to binary_output object that will be setup.
  * \param pins Pointer to an array of GPIO pin numbers.
  * \param num_pins The number of pins for the binary output.
  * 
- * \returns A unique, ID assigned to the binary output. -1 if output not created.
+ * \returns 1 for success. 0 for failure.
  */
-int binary_output_setup(const uint8_t * pins, const uint8_t num_pins){
-    if (_num_binary_outputs >= MAX_NUM_BINARY_OUTPUTS) {
-        return -1;
-    }
-    _binary_outputs[_num_binary_outputs].num_pins = num_pins;
-    _binary_outputs[_num_binary_outputs].pins = (uint8_t*)malloc(sizeof(uint8_t) * num_pins);
-    memcpy(_binary_outputs[_num_binary_outputs].pins, pins, num_pins);
+int binary_output_setup(binary_output * b, const uint8_t * pins, const uint8_t num_pins){
+    b->num_pins = num_pins;
+    b->pins = (uint8_t*)malloc(sizeof(uint8_t) * num_pins);
+    memcpy(b->pins, pins, num_pins);
 
     // Setup each pin.
     for (uint8_t p = 0; p < num_pins; p++) {
-        gpio_init(_binary_outputs[_num_binary_outputs].pins[p]);
-        gpio_set_dir(_binary_outputs[_num_binary_outputs].pins[p], true);
+        gpio_init(b->pins[p]);
+        gpio_set_dir(b->pins[p], true);
     }
-
-    _num_binary_outputs += 1;
-
-    registerHandler(MSG_ID_SET_BIN_OUT, &binary_output_read_handler);
-
-    return _num_binary_outputs-1;
+    return 1;
 }
 
 /**
@@ -73,16 +33,14 @@ int binary_output_setup(const uint8_t * pins, const uint8_t num_pins){
  * \param offset Offset into the block containing the desired GPIO pin.
  * \param val Binary value to write to GPIO.
  * 
- * \returns True if operation was successful. False else.
+ * \returns 1 if operation was successful. 0 else.
  */
-bool binary_output_put(uint8_t id, uint8_t offset, bool val){
-    if(id < _num_binary_outputs){
-        if(offset < _binary_outputs[id].num_pins){
-            gpio_put(_binary_outputs[id].pins[offset], val);
-            return true;
-        }
+int binary_output_put(binary_output * b, uint8_t idx, bool val){
+    if(idx < b->num_pins){
+        gpio_put(b->pins[idx], val);
+        return 1;
     }
-    return false;
+    return 0;
 }
 
 /**
@@ -91,11 +49,26 @@ bool binary_output_put(uint8_t id, uint8_t offset, bool val){
  * \param id ID of block to write to.
  * \param mask Binary values to write to block.
  */
-void binary_output_mask(uint8_t id, uint mask){
-    if(id < _num_binary_outputs){
-        for(int i = 0; i < _binary_outputs[id].num_pins; i++){
-            gpio_put(_binary_outputs[id].pins[i], mask & 1);
-            mask >>= 1;
+int binary_output_mask(binary_output * b, uint mask){
+    for(int i = 0; i < b->num_pins; i++){
+        gpio_put(b->pins[i], mask & 1);
+        mask >>= 1;
+    }
+    return 1;
+}
+
+void binary_output_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
+    if(uart_data_len % 2 != 0){
+        sendMessageWithStatus(id, MSG_FORMAT_ERROR, NULL, 0);
+        return;
+    } else {
+        for(int n = 0; n<uart_data_len; n += 2){
+            if(!binary_output_put((binary_output *)local_data, uart_data[n], uart_data[n+1])){
+                sendMessageWithStatus(id, IDX_OUT_OF_RANGE, NULL, 0);
+                return;
+            }
         }
+        sendMessageWithStatus(id, SUCCESS, NULL, 0);
+        return;
     }
 }

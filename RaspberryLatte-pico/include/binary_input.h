@@ -1,8 +1,22 @@
+#ifndef _BINARY_INPUT_H
+#define _BINARY_INPUT_H
+
 #include "pico/stdlib.h"
 
+#include "uart_bridge.h"
 
 #define BINARY_INPUT_PULL_UP   0
 #define BINARY_INPUT_PULL_DOWN 1
+
+/**
+ * \brief Data related to a binary input. Handles multithrow switches and allows for muxed hardware.
+ */
+typedef struct {
+    uint8_t num_pins;
+    uint8_t* pins;
+    bool muxed;
+    bool inverted;
+} binary_input;
 
 /**
  * \brief Create a binary input with the indicated number of throws. Only one of the throws
@@ -17,7 +31,7 @@
  * 
  * \returns A unique ID assigned to the binary input or -1 if no input was created
  */
-int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed);
+int binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed);
 
 /**
  * \brief Reads the requested switch. If switch is muxed, returns the bit mask of the pins. Else
@@ -28,4 +42,16 @@ int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir,
  * 0 if no pin is found). If switch is muxed, then the the state of the pins are encoded into a 
  * uint8_t mask (i.e, second of three pins active, 010 returned).
  */
-uint8_t binary_input_read(uint8_t switch_idx);
+int binary_input_read(binary_input * b);
+
+/**
+ * \brief Callback that reads the binary input pointed at by local_data and returns its value as a 1 byte
+ * message over UART.
+ * 
+ * \param id The ID of the callback. Each registered callback must have a unique callback ID.
+ * \param local_data Void pointer which MUST point at an binary_input object.
+ * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
+ * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
+ */
+void binary_input_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
+#endif

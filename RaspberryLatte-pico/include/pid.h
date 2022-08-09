@@ -15,6 +15,9 @@
  * || while(true) pid_tick(&boiler_ctrl);
  */
 
+#ifndef _PID_H
+#define _PID_H
+
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
@@ -188,3 +191,4 @@ void pid_reset(pid_ctrl * controller);
  * \brief Destroy the internal fields of the PID controller (frees memory)
  */
 void pid_deinit(pid_ctrl * controller);
+#endif

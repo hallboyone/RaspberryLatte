@@ -4,23 +4,6 @@
 #include <string.h>
 
 #include "status_ids.h"
-#include "uart_bridge.h"
-
-#define MAX_NUM_BINARY_INPUTS 32
-
-/**
- * \brief Data related to a binary input. Handles multithrow switches and allows for muxed hardware.
- */
-typedef struct {
-    uint8_t num_pins;
-    uint8_t* pins;
-    bool muxed;
-    bool inverted;
-} binary_input;
-
-static binary_input _binary_inputs[MAX_NUM_BINARY_INPUTS];
-static uint8_t _num_binary_inputs = 0;
-
 
 /**
  * \brief Reads the indicated GPIO pin and inverts the results if the pin is pulled up. Inverts
@@ -37,36 +20,6 @@ static inline uint8_t gpio_get_w_pull_and_invert(uint pin_idx, bool invert) {
 }
 
 /**
- * \brief Read the physical inputs and return their values over UART. If no indexes are specified,
- * the states of all inputs are returned. Else, only the indicies in the message body are
- * returned. If an index is out of range, an IDX_OUT_OF_RANGE error is returned instead.
- *
- * \param data Pointer to switch indicies to read. If empty, return all.
- * \param len Number of indicies in data array.
- */
-static void binary_input_read_handler(int* data, int len) {
-    int status = SUCCESS;
-    if (len == 0) {  // Read all switches in order they were added
-        int response[_num_binary_inputs];
-        for (uint8_t s_i = 0; s_i < _num_binary_inputs; s_i++) {
-            response[s_i] = binary_input_read(s_i);
-        }
-        sendMessageWithStatus(MSG_ID_GET_SWITCH, status, response, _num_binary_inputs);
-    } else {  // Read only the requested switches
-        int response[len];
-        for (uint8_t s_i = 0; s_i < len; s_i++) {
-            if (data[s_i] < _num_binary_inputs) {
-                response[s_i] = binary_input_read(data[s_i]);
-            } else {
-                response[s_i] = IDX_OUT_OF_RANGE;
-                status = MSG_FORMAT_ERROR;
-            }
-        }
-        sendMessageWithStatus(MSG_ID_GET_SWITCH, status, response, len);
-    }
-}
-
-/**
  * \brief Create a binary input with the indicated number of throws. Only one of the throws
  * can be active at a time. The state of the switch is packed into binary indicating
  * the index of the active pin.
@@ -79,30 +32,22 @@ static void binary_input_read_handler(int* data, int len) {
  * 
  * \returns A unique ID assigned to the binary input or -1 if no input was created
  */
-int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed){
-    if (_num_binary_inputs >= MAX_NUM_BINARY_INPUTS) {
-        return -1;
-    }
-    // Copy data into next _binary_inputs slot.
-    _binary_inputs[_num_binary_inputs].num_pins = num_pins;
-    _binary_inputs[_num_binary_inputs].pins = (uint8_t*)malloc(sizeof(uint8_t) * num_pins);
-    memcpy(_binary_inputs[_num_binary_inputs].pins, pins, num_pins);
-    _binary_inputs[_num_binary_inputs].muxed = muxed;
-    _binary_inputs[_num_binary_inputs].inverted = invert;
+int binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed){
+    // Copy data into b.
+    b->num_pins = num_pins;
+    b->pins = (uint8_t*)malloc(sizeof(uint8_t) * num_pins);
+    memcpy(b->pins, pins, num_pins);
+    b->muxed = muxed;
+    b->inverted = invert;
 
     // Setup each pin.
-    for (uint8_t p = 0; p < _binary_inputs[_num_binary_inputs].num_pins; p++) {
-        gpio_init(_binary_inputs[_num_binary_inputs].pins[p]);
-        gpio_set_dir(_binary_inputs[_num_binary_inputs].pins[p], false);
-        gpio_set_pulls(_binary_inputs[_num_binary_inputs].pins[p], pull_dir == BINARY_INPUT_PULL_UP,
+    for (uint8_t p = 0; p < b->num_pins; p++) {
+        gpio_init(b->pins[p]);
+        gpio_set_dir(b->pins[p], false);
+        gpio_set_pulls(b->pins[p], pull_dir == BINARY_INPUT_PULL_UP,
                        pull_dir != BINARY_INPUT_PULL_UP);
     }
-
-    _num_binary_inputs += 1;
-
-    registerHandler(MSG_ID_GET_SWITCH, &binary_input_read_handler);
-
-    return _num_binary_inputs-1;
+    return 1;
 }
 
 /**
@@ -110,30 +55,43 @@ int binary_input_setup(uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir,
  * returns the index of first high pin. 
  * 
  * \param switch_idx Index of the requested switch. Must have been setup previously. 
- * \returns If switch is not muxed, then the index of the first active pin is returned (1 indexed, 
- * 0 if no pin is found). If switch is muxed, then the the state of the pins are encoded into a 
- * uint8_t mask (i.e, second of three pins active, 010 returned).
+ * 
+ * \returns If switch is not muxed, then the index of the first active pin (1-indexed) is returned 
+ * or 0 if no active pin. If switch is muxed, then the the state of the pins are encoded 
+ * into a uint8_t mask (i.e, second of three pins active, 010 returned).
  */
-uint8_t binary_input_read(uint8_t switch_idx) {
-    if(switch_idx >= _num_binary_inputs){
-        return 0;
-    }
-
-    if (_binary_inputs[switch_idx].muxed) {
+int binary_input_read(binary_input * b) {
+    if (b->muxed) {
         uint8_t pin_mask = 0;
-        for (uint8_t n = 0; n < _binary_inputs[switch_idx].num_pins; n++) {
-            uint8_t p = gpio_get_w_pull_and_invert(_binary_inputs[switch_idx].pins[n],
-                                                   _binary_inputs[switch_idx].inverted);
+        for (uint8_t n = 0; n < b->num_pins; n++) {
+            uint8_t p = gpio_get_w_pull_and_invert(b->pins[n],b->inverted);
             pin_mask = pin_mask | (p << n);
         }
         return pin_mask;
     } else {
-        for (uint8_t n = 0; n < _binary_inputs[switch_idx].num_pins; n++) {
-            if (gpio_get_w_pull_and_invert(_binary_inputs[switch_idx].pins[n],
-                                           _binary_inputs[switch_idx].inverted)){
-                return n + 1;
+        for (uint8_t n = 0; n < b->num_pins; n++) {
+            if (gpio_get_w_pull_and_invert(b->pins[n],b->inverted)){
+                return n+1;
             }
         }
         return 0;
     }
+}
+
+/**
+ * \brief Callback that reads the binary input pointed at by local_data and returns its value as a 1 byte
+ * message over UART.
+ * 
+ * \param id The ID of the callback. Each registered callback must have a unique callback ID.
+ * \param local_data Void pointer which MUST point at an binary_input object.
+ * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
+ * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
+ */
+void binary_input_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
+    int val = binary_input_read((binary_input*)local_data);
+    if (val<0){
+        val = 0;
+        sendMessageWithStatus(id, COMPONENT_ERROR, &val, 1);
+    }
+    sendMessageWithStatus(id, SUCCESS, &val, 1);
 }
