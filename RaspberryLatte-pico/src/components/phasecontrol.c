@@ -48,9 +48,9 @@ static void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
     p->_zerocross_time = cur_time;
     if (p->_timeout_idx > 0){
       // Schedule stop time after 0.75 period
-      add_alarm_in_us(cur_time + PERIOD_0_75, &phasecontrol_set_output_low, _configured_phasecontrollers[gpio], false);
+      add_alarm_in_us(p->zerocross_shift + PERIOD_0_75, &phasecontrol_set_output_low, _configured_phasecontrollers[gpio], false);
       // Schedule start time after the given timeout
-      add_alarm_in_us(cur_time + timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, _configured_phasecontrollers[gpio], true);
+      add_alarm_in_us(p->zerocross_shift + timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, _configured_phasecontrollers[gpio], true);
     }
   }
 }
