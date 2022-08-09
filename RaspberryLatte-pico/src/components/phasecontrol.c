@@ -7,7 +7,7 @@
 #define PERIOD_0_75        12500
 #define PERIOD_0_50         8333
 
-phasecontrol * _configured_phasecontrollers [32]; //indexed by their out_pin.
+phasecontrol * _configured_phasecontrollers [32]; //indexed by their zerocross pin.
 
 // All possible timeouts. Spaced so that the area under the curve is split into 127 equal boxes.
 const uint16_t timeouts_us[128] =
@@ -66,12 +66,14 @@ void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
  * \param event Event to trigger zerocross on. Either ZEROCROSS_EVENT_RISING or ZEROCROSS_EVENT_FALLING. 
  */
 void phasecontrol_setup(phasecontrol * p, uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocross_shift, uint8_t event){
-  _configured_phasecontrollers[out_pin] = p;
+  _configured_phasecontrollers[zerocross_pin] = p;
 
   p->zerocross_pin = zerocross_pin;
   p->out_pin = out_pin;
   p->zerocross_shift = zerocross_shift;
   p->event = event;
+
+  p->_zerocross_time = 0;
 
   // Setup SSR output pin
   gpio_init(p->out_pin);

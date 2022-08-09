@@ -14,7 +14,7 @@ static msg_handler * _handlers = NULL;
 void uart_bridge_setup(){
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
     while(getchar_timeout_us(10) != PICO_ERROR_TIMEOUT) tight_loop_contents();
-    if(_handlers != NULL){
+    if(_handlers == NULL){
         _handlers = malloc(sizeof(msg_handler)*NUM_HANDLERS);
         for(uint i = 0; i < NUM_HANDLERS; i++){
             _handlers[i].callback = NULL;
@@ -70,7 +70,7 @@ int readMessage(){
     }
   }
 
-  // Call handler
+  // Call handler 
   _handlers[id].callback(id, _handlers[id].local_data, msg_body, len);
   return MSG_READ_SUCCESS;
 }

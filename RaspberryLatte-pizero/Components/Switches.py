@@ -42,12 +42,3 @@ class Switches(uart_bridge.UARTMessenger):
             return self.reading[1]
         else:
             return {'pump':self.reading[0], 'dial':self.reading[1]}
-
-if __name__=="main":
-    switches = Switches()
-    while True:
-        (dial_changed, switch_changed) = switches.update()
-        if dial_changed:
-            print(f"Dial changed to {switches.state('dial')}")
-        if switch_changed:
-            print(f"Switch changed to {switches.state('switch')}")

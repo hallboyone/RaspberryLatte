@@ -56,8 +56,8 @@ int binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins,
  * 
  * \param switch_idx Index of the requested switch. Must have been setup previously. 
  * 
- * \returns If switch is not muxed, then the index of the first active pin is returned 
- * or -1 if no active pin. If switch is muxed, then the the state of the pins are encoded 
+ * \returns If switch is not muxed, then the index of the first active pin (1-indexed) is returned 
+ * or 0 if no active pin. If switch is muxed, then the the state of the pins are encoded 
  * into a uint8_t mask (i.e, second of three pins active, 010 returned).
  */
 int binary_input_read(binary_input * b) {
@@ -71,10 +71,10 @@ int binary_input_read(binary_input * b) {
     } else {
         for (uint8_t n = 0; n < b->num_pins; n++) {
             if (gpio_get_w_pull_and_invert(b->pins[n],b->inverted)){
-                return n;
+                return n+1;
             }
         }
-        return -1;
+        return 0;
     }
 }
 
