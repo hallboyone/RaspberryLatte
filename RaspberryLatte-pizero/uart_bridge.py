@@ -20,7 +20,7 @@ UNUSED5              = 15
 
 _SERIAL_PORT = "/dev/ttyS0"
 _BAUDRATE = 115200
-UART_TIMEOUT  = 2500
+UART_TIMEOUT  = 0.25
 RESEND_COUNT = 3
 
 _ser = serial.Serial(port=_SERIAL_PORT, baudrate = _BAUDRATE)
