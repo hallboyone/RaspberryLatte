@@ -1,3 +1,6 @@
+#ifndef _PHASECONTROL_H
+#define _PHASECONTROL_H
+
 #include "pico/stdlib.h"
 
 #include "uart_bridge.h"
@@ -65,3 +68,4 @@ void phasecontrol_is_ac_hot_uart_callback(message_id id, void * local_data, int 
  * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
  */
 void phasecontrol_set_duty_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
+#endif

@@ -1,3 +1,5 @@
+#ifndef _ANALOG_INPUT_H
+#define _ANALOG_INPUT_H
 #include "pico/stdlib.h"
 
 #include "uart_bridge.h"
@@ -35,3 +37,4 @@ uint16_t analog_input_read(analog_input * a);
  * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
  */
 void analog_input_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
+#endif

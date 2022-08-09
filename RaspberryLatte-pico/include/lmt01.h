@@ -1,3 +1,6 @@
+#ifndef _LMT01_H
+#define _LMT01_H
+
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "uart_bridge.h"
@@ -37,3 +40,4 @@ float lmt01_read_float(lmt01 * l);
  * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
  */
 void lmt01_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
+#endif

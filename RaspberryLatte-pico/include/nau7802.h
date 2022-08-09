@@ -33,59 +33,6 @@ typedef const struct{
 #define REG_PWR_CTRL 0x1C
 #define REG_DEV_REV  0x1F
 
-const bit_range BITS_RESET;
-const bit_range BITS_PWR_UP_D;
-const bit_range BITS_PWR_UP_A;
-const bit_range BITS_READY;
-const bit_range BITS_CS;
-const bit_range BITS_CR;
-const bit_range BITS_OSCS;
-const bit_range BITS_AVDD_S;
-
-const bit_range BITS_GAIN;
-const bit_range BITS_VLDO;
-const bit_range BITS_DRDY_SEL;
-const bit_range BITS_CRP;
- 
-const bit_range BITS_CAL_MODE;
-const bit_range BITS_CALS;
-const bit_range BITS_CAL_ERR;
-const bit_range BITS_CRS;
-const bit_range BITS_CHS;
-
-const bit_range BITS_BGPCP;
-const bit_range BITS_TS;
-const bit_range BITS_BOPGA;
-const bit_range BITS_SI;
-const bit_range BITS_WPD;
-const bit_range BITS_SPE;
-const bit_range BITS_FRD;
-const bit_range BITS_CRSD;
-
-const bit_range BITS_B23_16;
-
-const bit_range BITS_B15_08;
-
-const bit_range BITS_B07_00;
-
-const bit_range BITS_REG_CHP;
-const bit_range BITS_ADC_VCM;
-const bit_range BITS_REG_CHPS;
-
-const bit_range BITS_PGA_CHP_DIS;
-const bit_range BITS_PGA_INV;
-const bit_range BITS_PGA_BYP_EN;
-const bit_range BITS_PGA_OBUF_EN;
-const bit_range BITS_LDO_MODE;
-const bit_range BITS_RD_OTP_SEL;
-
-const bit_range BITS_PGA_CURR;
-const bit_range BITS_ADC_CURR;
-const bit_range BITS_MST_BS_CURR;
-const bit_range BITS_PGA_CAP;
-
-const bit_range BITS_REVISION_ID;
-
 typedef enum _ldo_voltage{ 
     VLDO_2_4 = 0b111,
     VLDO_2_7 = 0b110,

@@ -3,6 +3,8 @@
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief Sets up a low frequnecy (~0.5Hz) PWM signal
  */
+#ifndef _SLOW_PWM_H
+#define _SLOW_PWM_H
 
 #include "pico/stdlib.h" /** Included for alarms, gpio functions, and typedefs */
 
@@ -25,3 +27,4 @@ uint8_t slow_pwm_set_duty(slow_pwm * s, uint8_t duty);
 uint8_t slow_pwm_set_float_duty(slow_pwm * s, float u);
 
 void slow_pwm_set_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
+#endif
