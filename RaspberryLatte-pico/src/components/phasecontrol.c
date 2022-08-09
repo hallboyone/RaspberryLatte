@@ -3,14 +3,15 @@
 #include "phasecontrol.h"
 #include "status_ids.h"
 
-#define PERIOD_1_00        16667
-#define PERIOD_0_75        12500
-#define PERIOD_0_50         8333
+static const uint64_t PERIOD_1_00 = 16667;
+static const uint64_t PERIOD_0_75 = 12500;
+static const uint64_t PERIOD_0_50 =  8333;
 
-phasecontrol * _configured_phasecontrollers [32]; //indexed by their zerocross pin.
+// Array of pointers to each of the configured controllers indexed by their zerocross pin.
+static phasecontrol * _configured_phasecontrollers [32]; 
 
 // All possible timeouts. Spaced so that the area under the curve is split into 127 equal boxes.
-const uint16_t timeouts_us[128] =
+static const uint16_t timeouts_us[128] =
   {8333,7862,7666,7515,7387,7274,7171,7076,6987,6904,6824,6749,6676,6606,6538,6472,
    6408,6346,6286,6226,6168,6112,6056,6001,5947,5895,5842,5791,5740,5690,5641,5592,
    5544,5496,5448,5401,5355,5309,5263,5217,5172,5127,5083,5039,4995,4951,4907,4864,
@@ -23,18 +24,16 @@ const uint16_t timeouts_us[128] =
 /**
  * \brief Alarm callback writing 0 to the output GPIO to disable SSR or other switch.
  */
-int64_t phasecontrol_set_output_low(int32_t alarm_num, void * data){
-  phasecontrol* p = (phasecontrol*)data;
-  gpio_put(p->out_pin, 0);
+static int64_t phasecontrol_set_output_low(int32_t alarm_num, void * data){
+  gpio_put(((phasecontrol*)data)->out_pin, 0);
   return 0;
 }
 
 /**
  * \brief Alarm callback writing 1 to the output GPIO to trigger SSR or other switch.
  */
-int64_t phasecontrol_set_output_high(int32_t alarm_num, void * data){
-  phasecontrol* p = (phasecontrol*)data;
-  gpio_put(p->out_pin, 1);
+static int64_t phasecontrol_set_output_high(int32_t alarm_num, void * data){
+  gpio_put(((phasecontrol*)data)->out_pin, 1);
   return 0;
 }
 
@@ -42,16 +41,16 @@ int64_t phasecontrol_set_output_high(int32_t alarm_num, void * data){
  * \brief ISR for zerocross pin. Schedules alarms to turn the output pin on (after some delay)
  * of off (after 0.75 a period).
  */
-void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
-  phasecontrol * p = _configured_phasecontrollers[gpio];
-  // Make sure we aren't re-sensing the same zero crossing
-  if(p->_zerocross_time + PERIOD_0_75 < time_us_64()){
-    p->_zerocross_time = time_us_64();
+static void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
+  volatile phasecontrol * p = _configured_phasecontrollers[gpio];
+  const uint64_t cur_time = time_us_64();
+  if(p->_zerocross_time + PERIOD_0_75 < cur_time){
+    p->_zerocross_time = cur_time;
     if (p->_timeout_idx > 0){
       // Schedule stop time after 0.75 period
-      add_alarm_in_us(p->_zerocross_time + PERIOD_0_75, &phasecontrol_set_output_low, p, false);
+      add_alarm_in_us(cur_time + PERIOD_0_75, &phasecontrol_set_output_low, _configured_phasecontrollers[gpio], false);
       // Schedule start time after the given timeout
-      add_alarm_in_us(p->_zerocross_time + timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, p, true);
+      add_alarm_in_us(cur_time + timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, _configured_phasecontrollers[gpio], true);
     }
   }
 }
@@ -74,6 +73,7 @@ void phasecontrol_setup(phasecontrol * p, uint8_t zerocross_pin, uint8_t out_pin
   p->event = event;
 
   p->_zerocross_time = 0;
+  p->_timeout_idx = 0;
 
   // Setup SSR output pin
   gpio_init(p->out_pin);
