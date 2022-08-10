@@ -109,6 +109,7 @@ int main(){
     uint loop_counter = 0;
     while(true){
         loop_rate_limiter_us(50000);
+        binary_output_put(&leds, 0, phasecontrol_is_ac_hot(&pump));
         update_setpoint();
         pid_tick(&heater_pid);
         loop_counter = (loop_counter+1)%20;
