@@ -19,6 +19,7 @@
 #include "lmt01.h"
 
 #include "pid.h"
+#include "autobrew.h"
 
 analog_input pressure_sensor;
 binary_output leds;
@@ -29,11 +30,31 @@ slow_pwm heater;
 pid_ctrl heater_pid;
 lmt01 thermo;
 
+autobrew_leg autobrew_legs [5];
+autobrew_routine autobrew_plan;
+
+uint32_t scale_origin = 0;
+
 static float read_boiler_thermo(){
     return lmt01_read_float(&thermo);
 }
+
 static void apply_boiler_input(float u){
     slow_pwm_set_float_duty(&heater, u);
+}
+
+static int read_scale(){
+    uint32_t scale_val;
+    nau7802_read(&scale_val);
+    return 0.152710615479*(float)(scale_val - scale_origin); // in mg
+}
+
+static void zero_scale(){
+    nau7802_read(&scale_origin);
+}
+
+static bool scale_at_dose(){
+    return read_scale() > 1000 * 30;
 }
 
 void loop_rate_limiter_us(const uint64_t loop_period_us){
@@ -104,7 +125,14 @@ int main(){
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
- 
+
+    autobrew_setup_function_call_leg(&(autobrew_legs[0]), &zero_scale, 0);
+    autobrew_setup_ramp_leg(&(autobrew_legs[1]), 60, 80, 4000000);
+    autobrew_setup_constant_timed_leg(&(autobrew_legs[2]), 0, 4000000);
+    autobrew_setup_ramp_leg(&(autobrew_legs[3]), 60, 127, 1000000);
+    autobrew_setup_constant_triggered_leg(&(autobrew_legs[4]), 127, &scale_at_dose, 60000000);
+    autobrew_setup_routine(&autobrew_plan, autobrew_legs, 5);
+
     // Run main machine loop
     uint loop_counter = 0;
     while(true){
