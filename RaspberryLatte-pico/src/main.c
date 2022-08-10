@@ -70,20 +70,20 @@ int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 
-    // Define a pressure sensor, set it up, and register its callback
+    // Setup the pressure sensor
     analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN);
 
-    // Define LED binary output, set it up, and register its callback
+    // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     binary_output_setup(&leds, led_pins, 3);
 
-    // Define binary inputs for pump switch and mode dial. Setup and register their callbacks.
+    // Setup the binary inputs for pump switch and mode dial.
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
     binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, true, false);
     binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, false, true);
 
-    // Set up phase control
+    // Setup phase control
     phasecontrol_setup(&pump,PHASECONTROL_0CROSS_PIN,PHASECONTROL_OUT_PIN,PHASECONTROL_0CROSS_SHIFT,ZEROCROSS_EVENT_RISING);
 
     // Setup solenoid as a binary output
@@ -93,7 +93,7 @@ int main(){
     // Setup nau7802. This is the only non-struct based object. 
     nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
 
-    // Setup heater and register its handler.
+    // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN);
     heater_pid.K.p = 0.05; heater_pid.K.i = 0.0015; heater_pid.K.d = 0.0005;
     heater_pid.min_time_between_ticks_ms = 100;
@@ -102,10 +102,10 @@ int main(){
     update_setpoint();
     pid_init(&heater_pid, 0, 150, 1000);
 
-    // Setup thermometer and register its handler.
+    // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
  
-    // Continually look for a messege and then run maintenance
+    // Run main machine loop
     uint loop_counter = 0;
     while(true){
         loop_rate_limiter_us(50000);
