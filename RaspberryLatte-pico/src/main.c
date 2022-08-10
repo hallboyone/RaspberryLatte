@@ -3,6 +3,7 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
+#include "machine_configuration.h"
 #include "pinout.h"
 #include "message_ids.h"
 
@@ -17,72 +18,102 @@
 #include "slow_pwm.h"
 #include "lmt01.h"
 
-// #include "pid.h"
+#include "pid.h"
 
-bool run = true;
+analog_input pressure_sensor;
+binary_output leds;
+binary_input pump_switch, mode_dial;
+phasecontrol pump;
+binary_output solenoid;
+slow_pwm heater;
+pid_ctrl heater_pid;
+lmt01 thermo;
 
-void end_program(message_id id, void * local_data, int * uart_data, int uart_data_len){
-    run = false;
+static float read_boiler_thermo(){
+    return lmt01_read_float(&thermo);
+}
+static void apply_boiler_input(float u){
+    slow_pwm_set_float_duty(&heater, u);
+}
+
+void loop_rate_limiter_us(const uint64_t loop_period_us){
+    static uint64_t last_loop_time_us = 0;
+    if(last_loop_time_us==0){
+        last_loop_time_us = time_us_64();
+    }
+    else{
+        while(last_loop_time_us + loop_period_us > time_us_64()){
+            tight_loop_contents();
+        }
+        last_loop_time_us = time_us_64();
+    }
+}
+
+static inline void update_setpoint(){
+    if(phasecontrol_is_ac_hot(&pump)){
+        switch(binary_input_read(&mode_dial)){
+            case MODE_STEAM:
+                heater_pid.setpoint = SETPOINT_STEAM;
+                break;
+            case MODE_HOT:
+                heater_pid.setpoint = SETPOINT_HOT;
+                break;
+            default:
+                heater_pid.setpoint = SETPOINT_BREW;
+        }
+    } else {
+        heater_pid.setpoint = 0;
+    }
 }
 
 int main(){
-    // Setup UART and assign endProgram command
-    uart_bridge_setup();
-    uart_bridge_register_handler(MSG_ID_END_PROGRAM, NULL, &end_program);
+    // Setup UART
+    stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 
     // Define a pressure sensor, set it up, and register its callback
-    analog_input pressure_sensor;
     analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN);
-    uart_bridge_register_handler(MSG_ID_GET_PRESSURE, &pressure_sensor, &analog_input_uart_callback);
 
     // Define LED binary output, set it up, and register its callback
-    binary_output leds;
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     binary_output_setup(&leds, led_pins, 3);
-    uart_bridge_register_handler(MSG_ID_SET_LEDS, &leds, &binary_output_uart_callback);
 
     // Define binary inputs for pump switch and mode dial. Setup and register their callbacks.
-    binary_input pump_switch, mode_dial;
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
     binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, true, false);
     binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, false, true);
-    uart_bridge_register_handler(MSG_ID_GET_SWITCH, &pump_switch, &binary_input_uart_callback);
-    uart_bridge_register_handler(MSG_ID_GET_DIAL, &mode_dial, &binary_input_uart_callback);
 
     // Set up phase control
-    phasecontrol pump;
     phasecontrol_setup(&pump,PHASECONTROL_0CROSS_PIN,PHASECONTROL_OUT_PIN,PHASECONTROL_0CROSS_SHIFT,ZEROCROSS_EVENT_RISING);
-    uart_bridge_register_handler(MSG_ID_GET_AC_ON, &pump, &phasecontrol_is_ac_hot_uart_callback);
-    uart_bridge_register_handler(MSG_ID_SET_PUMP, &pump, &phasecontrol_set_duty_uart_callback);
 
     // Setup solenoid as a binary output
-    binary_output solenoid;
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
     binary_output_setup(&solenoid, solenoid_pin, 1);
-    uart_bridge_register_handler(MSG_ID_SET_SOLENOID, &solenoid, &binary_output_uart_callback);
 
     // Setup nau7802. This is the only non-struct based object. 
     nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
-    uart_bridge_register_handler(MSG_ID_GET_WEIGHT, NULL, &nau7802_read_uart_callback);
 
     // Setup heater and register its handler.
-    slow_pwm heater;
     slow_pwm_setup(&heater, HEATER_PWM_PIN);
-    uart_bridge_register_handler(MSG_ID_SET_HEATER, &heater, &slow_pwm_set_uart_callback);
-    
-    // Setup thermometer and register its handler.
-    lmt01 thermo;
-    lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
-    uart_bridge_register_handler(MSG_ID_GET_TEMP, &thermo, &lmt01_read_uart_callback);
+    heater_pid.K.p = 0.05; heater_pid.K.i = 0.0015; heater_pid.K.d = 0.0005;
+    heater_pid.min_time_between_ticks_ms = 100;
+    heater_pid.sensor = &read_boiler_thermo;
+    heater_pid.plant = &apply_boiler_input;
+    update_setpoint();
+    pid_init(&heater_pid, 0, 150, 1000);
 
+    // Setup thermometer and register its handler.
+    lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
+ 
     // Continually look for a messege and then run maintenance
-    while(run){
-        uint64_t start_time = time_us_64();
-        readMessage();
-        uint64_t delta_time = time_us_64() - start_time;
-        if(delta_time < 50){
-            sleep_us(50 - delta_time);
+    uint loop_counter = 0;
+    while(true){
+        loop_rate_limiter_us(50000);
+        update_setpoint();
+        pid_tick(&heater_pid);
+        loop_counter = (loop_counter+1)%20;
+        if(loop_counter==0){
+            printf("Setpoint: %0.2f, Temp: %0.4f\n", heater_pid.setpoint, lmt01_read(&thermo)/16.0);
         }
     }
 }

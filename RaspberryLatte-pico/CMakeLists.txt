@@ -15,9 +15,8 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/phasecontrol.c
                PRIVATE src/components/nau7802.c
                PRIVATE src/components/slow_pwm.c
-               PRIVATE src/components/lmt01.c) 
-              #  PRIVATE src/components/pid.c 
-              #  )
+               PRIVATE src/components/lmt01.c
+               PRIVATE src/components/pid.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
