@@ -107,8 +107,7 @@ class EspressoMachine:
 
     def run(self):
         try:
-            # self.scale.zero()
-            self.leds.set(0, 1)
+            self.scale.zero()
             while(True):
                 if not self.ac_power.on():
                    self._powered_down_loop()
@@ -185,7 +184,6 @@ class EspressoMachine:
         while not self.ac_power.on():
             sleep(0.01)
             pass
-        self.leds.set(0, 1)
         self.boiler_ctrl.reset()
         self._auto_brew_schedule.reset()
         print("Machine on")
