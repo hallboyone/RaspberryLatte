@@ -2,8 +2,6 @@
 #define _AUTOBREW_H
 #include "pico/stdlib.h"
 
-typedef enum {FUNCTION_CALL, RAMP, CONSTANT_TIMED, CONSTANT_TRIGGERED} leg_type_names;
-
 typedef void (*autobrew_fun)();
 typedef bool (*autobrew_trigger)();
 
