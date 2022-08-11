@@ -33,7 +33,9 @@ lmt01 thermo;
 autobrew_leg autobrew_legs [5];
 autobrew_routine autobrew_plan;
 
-uint32_t scale_origin = 0;
+int32_t scale_origin = 0;
+
+bool pump_lock = false;
 
 static float read_boiler_thermo(){
     return lmt01_read_float(&thermo);
@@ -44,21 +46,23 @@ static void apply_boiler_input(float u){
 }
 
 static int read_scale(){
-    uint32_t scale_val;
+    int32_t scale_val;
     nau7802_read(&scale_val);
     return 0.152710615479*(float)(scale_val - scale_origin); // in mg
 }
 
 static void zero_scale(){
-    nau7802_read(&scale_origin);
+    do {
+        nau7802_read(&scale_origin);
+    } while (scale_origin==0);
 }
 
 static bool scale_at_dose(){
     return read_scale() > 1000 * 30;
 }
 
+static uint64_t last_loop_time_us = 0;
 void loop_rate_limiter_us(const uint64_t loop_period_us){
-    static uint64_t last_loop_time_us = 0;
     if(last_loop_time_us==0){
         last_loop_time_us = time_us_64();
     }
@@ -71,7 +75,7 @@ void loop_rate_limiter_us(const uint64_t loop_period_us){
 }
 
 static inline void update_setpoint(){
-    if(phasecontrol_is_ac_hot(&pump)){
+    if(false && phasecontrol_is_ac_hot(&pump)){
         switch(binary_input_read(&mode_dial)){
             case MODE_STEAM:
                 heater_pid.setpoint = SETPOINT_STEAM;
@@ -84,6 +88,41 @@ static inline void update_setpoint(){
         }
     } else {
         heater_pid.setpoint = 0;
+    }
+}
+
+static inline void update_pump(){
+    if(pump_lock || !binary_input_read(&pump_switch)){
+        phasecontrol_set_duty_cycle(&pump, 0);
+        binary_output_put(&solenoid, 0, 0);
+        autobrew_routine_reset(&autobrew_plan);
+    } else if (binary_input_read(&pump_switch)){
+        switch(binary_input_read(&mode_dial)){
+            case MODE_STEAM:
+                phasecontrol_set_duty_cycle(&pump, 0);
+                binary_output_put(&solenoid, 0, 0);
+                break;
+            case MODE_HOT:
+                phasecontrol_set_duty_cycle(&pump, 127);
+                binary_output_put(&solenoid, 0, 0);
+                break;
+            case MODE_MAN:
+                phasecontrol_set_duty_cycle(&pump, 127);
+                binary_output_put(&solenoid, 0, 1);
+                break;
+            case MODE_AUTO:
+                autobrew_routine_tick(&autobrew_plan);
+                if(!autobrew_plan.state.finished){
+                    if(autobrew_plan.state.pump_setting_changed){
+                        phasecontrol_set_duty_cycle(&pump, autobrew_plan.state.pump_setting);
+                    }
+                    binary_output_put(&solenoid, 0, 1);
+                } else {
+                    phasecontrol_set_duty_cycle(&pump, 0);
+                    binary_output_put(&solenoid, 0, 0);
+                }
+                break;
+        }
     }
 }
 
@@ -131,17 +170,24 @@ int main(){
     autobrew_setup_constant_timed_leg(&(autobrew_legs[2]), 0, 4000000);
     autobrew_setup_ramp_leg(&(autobrew_legs[3]), 60, 127, 1000000);
     autobrew_setup_constant_triggered_leg(&(autobrew_legs[4]), 127, &scale_at_dose, 60000000);
-    autobrew_setup_routine(&autobrew_plan, autobrew_legs, 5);
+    autobrew_routine_setup(&autobrew_plan, autobrew_legs, 5);
 
     // Run main machine loop
     uint loop_counter = 0;
+    zero_scale();
     while(true){
         loop_rate_limiter_us(50000);
         binary_output_put(&leds, 0, phasecontrol_is_ac_hot(&pump));
+
         update_setpoint();
         pid_tick(&heater_pid);
+
+        update_pump();
+
         loop_counter = (loop_counter+1)%20;
+        
         if(loop_counter==0){
+            printf("Scale: %0.2f, At dose: %d\n", read_scale()/1000.0, scale_at_dose());
             printf("Setpoint: %0.2f, Temp: %0.4f\n", heater_pid.setpoint, lmt01_read(&thermo)/16.0);
         }
     }

@@ -1,7 +1,4 @@
-#define MODE_STEAM 0
-#define MODE_HOT   1
-#define MODE_MAN   2
-#define MODE_AUTO  3
+typedef enum {MODE_STEAM, MODE_HOT, MODE_MAN, MODE_AUTO} machine_mode;
   
 #define SETPOINT_BREW  95
 #define SETPOINT_HOT   100

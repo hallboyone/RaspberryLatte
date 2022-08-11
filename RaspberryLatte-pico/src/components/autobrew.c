@@ -11,25 +11,28 @@ static void clear_leg_struct(autobrew_leg * leg){
     leg->trigger = NULL;
 }
 
+static void reset_leg(autobrew_leg * leg){
+    leg->end_time_us = 0;
+}
+
 static int autobrew_tick_function_call_leg(autobrew_leg * leg, autobrew_state * state){
     if(leg->leg_type != FUNCTION_CALL) return 0;
     leg->fun();
     state->pump_setting = leg->pump_pwr_start;
     state->pump_setting_changed = true;
-    state->finished_leg = true;
+    state->finished = true;
     return 1;
 }
 
 static int autobrew_tick_ramp_leg(autobrew_leg * leg, autobrew_state * state){
     if(leg->leg_type != RAMP) return 0;
-
     state->pump_setting_changed = true;
     if(leg->end_time_us == 0){
         leg->end_time_us = time_us_64() + leg->duration_us;
     }
     float percent_complete = 1 - (leg->end_time_us - time_us_64())/(float)leg->duration_us;
     state->pump_setting = leg->pump_pwr_start + percent_complete*leg->pump_pwr_delta;
-    state->finished_leg = (leg->end_time_us <= time_us_64());
+    state->finished = (leg->end_time_us <= time_us_64());
     return 1;
 }
 
@@ -43,7 +46,7 @@ static int autobrew_tick_constant_timed_leg(autobrew_leg * leg, autobrew_state *
         state->pump_setting_changed = false;
     }
     state->pump_setting = leg->pump_pwr_start;
-    state->finished_leg = (leg->end_time_us <= time_us_64());
+    state->finished = (leg->end_time_us <= time_us_64());
     return 1;
 }
 
@@ -57,7 +60,7 @@ static int autobrew_tick_constant_triggered_leg(autobrew_leg * leg, autobrew_sta
         state->pump_setting_changed = false;
     }
     state->pump_setting = leg->pump_pwr_start;
-    state->finished_leg = (leg->trigger() || leg->end_time_us <= time_us_64());
+    state->finished = (leg->trigger() || leg->end_time_us <= time_us_64());
     return 1;
 }
 
@@ -92,8 +95,44 @@ int autobrew_setup_constant_triggered_leg(autobrew_leg * leg, uint8_t pump_pwr, 
     leg->duration_us = timeout_us;
 }
 
-int autobrew_setup_routine(autobrew_routine * r, autobrew_leg * legs, uint8_t num_legs){
-    r->legs = legs;
-    r->num_legs = num_legs;
-    r->cur_leg = 0;
+int autobrew_routine_setup(autobrew_routine * r, autobrew_leg * legs, uint8_t num_legs){
+    r->_legs = legs;
+    r->_num_legs = num_legs;
+    r->_cur_leg = 0;
+    r->state.pump_setting = 0;
+    r->state.pump_setting_changed = false;
+    r->state.finished = false;
+}
+
+int autobrew_routine_tick(autobrew_routine * r){
+    if(r->state.finished) return 1;
+    switch(r->_legs[r->_cur_leg].leg_type){
+        case FUNCTION_CALL:
+            autobrew_tick_function_call_leg(&(r->_legs[r->_cur_leg]), &(r->state));
+            break;
+        case RAMP:
+            autobrew_tick_ramp_leg(&(r->_legs[r->_cur_leg]), &(r->state));
+            break;
+        case CONSTANT_TIMED:
+            autobrew_tick_constant_timed_leg(&(r->_legs[r->_cur_leg]), &(r->state));
+            break;
+        case CONSTANT_TRIGGERED:
+            autobrew_tick_constant_triggered_leg(&(r->_legs[r->_cur_leg]), &(r->state));
+            break;
+    }
+    if(r->state.finished){
+        r->_cur_leg += 1;
+        r->state.finished = (r->_cur_leg==r->_num_legs);
+    }
+    return r->state.finished;
+}
+
+int autobrew_routine_reset(autobrew_routine * r){
+    r->_cur_leg = 0;
+    r->state.pump_setting = 0;
+    r->state.pump_setting_changed = false;
+    r->state.finished = false;
+    for(uint i = 0; i<r->_num_legs; i++){
+        reset_leg(&(r->_legs[i]));
+    }
 }

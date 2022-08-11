@@ -23,13 +23,14 @@ typedef struct {
 typedef struct {
     uint8_t pump_setting;
     bool pump_setting_changed;
-    bool finished_leg;
+    bool finished;
 } autobrew_state;
 
 typedef struct {
-    uint8_t num_legs;
-    uint8_t cur_leg;
-    autobrew_leg * legs;
+    autobrew_state state;
+    uint8_t _num_legs;
+    uint8_t _cur_leg;
+    autobrew_leg * _legs;
 } autobrew_routine;
 
 int autobrew_setup_function_call_leg(autobrew_leg * leg, autobrew_fun fun, uint8_t pwr);
@@ -43,6 +44,9 @@ int autobrew_setup_constant_timed_leg(autobrew_leg * leg, uint8_t pump_pwr,
 int autobrew_setup_constant_triggered_leg(autobrew_leg * leg, uint8_t pump_pwr, 
                                           autobrew_trigger trigger, uint32_t timeout_us);
 
-int autobrew_setup_routine(autobrew_routine * r, autobrew_leg * legs, uint8_t num_legs);
+int autobrew_routine_setup(autobrew_routine * r, autobrew_leg * legs, uint8_t num_legs);
 
+int autobrew_routine_tick(autobrew_routine * r);
+
+int autobrew_routine_reset(autobrew_routine * r);
 #endif
