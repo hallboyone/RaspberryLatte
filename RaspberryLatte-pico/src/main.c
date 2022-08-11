@@ -165,11 +165,11 @@ int main(){
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
 
-    autobrew_setup_function_call_leg(&(autobrew_legs[0]), &zero_scale, 0);
-    autobrew_setup_ramp_leg(&(autobrew_legs[1]), 60, 80, 4000000);
-    autobrew_setup_constant_timed_leg(&(autobrew_legs[2]), 0, 4000000);
-    autobrew_setup_ramp_leg(&(autobrew_legs[3]), 60, 127, 1000000);
-    autobrew_setup_constant_triggered_leg(&(autobrew_legs[4]), 127, &scale_at_dose, 60000000);
+    autobrew_leg_setup_function_call(&(autobrew_legs[0]), 0, &zero_scale);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[1]),  60,  80,  4000000, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[2]),   0,   0,  4000000, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[3]),  60, 127,  1000000, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 127, 127, 60000000, &scale_at_dose);
     autobrew_routine_setup(&autobrew_plan, autobrew_legs, 5);
 
     // Run main machine loop
