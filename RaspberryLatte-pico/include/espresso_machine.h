@@ -28,9 +28,6 @@ lmt01 thermo;
 autobrew_leg autobrew_legs [5];
 autobrew_routine autobrew_plan;
 
-uint autobrew_target_output_mg = 30000;
-uint autobrew_bean_dose_mg = 16000;
-
 /** \brief Helper function for the PID controller. Returns the boiler temp in C. */
 float read_boiler_thermo();
 

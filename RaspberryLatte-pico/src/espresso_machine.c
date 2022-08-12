@@ -1,8 +1,10 @@
 #include "espresso_machine.h"
 
 static int32_t scale_origin = 0;
-bool pump_lock = false;
-uint8_t current_mode = 0;
+static bool pump_lock = false;
+static uint8_t current_mode = 0;
+static uint autobrew_target_output_mg = 30000;
+static uint autobrew_bean_dose_mg = 16000;
 
 /**
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
@@ -69,7 +71,7 @@ void update_setpoint(){
 
 void update_pump_lock(){
     if(binary_input_read(&mode_dial) != current_mode){
-        zero_scale();
+        scale_zero();
         pump_lock = true;
         current_mode = binary_input_read(&mode_dial);
     }

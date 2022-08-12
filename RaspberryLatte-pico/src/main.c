@@ -29,7 +29,7 @@ int main(){
 
     // Setup nau7802. This is the only non-struct based object. 
     nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
-    zero_scale();
+    scale_zero();
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN);
