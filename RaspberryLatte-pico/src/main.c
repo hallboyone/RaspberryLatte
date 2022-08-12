@@ -28,8 +28,7 @@ int main(){
     binary_output_setup(&solenoid, solenoid_pin, 1);
 
     // Setup nau7802. This is the only non-struct based object. 
-    nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1);
-    scale_zero();
+    nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1, 0.152710615479);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN);
@@ -43,7 +42,7 @@ int main(){
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
 
-    autobrew_leg_setup_function_call(&(autobrew_legs[0]), 0, &scale_zero);
+    autobrew_leg_setup_function_call(&(autobrew_legs[0]), 0, &nau7802_zero);
     autobrew_leg_setup_linear_power(&(autobrew_legs[1]),  60,  80,  4000000, NULL);
     autobrew_leg_setup_linear_power(&(autobrew_legs[2]),   0,   0,  4000000, NULL);
     autobrew_leg_setup_linear_power(&(autobrew_legs[3]),  60, 127,  1000000, NULL);

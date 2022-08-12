@@ -34,12 +34,6 @@ float read_boiler_thermo();
 /** \brief Helper function for the PID controller. Applies an input to the boiler heater. */
 void apply_boiler_input(float u);
 
-/** \brief Function that handles the conversion from the raw nau7802 values into mg */
-int scale_read();
-
-/** \brief Record the current scale value and subtract that from future readings. */
-void scale_zero();
-
 /** \brief Returns true if scale is greater than or equal to the passed in value. */
 bool scale_at_val(int val_mg);
 

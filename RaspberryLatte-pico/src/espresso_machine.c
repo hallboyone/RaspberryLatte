@@ -1,6 +1,5 @@
 #include "espresso_machine.h"
 
-static int32_t scale_origin = 0;
 static bool pump_lock = false;
 static uint8_t current_mode = 0;
 static uint autobrew_target_output_mg = 30000;
@@ -20,29 +19,11 @@ void apply_boiler_input(float u){
     slow_pwm_set_float_duty(&heater, u);
 }
 
-/**
- * \brief Function that handles the conversion from the raw nau7802 values into mg
- */
-int scale_read(){
-    int32_t scale_val;
-    nau7802_read(&scale_val);
-    return 0.152710615479*(float)(scale_val - scale_origin); // in mg
-}
-
-/**
- * \brief Record the current scale value and subtract that from future readings.
- */
-void scale_zero(){
-    do {
-        nau7802_read(&scale_origin);
-    } while (scale_origin==0);
-}
-
 /** 
  * \brief Returns true if scale is greater than or equal to the passed in value. 
  */
 bool scale_at_val(int val_mg){
-    return scale_read() >= val_mg;
+    return nau7802_read_mg() >= val_mg;
 }
 
 /** 
@@ -71,7 +52,7 @@ void update_setpoint(){
 
 void update_pump_lock(){
     if(binary_input_read(&mode_dial) != current_mode){
-        scale_zero();
+        nau7802_zero();
         pump_lock = true;
         current_mode = binary_input_read(&mode_dial);
     }
@@ -121,7 +102,8 @@ void update_pump(){
 }
 
 void update_leds(){
-    binary_output_put(&leds, 0, phasecontrol_is_ac_hot(&pump));
-    binary_output_put(&leds, 1, lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
-    binary_output_put(&leds, 2, !binary_input_read(&pump_switch) && scale_at_val(autobrew_bean_dose_mg));
+    bool ac_on = phasecontrol_is_ac_hot(&pump);
+    binary_output_put(&leds, 0, ac_on);
+    binary_output_put(&leds, 1, ac_on && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
+    binary_output_put(&leds, 2, ac_on && !binary_input_read(&pump_switch) && scale_at_val(autobrew_bean_dose_mg));
 }

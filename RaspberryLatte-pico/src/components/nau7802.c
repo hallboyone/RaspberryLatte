@@ -62,6 +62,10 @@ const bit_range BITS_REVISION_ID = {.from = 0, .to = 3, .in_reg = REG_DEV_REV};
  */
 static uint32_t last_val = 0;
 
+static uint32_t _scale_origin = 0;
+
+static float _conversion_factor_mg = 1;
+
 /**
  * \brief I2C Channel to use for the NAU7802.
  */
@@ -233,7 +237,7 @@ bool nau7802_data_ready(){
     return (is_ready==1);
 }
 
-void nau7802_read(uint32_t * dst){
+void nau7802_read_raw(uint32_t * dst){
     if (nau7802_data_ready()){
         nau7802_read_reg(REG_ADCO_B2, 3, (uint8_t*)dst);
         uint32_t b0 = ((*dst)&0xFF0000);
@@ -246,6 +250,16 @@ void nau7802_read(uint32_t * dst){
     }
 }
 
+int nau7802_read_mg(){
+    uint32_t val;
+    nau7802_read_raw(&val);
+    return _conversion_factor_mg*((int)val-(int)_scale_origin);
+}
+
+void nau7802_zero(){
+    nau7802_read_raw(&_scale_origin);
+}
+
 /**
  * \brief Respond to MSG_ID_GET_WEIGHT request with latest ADC conversion value.
  * 
@@ -255,7 +269,7 @@ void nau7802_read(uint32_t * dst){
 void nau7802_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
     if(uart_data_len==0){
         uint32_t val = 0;
-        nau7802_read(&val);
+        nau7802_read_raw(&val);
         int response [3] = {(val >> 16) & 0xFF, (val >>  8) & 0xFF, (val >>  0) & 0xFF};
         sendMessageWithStatus(id, SUCCESS, response, 3);
     } else {
@@ -278,10 +292,12 @@ static void _nau7802_hw_init(uint8_t scl_pin, uint8_t sda_pin){
     gpio_pull_up(scl_pin);
 }
 
-void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c){
+void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
     if(nau7802_i2c != NULL){
         _nau7802_i2c = nau7802_i2c;
     } 
+    _conversion_factor_mg = conversion_factor_mg;
+
     _nau7802_hw_init(scl_pin, sda_pin);
 
     nau7802_reset();
@@ -296,4 +312,8 @@ void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c){
     nau7802_set_pga_filter(PGA_ON);
 
     nau7802_set_conversions(CONVERSIONS_ON);
+
+    while(_scale_origin == 0){
+        nau7802_zero();
+    }
 }
