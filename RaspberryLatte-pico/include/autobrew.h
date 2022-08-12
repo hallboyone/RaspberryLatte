@@ -44,14 +44,56 @@ typedef struct {
     autobrew_leg * _legs;
 } autobrew_routine;
 
-int autobrew_leg_setup_function_call(autobrew_leg * leg, uint8_t pump_pwr, autobrew_fun fun);
-int autobrew_leg_setup_linear_power(autobrew_leg * leg, uint8_t pump_starting_pwr, 
+/**
+ * \brief Helper function to assign the required fields in an autobrew_leg to create a function call leg.
+ * 
+ * \param leg Pointer to autobrew_leg struct that will be setup as a function call leg.
+ * \param pump_pwr The power that will be returned after the leg's only tick.
+ * \param fun The function that will be called during the leg's only tick.
+ */
+void autobrew_leg_setup_function_call(autobrew_leg * leg, uint8_t pump_pwr, autobrew_fun fun);
+
+/**
+ * \brief Helper function to assign the required fields in an autobrew_leg to create leg with linear
+ * change in the power and an optional ending trigger.
+ * 
+ * \param leg Pointer to autobrew_leg struct that will be setup as a linear power leg.
+ * \param pump_starting_pwr Power at the start of the leg.
+ * \param pump_ending_pwr Power at the end of the leg. Note this power is reached at the end of the timeout.
+ * If there is a trigger function, the pump_ending_pwr may never be realized.
+ * \param timeout_us Time in microseconds from the first tick to the end of the leg if never triggered.
+ * \param trigger Trigger function that returns true when some end condition is met (e.g. scale hits 30g).
+ * If NULL, only the timeout_us is used and the leg is a timed leg.
+ */
+void autobrew_leg_setup_linear_power(autobrew_leg * leg, uint8_t pump_starting_pwr, 
                                     uint8_t pump_ending_power, uint32_t duration_us,
                                     autobrew_trigger trigger);
 
-int autobrew_routine_setup(autobrew_routine * r, autobrew_leg * legs, uint8_t num_legs);
+/**
+ * \brief Setup the autobrew_routine * r with the passed in legs.
+ * 
+ * \param r Pointer to autobrew_routine struct where the required values are saved.
+ * \param legs Pointer to array of legs defining the full autobrew routine. These should be setup using
+ * the autobrew_leg_setup_function_call and autobrew_leg_setup_linear_power functions. This array must 
+ * outlive the autobrew_routine.
+ * \param num_legs Number of elements in legs array.
+ */
+void autobrew_routine_setup(autobrew_routine * r, autobrew_leg * legs, uint8_t num_legs);
 
-int autobrew_routine_tick(autobrew_routine * r);
+/**
+ * \brief Run a single tick of the autobrew routine. The resulting pump setting can be 
+ * accessed within r.state.pump_setting
+ * 
+ * \param r Pointer to a previously setup autobrew_routine.
+ * 
+ * \return True if the routine has finished. False otherwise.
+ */
+bool autobrew_routine_tick(autobrew_routine * r);
 
-int autobrew_routine_reset(autobrew_routine * r);
+/**
+ * \brief Reset the internal fields of r so that the routine is restarted at the next tick.
+ * 
+ * \param r Pointer to autobrew_routine that will be reset.
+ */
+void autobrew_routine_reset(autobrew_routine * r);
 #endif
