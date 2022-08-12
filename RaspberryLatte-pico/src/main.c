@@ -197,7 +197,7 @@ int main(){
     uint loop_counter = 0;
     zero_scale();
     while(true){
-        loop_rate_limiter_us(50000);
+        loop_rate_limiter_us(10000);
         update_setpoint();
         pid_tick(&heater_pid);
 
@@ -207,7 +207,7 @@ int main(){
         binary_output_put(&leds, 1, lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
         binary_output_put(&leds, 2, !binary_input_read(&pump_switch) && scale_at_val(16000));
 
-        loop_counter = (loop_counter+1)%20;
+        loop_counter = (loop_counter+1)%100;
         if(loop_counter==0){
             printf("Scale: %0.2f, At dose: %d\n", read_scale()/1000.0, scale_at_dose());
             printf("Setpoint: %0.2f, Temp: %0.4f\n", heater_pid.setpoint, lmt01_read(&thermo)/16.0);
