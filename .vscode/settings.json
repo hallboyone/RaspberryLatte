@@ -33,6 +33,9 @@
         "pinout.h": "c",
         "type_traits": "c",
         "binary_output.h": "c",
-        "pid.h": "c"
+        "pid.h": "c",
+        "message_ids.h": "c",
+        "machine_configuration.h": "c",
+        "loop_rate_limiter.h": "c"
     },
 }

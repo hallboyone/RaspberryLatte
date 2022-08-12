@@ -17,7 +17,9 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/slow_pwm.c
                PRIVATE src/components/lmt01.c
                PRIVATE src/components/pid.c
-               PRIVATE src/components/autobrew.c)
+               PRIVATE src/components/autobrew.c
+               PRIVATE src/espresso_machine.c
+               PRIVATE src/components/loop_rate_limiter)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
