@@ -36,6 +36,7 @@ autobrew_routine autobrew_plan;
 int32_t scale_origin = 0;
 
 bool pump_lock = false;
+uint8_t current_mode = 0;
 
 static float read_boiler_thermo(){
     return lmt01_read_float(&thermo);
@@ -57,8 +58,12 @@ static void zero_scale(){
     } while (scale_origin==0);
 }
 
+static bool scale_at_val(int val_mg){
+    return read_scale() >= val_mg;
+}
+
 static bool scale_at_dose(){
-    return read_scale() > 1000 * 30;
+    return scale_at_val(1000 * 30);
 }
 
 static uint64_t last_loop_time_us = 0;
@@ -75,7 +80,7 @@ void loop_rate_limiter_us(const uint64_t loop_period_us){
 }
 
 static inline void update_setpoint(){
-    if(false && phasecontrol_is_ac_hot(&pump)){
+    if(phasecontrol_is_ac_hot(&pump)){
         switch(binary_input_read(&mode_dial)){
             case MODE_STEAM:
                 heater_pid.setpoint = SETPOINT_STEAM;
@@ -91,12 +96,29 @@ static inline void update_setpoint(){
     }
 }
 
+static void update_pump_lock(){
+    if(binary_input_read(&mode_dial) != current_mode){
+        zero_scale();
+        pump_lock = true;
+        current_mode = binary_input_read(&mode_dial);
+    }
+    if(pump_lock){
+        if(!binary_input_read(&pump_switch)){
+            pump_lock = false;
+        }
+    }
+}
+
 static inline void update_pump(){
-    if(pump_lock || !binary_input_read(&pump_switch)){
+    update_pump_lock();
+    if(!binary_input_read(&pump_switch)){
+        autobrew_routine_reset(&autobrew_plan);
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
-        autobrew_routine_reset(&autobrew_plan);
-    } else if (binary_input_read(&pump_switch)){
+    } else if (pump_lock){
+        phasecontrol_set_duty_cycle(&pump, 0);
+        binary_output_put(&solenoid, 0, 0);
+    } else {
         switch(binary_input_read(&mode_dial)){
             case MODE_STEAM:
                 phasecontrol_set_duty_cycle(&pump, 0);
@@ -111,12 +133,11 @@ static inline void update_pump(){
                 binary_output_put(&solenoid, 0, 1);
                 break;
             case MODE_AUTO:
-                autobrew_routine_tick(&autobrew_plan);
-                if(!autobrew_plan.state.finished){
+                if(!autobrew_routine_tick(&autobrew_plan)){
+                    binary_output_put(&solenoid, 0, 1);
                     if(autobrew_plan.state.pump_setting_changed){
                         phasecontrol_set_duty_cycle(&pump, autobrew_plan.state.pump_setting);
                     }
-                    binary_output_put(&solenoid, 0, 1);
                 } else {
                     phasecontrol_set_duty_cycle(&pump, 0);
                     binary_output_put(&solenoid, 0, 0);
@@ -177,15 +198,16 @@ int main(){
     zero_scale();
     while(true){
         loop_rate_limiter_us(50000);
-        binary_output_put(&leds, 0, phasecontrol_is_ac_hot(&pump));
-
         update_setpoint();
         pid_tick(&heater_pid);
 
         update_pump();
 
+        binary_output_put(&leds, 0, phasecontrol_is_ac_hot(&pump));
+        binary_output_put(&leds, 1, lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
+        binary_output_put(&leds, 2, !binary_input_read(&pump_switch) && scale_at_val(16000));
+
         loop_counter = (loop_counter+1)%20;
-        
         if(loop_counter==0){
             printf("Scale: %0.2f, At dose: %d\n", read_scale()/1000.0, scale_at_dose());
             printf("Setpoint: %0.2f, Temp: %0.4f\n", heater_pid.setpoint, lmt01_read(&thermo)/16.0);
