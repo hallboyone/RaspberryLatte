@@ -70,14 +70,3 @@ uint8_t slow_pwm_set_float_duty(slow_pwm * s, float u){
     else if (u < 0) u = 0;
     return slow_pwm_set_duty(s, (PWM_INCREMENTS-1)*u);
 }
-
-void slow_pwm_set_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-    slow_pwm * s = (slow_pwm*)local_data;
-    if(uart_data_len==1){
-        int tmp_val = slow_pwm_set_duty(s, uart_data[0]);
-        sendMessageWithStatus(id, SUCCESS, &tmp_val, 1);
-    } else {
-        int tmp_val = slow_pwm_set_duty(s, 0);
-        sendMessageWithStatus(id, MSG_FORMAT_ERROR, &tmp_val, 1);
-    }
-}

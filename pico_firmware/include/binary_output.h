@@ -8,8 +8,6 @@
 
 #include "pico/stdlib.h"
 
-#include "uart_bridge.h"
-
 typedef struct {
     uint8_t num_pins;
     uint8_t * pins;
@@ -36,15 +34,4 @@ int binary_output_setup(binary_output * b, const uint8_t * pins, const uint8_t n
  * \returns True if operation was successful. False else.
  */
 int binary_output_put(binary_output * b, uint8_t idx, bool val);
-
-/**
- * \brief Write the mask to the specified output block. 
- * 
- * \param b Pointer to binary_output object that will be written to.
- * \param mask Binary values to write to block.
- */
-int binary_output_mask(binary_output * b, uint mask);
-
-void binary_output_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
-
 #endif

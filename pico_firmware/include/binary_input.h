@@ -3,8 +3,6 @@
 
 #include "pico/stdlib.h"
 
-#include "uart_bridge.h"
-
 #define BINARY_INPUT_PULL_UP   0
 #define BINARY_INPUT_PULL_DOWN 1
 
@@ -43,15 +41,4 @@ int binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins,
  * uint8_t mask (i.e, second of three pins active, 010 returned).
  */
 int binary_input_read(binary_input * b);
-
-/**
- * \brief Callback that reads the binary input pointed at by local_data and returns its value as a 1 byte
- * message over UART.
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an binary_input object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void binary_input_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
 #endif

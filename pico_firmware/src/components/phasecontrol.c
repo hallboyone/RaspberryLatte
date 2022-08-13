@@ -112,34 +112,3 @@ int phasecontrol_set_duty_cycle(phasecontrol * p, uint8_t duty_cycle){
 bool phasecontrol_is_ac_hot(phasecontrol * p){
   return p->_zerocross_time + PERIOD_1_00 + 100 > time_us_64();
 }
-
-/**
- * \brief Callback that reads if the ac is on for the phasecontrol struct pointed to by local_data.
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an phasecontrol object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void phasecontrol_is_ac_hot_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-  int response = phasecontrol_is_ac_hot((phasecontrol*)local_data);
-  sendMessageWithStatus(id, SUCCESS, &response, 1);
-}
-
-/**
- * \brief Callback that sets the duty cycle for the phasecontrol struct pointed to by local_data. The
- * duty cycle after clipping is returned over the UART bridge.
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an phasecontrol object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void phasecontrol_set_duty_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-  if(uart_data_len==1){
-    int response = phasecontrol_set_duty_cycle((phasecontrol*)local_data, *uart_data);
-    sendMessageWithStatus(id, SUCCESS, &response, 1);
-  } else {
-    sendMessageWithStatus(id, MSG_FORMAT_ERROR, NULL, 0);
-  }
-}

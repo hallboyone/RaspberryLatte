@@ -265,23 +265,6 @@ bool nau7802_at_val_mg(int val){
 }
 
 /**
- * \brief Respond to MSG_ID_GET_WEIGHT request with latest ADC conversion value.
- * 
- * \param msg Pointer to message
- * \param len Length of message
- */
-void nau7802_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-    if(uart_data_len==0){
-        uint32_t val = 0;
-        nau7802_read_raw(&val);
-        int response [3] = {(val >> 16) & 0xFF, (val >>  8) & 0xFF, (val >>  0) & 0xFF};
-        sendMessageWithStatus(id, SUCCESS, response, 3);
-    } else {
-        sendMessageWithStatus(id, MSG_FORMAT_ERROR, NULL, 0);
-    }
-}
-
-/**
  * \brief Prepare the GPIO pins and I2C bank to interface with the NAU7802. The GPIO functions are
  * set to I2C and they are internally pulled up. This function is called from nau7802_setup();
  * 

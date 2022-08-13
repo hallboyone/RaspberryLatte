@@ -3,8 +3,6 @@
 
 #include "pico/stdlib.h"
 
-#include "uart_bridge.h"
-
 #define ZEROCROSS_EVENT_RISING   0x08
 #define ZEROCROSS_EVENT_FALLING  0x04
 
@@ -47,25 +45,4 @@ int phasecontrol_set_duty_cycle(phasecontrol * p, uint8_t duty_cycle);
  * \return true if zerocross pin triggered in the last 16,766us. False otherwise.
  */
 bool phasecontrol_is_ac_hot(phasecontrol * p);
-
-/**
- * \brief Callback that reads if the ac is on for the phasecontrol struct pointed to by local_data.
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an phasecontrol object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void phasecontrol_is_ac_hot_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
-
-/**
- * \brief Callback that sets the duty cycle for the phasecontrol struct pointed to by local_data. The
- * duty cycle after clipping is returned over the UART bridge.
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an phasecontrol object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void phasecontrol_set_duty_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
 #endif

@@ -56,19 +56,3 @@ int binary_output_mask(binary_output * b, uint mask){
     }
     return 1;
 }
-
-void binary_output_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-    if(uart_data_len % 2 != 0){
-        sendMessageWithStatus(id, MSG_FORMAT_ERROR, NULL, 0);
-        return;
-    } else {
-        for(int n = 0; n<uart_data_len; n += 2){
-            if(!binary_output_put((binary_output *)local_data, uart_data[n], uart_data[n+1])){
-                sendMessageWithStatus(id, IDX_OUT_OF_RANGE, NULL, 0);
-                return;
-            }
-        }
-        sendMessageWithStatus(id, SUCCESS, NULL, 0);
-        return;
-    }
-}

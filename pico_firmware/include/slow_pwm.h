@@ -8,8 +8,6 @@
 
 #include "pico/stdlib.h" /** Included for alarms, gpio functions, and typedefs */
 
-#include "uart_bridge.h"    /** Message handling */
-
 typedef struct {
     uint8_t _pwm_pin;
     uint8_t _duty_cycle;
@@ -25,6 +23,4 @@ void slow_pwm_setup(slow_pwm * s, uint8_t pwm_pin);
 uint8_t slow_pwm_set_duty(slow_pwm * s, uint8_t duty);
 
 uint8_t slow_pwm_set_float_duty(slow_pwm * s, float u);
-
-void slow_pwm_set_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len);
 #endif

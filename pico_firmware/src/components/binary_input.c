@@ -77,21 +77,3 @@ int binary_input_read(binary_input * b) {
         return 0;
     }
 }
-
-/**
- * \brief Callback that reads the binary input pointed at by local_data and returns its value as a 1 byte
- * message over UART.
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an binary_input object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void binary_input_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-    int val = binary_input_read((binary_input*)local_data);
-    if (val<0){
-        val = 0;
-        sendMessageWithStatus(id, COMPONENT_ERROR, &val, 1);
-    }
-    sendMessageWithStatus(id, SUCCESS, &val, 1);
-}

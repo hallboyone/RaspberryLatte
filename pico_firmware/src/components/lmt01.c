@@ -129,18 +129,3 @@ void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
         lmt01_read(l);
     }
 }
-
-/**
- * \brief Callback that reads the current tempurature and returns it as a 2 byte value over UART
- * 
- * \param id The ID of the callback. Each registered callback must have a unique callback ID.
- * \param local_data Void pointer which MUST point at an binary_input object.
- * \param uart_data Pointer to data sent over UART. Since this is a read callback, no data is needed.
- * \param uart_data_len Number of bytes in uart_data. Since this is a read callback, this should be 0.
- */
-void lmt01_read_uart_callback(message_id id, void * local_data, int * uart_data, int uart_data_len){
-    lmt01 * l = (lmt01*)local_data;
-    int val = lmt01_read(l);
-    int buf [2] = {(val >> 8) & 0xFF, (val >> 0) & 0xFF};
-    sendMessageWithStatus(id, SUCCESS, buf, 2);
-}
