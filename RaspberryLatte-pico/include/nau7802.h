@@ -278,6 +278,8 @@ int nau7802_read_mg();
 
 void nau7802_zero();
 
+bool nau7802_at_val_mg(int val);
+
 /**
  * Initalize HW and set NAU7802 registers to the default values:
  * Internal analog source,

@@ -260,6 +260,10 @@ void nau7802_zero(){
     nau7802_read_raw(&_scale_origin);
 }
 
+bool nau7802_at_val_mg(int val){
+    return nau7802_read_mg() >= val;
+}
+
 /**
  * \brief Respond to MSG_ID_GET_WEIGHT request with latest ADC conversion value.
  * 

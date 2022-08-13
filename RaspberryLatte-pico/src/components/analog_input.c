@@ -14,15 +14,15 @@ static inline bool is_adc_pin(const uint8_t p){
  * \param a Pointer to analog_input that will be setup.
  * \param a_pin The GPIO pin for the analog input. Must be GPIO 26, 27, 28, or 29.
  * 
- * \returns 1 on success. 0 on failure (invalid GPIO is the most likly cause)
+ * \returns 0 on success. 1 on failure (invalid GPIO is the most likely cause)
  */
 int analog_input_setup(analog_input * a, uint8_t a_pin){
-    if(!is_adc_pin(a_pin)) return 0;
+    if(!is_adc_pin(a_pin)) return 1;
 
     adc_init();
     adc_gpio_init(a_pin);
     a->pin = a_pin;
-    return 1;
+    return 0;
 } 
 
 /**
