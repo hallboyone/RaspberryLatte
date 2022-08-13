@@ -1,5 +1,5 @@
 
-const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
+const float TEMP_SETPOINTS [4] = {140, 100, 93, 93};
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.0015;
 const float PID_GAIN_D = 0.0005;

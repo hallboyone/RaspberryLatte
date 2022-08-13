@@ -14,15 +14,15 @@
 #include "espresso_machine.h"
 #include "brew_parameters.h"
 
-typedef struct {
-    bool ac_switch;
-    bool pump_switch;
-    uint8_t mode_dial;
-    bool pump_lock;
-    float boiler_setpoint;
-} espresso_machine_state;
+// typedef struct {
+//     bool ac_switch;
+//     bool pump_switch;
+//     uint8_t mode_dial;
+//     bool pump_lock;
+//     float boiler_setpoint;
+// } espresso_machine_state;
 
-static espresso_machine_state _state = {.pump_lock = true}; 
+static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
 static analog_input  pressure_sensor;
 static binary_output leds;
@@ -62,35 +62,35 @@ static bool scale_at_output(){
  */
 static void espresso_machine_update_state(){
     // Switches
-    _state.ac_switch = phasecontrol_is_ac_hot(&pump);
-    _state.pump_switch = binary_input_read(&pump_switch);
+    _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
+    _state.switches.pump_switch = binary_input_read(&pump_switch);
 
     // Dial
     uint8_t new_mode = binary_input_read(&mode_dial);
-    bool mode_changed = (new_mode != _state.mode_dial);
-    _state.mode_dial = new_mode;
+    bool mode_changed = (new_mode != _state.switches.mode_dial);
+    _state.switches.mode_dial = new_mode;
 
     //Pump lock
-    _state.pump_lock = _state.pump_switch && (mode_changed || _state.pump_lock);
+    _state.pump.pump_lock = _state.switches.pump_switch && (mode_changed || _state.pump.pump_lock);
 
     // Zero scale if mode changed
     if(mode_changed) nau7802_zero();
 
     // Update setpoints
-    if(_state.ac_switch) _state.boiler_setpoint = TEMP_SETPOINTS[new_mode];
-    else _state.boiler_setpoint = 0;
+    if(_state.switches.ac_switch) _state.boiler.setpoint = 16*TEMP_SETPOINTS[new_mode];
+    else _state.boiler.setpoint = 0;
 }
 
 static void espresso_machine_update_pump(){
-    if(!_state.pump_switch){
+    if(!_state.switches.pump_switch){
         autobrew_routine_reset(&autobrew_plan);
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
-    } else if (_state.pump_lock){
+    } else if (_state.pump.pump_lock){
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
     } else {
-        switch(_state.mode_dial){
+        switch(_state.switches.mode_dial){
             case MODE_STEAM:
                 phasecontrol_set_duty_cycle(&pump, 0);
                 binary_output_put(&solenoid, 0, 0);
@@ -119,17 +119,23 @@ static void espresso_machine_update_pump(){
 }
 
 static void espresso_machine_update_boiler(){
-    heater_pid.setpoint = _state.boiler_setpoint;
+    heater_pid.setpoint = _state.boiler.setpoint/16.;
     pid_tick(&heater_pid);
+
+    _state.boiler.tempurature = lmt01_read(&thermo);
 }
 
 static void espresso_machine_update_leds(){
-    binary_output_put(&leds, 0, _state.ac_switch);
-    binary_output_put(&leds, 1, _state.ac_switch && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
-    binary_output_put(&leds, 2, _state.ac_switch && !_state.pump_switch && nau7802_at_val_mg(BREW_DOSE_MG));
+    binary_output_put(&leds, 0, _state.switches.ac_switch);
+    binary_output_put(&leds, 1, _state.switches.ac_switch && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
+    binary_output_put(&leds, 2, _state.switches.ac_switch && !_state.switches.pump_switch && nau7802_at_val_mg(BREW_DOSE_MG));
 }
 
-int espresso_machine_setup(){
+int espresso_machine_setup(espresso_machine_viewer * state_viewer){
+    if(state_viewer != NULL){
+        *state_viewer = &_state;
+    }
+
     // Setup the pressure sensor
     if(analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN)){
         return 1;
