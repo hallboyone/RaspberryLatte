@@ -1,5 +1,15 @@
-#ifndef _NAU7802_H
-#define _NAU7802_H
+/**
+ * \file
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Header for interfacing with NAU7802 ADC
+ * \version 0.1
+ * \date 2022-08-16
+ * 
+ * \todo Move I2C functions into their own library.
+ */
+ 
+#ifndef NAU7802_H
+#define NAU7802_H
 
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
@@ -13,10 +23,13 @@
 typedef unsigned char byte;
 typedef unsigned char reg_addr;
 
+/**
+ * \brief Struct that defines a range of bits in a byte address.
+ */
 typedef const struct{
-    const uint8_t from;
-    const uint8_t to;
-    const reg_addr in_reg;
+    const uint8_t from;    /**< The LSB in the bit range (inclusive). */
+    const uint8_t to;      /**< The MSB in the bit range (inclusive). */
+    const reg_addr in_reg; /**< The address of the register containing the bit range. */
 } bit_range;
 
 #define REG_PU_CTRL  0x0
@@ -280,19 +293,20 @@ bool nau7802_at_val_mg(int val);
 
 /**
  * Initalize HW and set NAU7802 registers to the default values:
- * Internal analog source,
- * Digital power on,
- * Analog power on,
- * 3.0V LDO voltage,
- * LDO in accurate mode,
- * Amplifier gain set to 128,
- * Chop clock off,
- * Activate PGA filter,
- * Start conversions.
+ * - Internal analog power source,
+ * - Digital power on,
+ * - Analog power on,
+ * - 3.0V LDO voltage,
+ * - LDO in accurate mode,
+ * - Amplifier gain set to 128,
+ * - Chop clock off,
+ * - Activate PGA filter,
+ * - Start conversions.
  * 
  * \param scl_pin GPIO number serving as SCL pin
  * \param sda_pin GPIO number serving as SDA pin
  * \param nau7802_i2c pointer to desired I2C instance. If NULL, default I2C instane is used.
+ * \param conversion_factor_mg The conversion factor that takes the raw value and converts it to mg.
  */
 void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg);
 #endif

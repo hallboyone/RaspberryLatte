@@ -82,7 +82,7 @@ void autobrew_leg_setup_function_call(autobrew_leg * leg, uint8_t pump_pwr, auto
  * If NULL, only the timeout_us is used and the leg is a timed leg.
  */
 void autobrew_leg_setup_linear_power(autobrew_leg * leg, uint8_t pump_starting_pwr, 
-                                    uint8_t pump_ending_power, uint32_t duration_us,
+                                    uint8_t pump_ending_pwr, uint32_t timeout_us,
                                     autobrew_trigger trigger);
 
 /**

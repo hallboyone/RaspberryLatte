@@ -1,5 +1,22 @@
-#ifndef _PHASECONTROL_H
-#define _PHASECONTROL_H
+/**
+ * \file
+ * \brief Header defining phase control API
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \version 0.1
+ * \date 2022-08-16
+ * 
+ * 
+ * Phase control is an advanced, PWM like control output for AC signals
+ * where the switching takes place at specific points in the AC phase.
+ * This reduces the chance for inductive spikes if the signal is switched
+ * off when current is high.
+ * 
+ * To time the AC signal, a zerocross circit is needed to trigger a 
+ * callback whenever the AC signal goes to 0. 
+ */
+
+#ifndef PHASECONTROL_H
+#define PHASECONTROL_H
 
 #include "pico/stdlib.h"
 
@@ -11,13 +28,13 @@
  * inductive load.
  */
 typedef struct {
-  uint8_t event;             // RISING or FALLING
-  uint8_t zerocross_pin;     // GPIO that senses event at every zerocrossing
-  int64_t zerocross_shift;   // Time between zerocross trigger and actual zero cross
-  uint8_t out_pin;           // Load output pin
+  uint8_t event;             /**< The event to trigger on. Should be either ZEROCROSS_EVENT_RISING or ZEROCROSS_EVENT_FALLING */
+  uint8_t zerocross_pin;     /**< GPIO attached to zerocross circit */
+  int64_t zerocross_shift;   /**< Time between zerocross trigger and actual zerocross */
+  uint8_t out_pin;           /**< Load output pin. Usually attached to an SSR or relay */
 
-  uint64_t _zerocross_time;
-  uint8_t _timeout_idx;
+  uint64_t _zerocross_time;  /**< Time of the last zerocrossing. Used to determine if the AC is on. */
+  uint8_t _timeout_idx;      /**< The timeout (i.e. duty cycle). The smaller the number, the longer before load is switched on. */
 } phasecontrol;
 
 /**

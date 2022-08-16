@@ -91,9 +91,6 @@ static inline void lmt01_program_init(lmt01 * l, uint offset) {
     pio_sm_set_enabled(l->_pio, l->_sm, true);
 }
 
-/**
- * \brief Returns the current temputature in 16*C. Divide by 16 6o conver to C
- */
 int lmt01_read(lmt01 * l){
     while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
         l->_latest_temp = pulse2Temp(pio_sm_get_blocking(l->_pio, l->_sm));
@@ -101,20 +98,10 @@ int lmt01_read(lmt01 * l){
     return l->_latest_temp;
 }
 
-/**
- * \brief Returns the current tempurature in C.
- */
 float lmt01_read_float(lmt01 * l){
     return lmt01_read(l)/16.;
 }
 
-/**
- * @brief Configures the signal pin attached to a LMT01 temp sensor and starts a PIO 
- * program that counts the sensors pulse train
- * 
- * @param pio_num Either 0 or 1 indicating if PIO #0 or #1 should be used
- * @param sig_pin Pin that the LMT01 is attached to
- */
 void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
     l->_dat_pin = dat_pin;
 

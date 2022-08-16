@@ -6,12 +6,15 @@
  * \date 2022-08-16
  */
 
-#ifndef _ANALOG_INPUT_H
-#define _ANALOG_INPUT_H
+#ifndef ANALOG_INPUT_H
+#define ANALOG_INPUT_H
 #include "pico/stdlib.h"
 
 
-typedef struct _analog_input{
+/**
+ * \brief A struct for a single analog input. 
+ */
+typedef struct {
     uint8_t pin; /**< The GPIO pin attached to the analog input. Must be 26-29. */
 } analog_input;
 

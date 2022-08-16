@@ -11,8 +11,8 @@
 
 #include "pico/stdlib.h"
 
-#define BINARY_INPUT_PULL_UP   0
-#define BINARY_INPUT_PULL_DOWN 1
+#define BINARY_INPUT_PULL_UP   0 /**< Macro for pulling the input down */
+#define BINARY_INPUT_PULL_DOWN 1 /**< Macro for pulling the input up */
 
 /**
  * \brief Data related to a binary input. Handles multithrow switches and allows for muxed hardware.
