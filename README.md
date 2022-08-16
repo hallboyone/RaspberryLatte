@@ -7,7 +7,7 @@ A full stack suite to add smarts to a single boiler espresso machine using a Ras
 This project can be thought of in several layers. 
 ### Hardware Level
 The lowest level is the hardware such as sensors and switches required to create a smart espresso machine. Additionally, a custom carrier board is needed to interface with these components. This PCB contains any circuitry required to support the sensors and switches. Mounted to this carrier board is the Raspberry Pi Pico W. 
-![alt text](https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board.png?raw=true)
+![Overhead view of main board](https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board.png?raw=true)
 
 ### Firmware Level
 The next level consists of the firmware running on the Pico. This code, written in c, acts as a bridge between the fast time scale hardware level, and the slower software level (see below). The firmware begins by setting up each component, and then continually listens for UART messages from the software. When a message is read, the appropriate handler is called and a response is returned over UART.
@@ -25,7 +25,7 @@ While ssh is fun, a mobile application would be significantly more convenient. T
 - [ ] Implement mobile UI level
 
 ## Inspiration
-This project has taken inspiration from others who have taken the time to write up their own builds. The two primary sources have been the [Es(pi)resso project](https://home-automations.net/project-coffee-espiresso-machine/), and the [Espresso for Geeks blog](http://espresso-for-geeks.kalaf.net/features/). Big thank you to both those makers for sharing the great work they did!
+This project has taken inspiration from others who have taken the time to write up their own builds. The two primary sources have been the [Es(pi)resso project](https://home-automations.net/project-coffee-espiresso-machine/), and the [Espresso for Geeks blog](https://www.instructables.com/Espresso-for-Geeks/). Big thank you to both those makers for sharing the great work they did!
 
 ## Contribute
 If you are interested in helping with this project, I would love to talk! You can reach me through [Twitter](https://twitter.com/hallboyone "Richard Hall").
