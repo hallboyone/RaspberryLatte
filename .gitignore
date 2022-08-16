@@ -7,3 +7,5 @@ Sandbox/*
 *.brewlog
 *__pycache__*
 RaspberryLatte-pico/src/.DS_Store
+sphinx_docs/html/*
+sphinx_docs/latex/*
