@@ -1,3 +1,11 @@
+/**
+ * \file
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Header defining API for autobrew routines.
+ * \version 0.1
+ * \date 2022-08-16
+ */
+
 #ifndef _AUTOBREW_H
 #define _AUTOBREW_H
 #include "pico/stdlib.h"
@@ -5,8 +13,9 @@
 typedef void (*autobrew_fun)();
 typedef bool (*autobrew_trigger)();
 
-/**
- * \brief Stuct defining a single leg of the autobrew routine. Each leg is defined by a (possibly variable)
+/** @brief Stuct defining a single leg of the autobrew routine. 
+ * 
+ * Each leg is defined by a (possibly variable)
  * pump power setting, and an end condition. The pump power level can either be constant, or change linearly
  * over the legs duration (TODO: ADD PID REGULATION OPTION). The end condition must always contain a timeout
  * length in microseconds but can also be triggered with a function returning true when some user defined
@@ -19,16 +28,16 @@ typedef bool (*autobrew_trigger)();
  * .timeout_us. If .trigger!=NULL, then at each tick we check if .trigger()==true and, if so, the leg is 
  * finished.
  */
-typedef struct {
-    uint8_t pump_pwr_start; // Starting or constant power
-    uint8_t pump_pwr_delta; // Change in power over leg. If constant, set to 0.
+typedef struct _autobrew_leg {
+    uint8_t pump_pwr_start; /**< Starting or constant power */
+    uint8_t pump_pwr_delta; /**<  Change in power over leg. If constant, set to 0.*/
 
-    uint32_t timeout_us;  // Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.
+    uint32_t timeout_us;  /**<  Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
 
-    autobrew_fun fun;   // Void function to call if FUNCTION_CALL leg
-    autobrew_trigger trigger; // Function returning bool triggering some action
+    autobrew_fun fun;   /**<  Void function to call if FUNCTION_CALL leg*/
+    autobrew_trigger trigger; /**<  Function returning bool triggering some action*/
 
-    uint64_t _end_time_us;  // End time of leg. Set the first time the leg is ticked
+    uint64_t _end_time_us;  /**<  End time of leg. Set the first time the leg is ticked*/
 } autobrew_leg;
 
 typedef struct {
