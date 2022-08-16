@@ -1,18 +1,16 @@
 /**
+ * \file
+ * \author Richard Hall (hallboyone@icloud.com)
  * \brief Header file defining objects and functions for implementing PID controllers on the RP2040.
+ *  \date 2022-08-16
  * 
  * The PID controller is defined as a pid_ctrl struct containing the required elements such as the gains
  * (.K), sensor, and plant. The sensor is a pointer to a function that takes no parameters and returns a
  * float while the plant is a pointer to a void function that takes a single float parameter.
  * 
- * \example  Once every 100ms, this code will call sensor_read_float(), compute the resulting input u, and 
+ * \example  pid_ex.c
+ * Once every 100ms, this code will call sensor_read_float(), compute the resulting input u, and 
  * then call plant_apply_float(u).
- * || pid_ctrl boiler_ctrl = {.setpoint = 95, .K = {.p = 0.05, .i = 0.0015, .d = 0.0005}, 
- * ||                        .sensor = &sensor_read_float, .plant = &plant_apply_float,
- * ||                        .min_time_between_ticks_ms = 100};
- * || pid_init(&boiler_ctrl, 0, 100, 0);
- * || 
- * || while(true) pid_tick(&boiler_ctrl);
  */
 
 #ifndef _PID_H
@@ -27,16 +25,23 @@
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
  */
-typedef struct datapoint_ {
-    float t;
-    float v;
+typedef struct {
+    float t; /**< Time associated with datapoint */
+    float v; /**< Value associated with datapoint */
 } datapoint;
 
-typedef struct discrete_derivative_ {
-    uint filter_span_ms;
-    datapoint* _data;
-    uint16_t _buf_len;
-    uint16_t _num_el;
+/**
+ * \brief Stuct representing a discrete derivative.
+ * 
+ * A discrete derivative is essentially the slope of best fit for the sequence of most recent datapoints
+ * in a time series. All points measured within some number of ms are used to create this slope of best
+ * fit.
+ */
+typedef struct {
+    uint filter_span_ms; /**< The amount of the dataseries in ms that the slope will be fitted to. */
+    datapoint* _data;    /**< The most recent datapoints in the dataseries. */
+    uint16_t _buf_len;   /**< The max number of datapoints the _data can hold. */
+    uint16_t _num_el;    /**< The current number of datapoints in _data. */
 } discrete_derivative;
 
 /**
@@ -80,11 +85,19 @@ float discrete_derivative_add_point(discrete_derivative* d, datapoint p);
  */
 void discrete_derivative_reset(discrete_derivative* d);
 
-typedef struct discrete_integral_ {
-    float sum;
-    float lower_bound;
-    float upper_bound;
-    datapoint prev_p;
+/**
+ * \brief Stuct representing a discrete integral.
+ * 
+ * A discrete integral is the area under the curve of a series of datapoints. The area is computed
+ * by averaging the value between current and previous datapoint and multiplying that by the duration
+ * between the two datapoints. An effect of this math is the area under the curve is 0 until two data
+ * points have been passed to it.
+ */
+typedef struct {
+    float sum;         /**< The current area under the curve. */
+    float lower_bound; /**< The lower bound on the area under the curve. Useful for antiwindup. */
+    float upper_bound; /**< The upper bound on the area under the curve. Useful for antiwindup. */
+    datapoint prev_p;  /**< The previous datapoint. Updated each time the integral is ticked. */
 } discrete_integral;
 
 /**
@@ -127,10 +140,13 @@ float discrete_integral_add_point(discrete_integral* i, datapoint p);
  */
 void discrete_integral_reset(discrete_integral* i);
 
-typedef struct pid_gains_ {
-    float p;
-    float i;
-    float d;
+/**
+ * \brief Stuct containing the floating point gains of a PID controller
+ */
+typedef struct {
+    float p; /**< The proportional gain. */
+    float i; /**< The integral gain. */
+    float d; /**< The derivative gain. */
 } pid_gains;
 
 /**
@@ -149,19 +165,15 @@ typedef void (*apply_input)(float);
  * \brief Struct defining a PID object. The setpoint, K, sensor, plant, and min_time_between_ticks_ms must be set explicitly. 
  * The others are set by pid_init.
  */
-typedef struct pid_ctrl_ {
-    float setpoint;
-
-    pid_gains K;
-
-    read_sensor sensor;
-    apply_input plant;
-
-    discrete_derivative err_slope;
-    discrete_integral err_sum;
-
-    uint16_t min_time_between_ticks_ms;
-    absolute_time_t _next_tick_time;
+typedef struct {
+    float setpoint;                     /**< The current setpoint the PID is regulating to. */
+    pid_gains K;                        /**< The gains of the PID controller. */
+    read_sensor sensor;                 /**< The sensor function. */
+    apply_input plant;                  /**< The plant function that applies the input to the system. */
+    discrete_derivative err_slope;      /**< A discrete_derivative tracking the slope of the error. */
+    discrete_integral err_sum;          /**< A discrete_integral tracking the sum of the error. */
+    uint16_t min_time_between_ticks_ms; /**< The minimum time, in ms, between ticks. If time hasn't elapsed, the previous input is returned. */
+    absolute_time_t _next_tick_time;    /**< Timestamp used to track the earliest time that the system can be ticked again. */
 } pid_ctrl;
 
 /**

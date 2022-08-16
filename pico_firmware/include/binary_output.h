@@ -10,8 +10,8 @@
  * and offset into the block. 
  */
 
-#ifndef _BINARY_OUTPUT_H
-#define _BINARY_OUTPUT_H
+#ifndef BINARY_OUTPUT_H
+#define BINARY_OUTPUT_H
 
 #include "pico/stdlib.h"
 

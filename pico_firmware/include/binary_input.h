@@ -6,8 +6,8 @@
  * \date 2022-08-16
  */
 
-#ifndef _BINARY_INPUT_H
-#define _BINARY_INPUT_H
+#ifndef BINARY_INPUT_H
+#define BINARY_INPUT_H
 
 #include "pico/stdlib.h"
 

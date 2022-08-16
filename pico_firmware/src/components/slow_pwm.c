@@ -1,22 +1,4 @@
-/**
- * \file slow_pwm.c
- * \author Richard Hall (hallboyone@icloud.com)
- * \brief Sets up a low frequnecy (~0.5Hz) PWM signal
- */
-
-#include "slow_pwm.h"         /** Function definitions */
-#include "status_ids.h"
-
-#define PWM_PERIOD_MS 1050 /** Length of 1 PWM cycle. Set to (1000/60)*63 */
-#define PWM_INCREMENTS  64 /** Number of discrete PWM settings Valid setting will be [0,PWM_INCREMENTS-1]*/
-/**
- * There are also a few internal variables that are needed for the heater to run correctly.
- * First, the pin the pwm is attached to needs to be saved. Second, the current duty cycle
- * also needs to be saved. Both of these will be accessed within timer callbacks and so are
- * declared volatile. 
- */
-static volatile uint8_t _pwm_pin;
-static volatile uint8_t _duty_cycle;
+#include "slow_pwm.h"
 
 /**
  * @brief Callback for alarm to turn off the heater pin
@@ -38,35 +20,34 @@ int64_t _turn_off(alarm_id_t id, void *user_data) {
  * @param user_data Pointer to data used in the callback (not used)
  * @return int64_t New alarm after this many microseconds. Always PWM_PERIOD_MS*1000
  */
-int64_t _turn_on(alarm_id_t id, void *user_data){
+int64_t _start_period(alarm_id_t id, void *user_data){
     slow_pwm * s = (slow_pwm*)user_data;
-    if(s->_duty_cycle < PWM_INCREMENTS-1){ // if _duty_cycle < 63, schedule off timer
-        add_alarm_in_ms((PWM_PERIOD_MS/PWM_INCREMENTS)*(s->_duty_cycle), _turn_off, s, true);
+    if(s->_duty_cycle < s->_num_increments-1){ // if _duty_cycle < number of increments, schedule off timer
+        add_alarm_in_ms((s->_period_ms/s->_num_increments)*(s->_duty_cycle), _turn_off, s, true);
     }
     if(s->_duty_cycle > 0){ // If _duty_cylce > 0, turn on. 
         gpio_put(s->_pwm_pin, 1);
     }
-    return PWM_PERIOD_MS*1000;
+    return s->_period_ms*1000;
 }
 
-void slow_pwm_setup(slow_pwm * s, uint8_t pwm_pin){
+void slow_pwm_setup(slow_pwm * s, uint8_t pwm_pin, uint period_ms, uint num_increments){
     s->_pwm_pin = pwm_pin;
     gpio_init(s->_pwm_pin);
     gpio_set_dir(s->_pwm_pin, GPIO_OUT);
 
     s->_duty_cycle = 0;
-
-    add_alarm_in_ms(0, _turn_on, s, true);
+    s->_period_ms = period_ms;
+    s->_num_increments = num_increments;
+    add_alarm_in_ms(0, _start_period, s, true);
 }
 
 uint8_t slow_pwm_set_duty(slow_pwm * s, uint8_t duty){
-    if (duty > PWM_INCREMENTS-1) duty = PWM_INCREMENTS-1;
+    if (duty > s->_num_increments-1) duty = s->_num_increments-1;
     s->_duty_cycle = duty;
     return duty;
 }
 
 uint8_t slow_pwm_set_float_duty(slow_pwm * s, float u){
-    if (u > 1) u = 1;
-    else if (u < 0) u = 0;
-    return slow_pwm_set_duty(s, (PWM_INCREMENTS-1)*u);
+    return slow_pwm_set_duty(s, (s->_num_increments-1)*u);
 }
