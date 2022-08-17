@@ -15,6 +15,7 @@
 #define ESPRESSO_MACHINE_H
 #include "pico/stdlib.h"
 
+/** \brief The different modes of the espresso machine corrisponding to the 4P dial */
 enum espresso_machine_modes {MODE_STEAM, MODE_HOT, MODE_MANUAL, MODE_AUTO};
 
 /**
@@ -63,6 +64,7 @@ typedef struct {
     espresso_machine_scale_state scale;     /**< State of espresso machine scale */
 } espresso_machine_state;
 
+/** \brief Struct designed to hold the espresso machine state and expose it to outside functions */
 typedef const espresso_machine_state * espresso_machine_viewer;
 
 /**

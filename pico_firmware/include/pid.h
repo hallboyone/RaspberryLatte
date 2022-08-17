@@ -19,8 +19,8 @@
 #include "pico/stdlib.h"
 #include "pico/time.h"
 
-#define PID_NO_WINDUP_LB -1000000
-#define PID_NO_WINDUP_UB  1000000
+#define PID_NO_WINDUP_LB -1000000 /**< Small value used to indicate no windup lower bound */
+#define PID_NO_WINDUP_UB  1000000 /**< Large value used to indicate no windup upper bound */
 
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
@@ -104,11 +104,11 @@ typedef struct {
  * \brief Clear the internal parameters of the discrete_integral d and set the lower and upper
  * bounds.
  *
- * \param d Pointer to discrete_integral stuct that will be initalized.
+ * \param i Pointer to discrete_integral stuct that will be initalized.
  * \param lower_bound A floating point lower bound on the integral's value.
  * \param upper_bound A floating point upper bound on the integral's value.
  */
-void discrete_integral_init(discrete_integral* d, const float lower_bound,
+void discrete_integral_init(discrete_integral* i, const float lower_bound,
                             const float upper_bound);
 
 /**

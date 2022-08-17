@@ -154,7 +154,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1, SCALE_CONVERSION_MG);
 
     // Setup heater as a slow_pwm object
-    slow_pwm_setup(&heater, HEATER_PWM_PIN);
+    slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     heater_pid.K.p = PID_GAIN_P; heater_pid.K.i = PID_GAIN_I; heater_pid.K.d = PID_GAIN_D;
     heater_pid.min_time_between_ticks_ms = 100;
     heater_pid.sensor = &read_boiler_thermo;

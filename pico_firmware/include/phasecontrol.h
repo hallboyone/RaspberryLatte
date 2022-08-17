@@ -20,8 +20,8 @@
 
 #include "pico/stdlib.h"
 
-#define ZEROCROSS_EVENT_RISING   0x08
-#define ZEROCROSS_EVENT_FALLING  0x04
+#define ZEROCROSS_EVENT_RISING   0x08 /**< Macro used to indicate zerocross occurs on rising edge of signal */
+#define ZEROCROSS_EVENT_FALLING  0x04 /**< Macro used to indicate zerocross occurs on falling edge of signal */
 
 /**
  * Structure holding the configuration values of a phase controller for and

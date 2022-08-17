@@ -14,14 +14,14 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 
-#define ADDR_NAU7802 0x2A
+#define ADDR_NAU7802 0x2A /**< I2C address of the NAU7802 IC */
 
-#define NAU7802_SUCCESS 1
-#define NAU7802_ERROR_WRITE_FAILURE -1
-#define NAU7802_ERROR_READ_FAILURE  -2
+#define NAU7802_SUCCESS 1              /**< Code used to indicate a successfull operations */
+#define NAU7802_ERROR_WRITE_FAILURE -1 /**< Code used to indicate a failure to write to the NAU7802 */
+#define NAU7802_ERROR_READ_FAILURE  -2 /**< Code used to indicate a failure to read from the NAU7802 */
 
-typedef unsigned char byte;
-typedef unsigned char reg_addr;
+typedef unsigned char byte;     /**< Type name for a single byte of data */
+typedef unsigned char reg_addr; /**< Type name for a register address. */
 
 /**
  * \brief Struct that defines a range of bits in a byte address.
@@ -32,19 +32,20 @@ typedef const struct{
     const reg_addr in_reg; /**< The address of the register containing the bit range. */
 } bit_range;
 
-#define REG_PU_CTRL  0x0
-#define REG_CTRL_1   0x01
-#define REG_CTRL_2   0x02
-#define REG_I2C_CTRL 0x11
-#define REG_ADCO_B2  0x12
-#define REG_ADCO_B1  0x13
-#define REG_ADCO_B0  0x14
-#define REG_ADC_CTRL 0x15
-#define REG_PGA      0x1B
-#define REG_PWR_CTRL 0x1C
-#define REG_DEV_REV  0x1F
+#define REG_PU_CTRL  0x0  /**< NAU7802 register address: Power-up control */
+#define REG_CTRL_1   0x01 /**< NAU7802 register address: Configuration 1 */
+#define REG_CTRL_2   0x02 /**< NAU7802 register address: Configuration 2 */
+#define REG_I2C_CTRL 0x11 /**< NAU7802 register address: I2C Configuation*/
+#define REG_ADCO_B2  0x12 /**< NAU7802 register address: Conversion result 23-16*/
+#define REG_ADCO_B1  0x13 /**< NAU7802 register address: Conversion result 15-8*/
+#define REG_ADCO_B0  0x14 /**< NAU7802 register address: Conversion result 7-0*/
+#define REG_ADC_CTRL 0x15 /**< NAU7802 register address: ADC configuration */
+#define REG_PGA      0x1B /**< NAU7802 register address: Programmable gain amp config */
+#define REG_PWR_CTRL 0x1C /**< NAU7802 register address: Power control */
+#define REG_DEV_REV  0x1F /**< NAU7802 register address: Device information */
 
-typedef enum _ldo_voltage{ 
+/** Options for the voltage supplied to load cell */
+typedef enum { 
     VLDO_2_4 = 0b111,
     VLDO_2_7 = 0b110,
     VLDO_3_0 = 0b101,
@@ -56,7 +57,8 @@ typedef enum _ldo_voltage{
     VLDO_DEFAULT = 0b000
 } ldo_voltage;
 
-typedef enum _gain{ 
+/** Options for the amplifier gain */
+typedef enum { 
     GAIN_128 = 0b111,
     GAIN_064 = 0b110,
     GAIN_032 = 0b101,
@@ -68,7 +70,8 @@ typedef enum _gain{
     GAIN_DEFAULT = 0b000
 } gain;
 
-typedef enum _conversion_rate{
+/** Options for the conversion rate */
+typedef enum {
     SPS_320 = 0b111,
     SPS_080 = 0b011,
     SPS_040 = 0b010,
@@ -77,14 +80,16 @@ typedef enum _conversion_rate{
     SPS_DEFAULT = 0b000
 } conversion_rate;
 
-typedef enum _calibration_mode{
+/** Options for the calibaration modes */
+typedef enum {
     MODE_GAIN_SYS= 0b11,
     MODE_OFF_SYS = 0b10,
     MODE_OFF_INT = 0b00,
     MODE_DEFAULT = 0b00
 } calibration_mode;
 
-typedef enum _master_bias_curr{ 
+/** Options for the amount of master bias current as percentage */
+typedef enum { 
     BIAS_CURR_054 = 0b111,
     BIAS_CURR_058 = 0b110,
     BIAS_CURR_062 = 0b101,
@@ -96,8 +101,8 @@ typedef enum _master_bias_curr{
     BIAS_CURR_DEFAULT = 0b000
 } master_bias_curr;
 
-// Current for the ADC circuit. Percent of master bias.
-typedef enum _adc_curr{ 
+/** Current for the ADC circuit. Percent of master bias. */
+typedef enum { 
     ADC_CURR_025 = 0b11,
     ADC_CURR_050 = 0b10,
     ADC_CURR_075 = 0b01,
@@ -105,8 +110,8 @@ typedef enum _adc_curr{
     ADC_CURR_DEFAULT = 0b00
 } adc_curr;
 
-// Current for PGA system. Percent of master bias. 
-typedef enum _pga_curr{ 
+/** Current for PGA system. Percent of master bias. */
+typedef enum { 
     PGA_CURR_070 = 0b11,
     PGA_CURR_086 = 0b10,
     PGA_CURR_095 = 0b01,
@@ -114,36 +119,42 @@ typedef enum _pga_curr{
     PGA_CURR_DEFAULT = 0b00
 } pga_curr;
 
-typedef enum _avdd_src{
+/** Options for the analog power source */
+typedef enum {
     AVDD_SRC_INTERNAL = 1,
     AVDD_SRC_PIN = 0,
     AVDD_SRC_DEFAULT  = 0
 } avdd_src;
 
-typedef enum _pwr_setting{
+/** Options for the power settings */
+typedef enum {
     PWR_ON = 1,
     PWR_OFF = 0,
     PWR_DEFAULT = 0
 } pwr_setting;
 
-typedef enum _ldo_mode{
+/** Options for the analog power supply */
+typedef enum {
     LDO_MODE_STABLE = 1,
     LDO_MODE_ACCURATE = 0,
     LDO_MODE_DEFAULT = 0
 } ldo_mode;
 
-typedef enum _chp_clk{
+/** Options for enabling or disabling the chop clock */
+typedef enum {
     CHP_CLK_OFF = 0b11,
     CHP_CLK_DEFAULT = 0b11,
 } chp_clk;
 
-typedef enum _conversion_setting{
+/** Options for starting or ending conversions */
+typedef enum {
     CONVERSIONS_ON = 1,
     CONVERSIONS_OFF = 0,
     CONVERSIONS_DEFAULT = 0
 } conversion_setting;
 
-typedef enum _pga_setting{
+/** \brief Options of the PGA setting */
+typedef enum {
     PGA_ON = 1,
     PGA_OFF = 0,
 } pga_setting;
@@ -285,10 +296,25 @@ bool nau7802_data_ready();
  */
 void nau7802_read_raw(uint32_t * dst);
 
+/**
+ * \brief Read the latest conversion result and convert into milligrams.
+ * 
+ * \returns The latest conversion shifted by the last zero point and converted to milligrams.
+ */
 int nau7802_read_mg();
 
+/**
+ * \brief Saves the current conversion result and subtracts this from future reads.
+ */
 void nau7802_zero();
 
+/**
+ * \brief Helper function indicating if latest conversion is at val
+ * 
+ * \param val Value in milligrams to compare the scale against
+ * 
+ * \returns True if the scale reads more than val. Else, returns false.
+ */
 bool nau7802_at_val_mg(int val);
 
 /**
