@@ -3,7 +3,7 @@
 void i2c_bus_set_bits(byte* buf, bit_range bits, uint8_t val){
     const uint8_t val_mask = 0xFFu>>(7-(bits.to - bits.from));
     const uint8_t buf_mask = ~(val_mask<<bits.from);
-    return ((*buf) & buf_mask) | ((val & val_mask))<<bits.from;
+    (*buf) = ((*buf) & buf_mask) | ((val & val_mask)<<bits.from);
 }
 
 int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * dst){
