@@ -12,25 +12,7 @@
 #define NAU7802_H
 
 #include "pico/stdlib.h"
-#include "hardware/i2c.h"
-
-#define ADDR_NAU7802 0x2A /**< I2C address of the NAU7802 IC */
-
-#define NAU7802_SUCCESS 1              /**< Code used to indicate a successfull operations */
-#define NAU7802_ERROR_WRITE_FAILURE -1 /**< Code used to indicate a failure to write to the NAU7802 */
-#define NAU7802_ERROR_READ_FAILURE  -2 /**< Code used to indicate a failure to read from the NAU7802 */
-
-typedef unsigned char byte;     /**< Type name for a single byte of data */
-typedef unsigned char reg_addr; /**< Type name for a register address. */
-
-/**
- * \brief Struct that defines a range of bits in a byte address.
- */
-typedef const struct{
-    const uint8_t from;    /**< The LSB in the bit range (inclusive). */
-    const uint8_t to;      /**< The MSB in the bit range (inclusive). */
-    const reg_addr in_reg; /**< The address of the register containing the bit range. */
-} bit_range;
+#include "i2c_bus.h"
 
 #define REG_PU_CTRL  0x0  /**< NAU7802 register address: Power-up control */
 #define REG_CTRL_1   0x01 /**< NAU7802 register address: Configuration 1 */

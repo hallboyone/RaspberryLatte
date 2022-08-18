@@ -1,9 +1,9 @@
 #include "i2c_bus.h"
 
-void i2c_bus_set_bits(byte* buf, uint8_t from_bit, uint8_t to_bit, uint8_t val){
-    const uint8_t val_mask = 0xFFu>>(7-(to_bit - from_bit));
-    const uint8_t buf_mask = ~(val_mask<<from_bit);
-    return ((*buf) & buf_mask) | ((val & val_mask))<<from_bit;
+void i2c_bus_set_bits(byte* buf, bit_range bits, uint8_t val){
+    const uint8_t val_mask = 0xFFu>>(7-(bits.to - bits.from));
+    const uint8_t buf_mask = ~(val_mask<<bits.from);
+    return ((*buf) & buf_mask) | ((val & val_mask))<<bits.from;
 }
 
 int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * dst){
@@ -27,27 +27,26 @@ int i2c_bus_write_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t re
     return I2C_SUCCESS;
 }
 
-int i2c_bus_read_bits(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, 
-                      uint8_t from_bit, uint8_t to_bit, byte * dst){
+int i2c_bus_read_bits(i2c_inst_t * bus, const dev_addr dev, const bit_range bits, byte * dst){
     // Read specified register from device
-    int result = i2c_bus_read_bytes(bus, dev, reg, reg_addr_len, 1, dst);
+    int result = i2c_bus_read_bytes(bus, dev, bits.in_reg, bits.reg_addr_len, 1, dst);
     if(result != I2C_SUCCESS) return result;
 
     // Shift bits to only include those in range.
-    *dst = (*dst)<<(7-to_bit);
-    (*dst) = (*dst)>>(7-to_bit + from_bit);
+    *dst = (*dst)<<(7-bits.to);
+    (*dst) = (*dst)>>(7-bits.to + bits.from);
 
     return I2C_SUCCESS;
 }
 
-int i2c_bus_write_bits(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint8_t from_bit, uint8_t to_bit, byte val){
+int i2c_bus_write_bits(i2c_inst_t * bus, const dev_addr dev, const bit_range bits, const byte val){
     byte reg = 0;
-    int result = i2c_bus_read_bytes(bus, dev, reg, reg_addr_len, 1, &reg);
+    int result = i2c_bus_read_bytes(bus, dev, bits.in_reg, bits.reg_addr_len, 1, &reg);
     if(result != I2C_SUCCESS) return result;
     
-    i2c_bus_set_bits(&reg, from_bit, to_bit, val);
+    i2c_bus_set_bits(&reg, bits, val);
 
-    result = i2c_bus_write_bytes(bus, dev, reg, reg_addr_len, 1, &reg);
+    result = i2c_bus_write_bytes(bus, dev, bits.in_reg, bits.reg_addr_len, 1, &reg);
     if(result != I2C_SUCCESS) return result;
     
     return I2C_SUCCESS;
