@@ -260,7 +260,9 @@ int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, fl
     // Try to setup scale up to ten times.
     for(int i = 0; i<10; i++){
         if(_nau7802_setup() == PICO_ERROR_NONE) break;
-        if(i==9)return PICO_ERROR_GENERIC;
+        if(i==9){
+            return PICO_ERROR_GENERIC;
+        } 
     }
 
     while(_scale_origin == 0){
