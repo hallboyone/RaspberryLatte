@@ -94,7 +94,7 @@ int nau7802_reset(){
         return result;
     }
     sleep_ms(1);
-    result = nau7802_write_bits(BITS_RESET, 1);
+    result = nau7802_write_bits(BITS_RESET, 0);
     return result;
 }
 
@@ -161,7 +161,7 @@ bool nau7802_data_ready(){
 int nau7802_read_raw(uint32_t * dst){
     if (nau7802_data_ready()){
         int result = nau7802_read_reg(REG_ADCO_B2, 3, (uint8_t*)dst);
-        if(result != I2C_SUCCESS) return result;
+        if(result != I2C_BUS_SUCCESS) return result;
 
         uint32_t b0 = ((*dst)&0xFF0000);
         uint32_t b1 = ((*dst)&0x00FF00);
@@ -175,7 +175,7 @@ int nau7802_read_raw(uint32_t * dst){
 
 int nau7802_read_mg(){
     uint32_t val;
-    if(nau7802_read_raw(&val)!= I2C_SUCCESS){
+    if(nau7802_read_raw(&val)!= I2C_BUS_SUCCESS){
         return 0;
     }
 
@@ -183,7 +183,7 @@ int nau7802_read_mg(){
 }
 
 int nau7802_zero(){
-    if(nau7802_read_raw(&_scale_origin)!= I2C_SUCCESS){
+    if(nau7802_read_raw(&_scale_origin)!= I2C_BUS_SUCCESS){
         return PICO_ERROR_GENERIC;
     }
 }
@@ -219,6 +219,9 @@ static int _nau7802_setup(){
     if(nau7802_set_digital_power(PWR_ON)){
         return PICO_ERROR_GENERIC;
     }
+    if(!nau7802_wait_till_ready_ms(25)){
+        return PICO_ERROR_TIMEOUT;
+    }
     if(nau7802_set_analog_power_supply(AVDD_SRC_INTERNAL)){
         return PICO_ERROR_GENERIC;
     }
@@ -252,7 +255,7 @@ int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, fl
     } 
     _conversion_factor_mg = conversion_factor_mg;
 
-    i2c_bus_setup(_nau7802_i2c, 100000, scl_pin, sda_pin);
+    i2c_bus_setup(_nau7802_i2c, 10000, scl_pin, sda_pin);
 
     // Try to setup scale up to ten times.
     for(int i = 0; i<10; i++){
