@@ -1,5 +1,17 @@
 #include "nau7802.h"
 
+const reg_addr REG_PU_CTRL = 0x0;  /**< NAU7802 register address: Power-up control */
+const reg_addr REG_CTRL_1  = 0x01; /**< NAU7802 register address: Configuration 1 */
+const reg_addr REG_CTRL_2  = 0x02; /**< NAU7802 register address: Configuration 2 */
+const reg_addr REG_I2C_CTRL= 0x11; /**< NAU7802 register address: I2C Configuation*/
+const reg_addr REG_ADCO_B2 = 0x12; /**< NAU7802 register address: Conversion result 23-16*/
+const reg_addr REG_ADCO_B1 = 0x13; /**< NAU7802 register address: Conversion result 15-8*/
+const reg_addr REG_ADCO_B0 = 0x14; /**< NAU7802 register address: Conversion result 7-0*/
+const reg_addr REG_ADC_CTRL= 0x15; /**< NAU7802 register address: ADC configuration */
+const reg_addr REG_PGA     = 0x1B; /**< NAU7802 register address: Programmable gain amp config */
+const reg_addr REG_PWR_CTRL= 0x1C; /**< NAU7802 register address: Power control */
+const reg_addr REG_DEV_REV = 0x1F; /**< NAU7802 register address: Device information */
+
 const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
 const bit_range BITS_PWR_UP_D    = {.from = 1, .to = 1, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
 const bit_range BITS_PWR_UP_A    = {.from = 2, .to = 2, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
@@ -195,6 +207,11 @@ static void _nau7802_hw_init(uint8_t scl_pin, uint8_t sda_pin){
     gpio_pull_up(scl_pin);
 }
 
+/**
+ * \brief Assign standard values to the registers of the NAU7802 chip.
+ * 
+ * \returns PICO_OK if setup successfully. Else returns error code.
+ */
 static int _nau7802_setup(){
     if(nau7802_reset()){
         return PICO_ERROR_GENERIC;
@@ -202,7 +219,6 @@ static int _nau7802_setup(){
     if(nau7802_set_digital_power(PWR_ON)){
         return PICO_ERROR_GENERIC;
     }
-    
     if(nau7802_set_analog_power_supply(AVDD_SRC_INTERNAL)){
         return PICO_ERROR_GENERIC;
     }
@@ -227,7 +243,7 @@ static int _nau7802_setup(){
     if(nau7802_set_conversions(CONVERSIONS_ON)){
         return PICO_ERROR_GENERIC;
     }
-    return PICO_ERROR_NONE;
+    return PICO_OK;
 }
 
 int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
