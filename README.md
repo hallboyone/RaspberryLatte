@@ -19,7 +19,7 @@ While ssh is fun, a mobile application would be significantly more convenient. T
 ## To-Do
 - [X] Finish Software Level
 - [x] Combine Firmware and Software levels to run together on the Pi pico W (eliminates the Pi 0w)
-- [ ] Add carrier board design to repository
+- [x] Add carrier board design to repository
 - [ ] Add wiring diagram
 - [ ] Add BOM for hardware
 - [ ] Implement Network level
