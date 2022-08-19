@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-
 #include "nau7802.h"
 
 const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
@@ -79,96 +76,81 @@ int nau7802_write_bits(const bit_range bits, uint8_t val){
     return i2c_bus_write_bits(_nau7802_i2c, _nau7802_addr, bits, val);
 }
 
-void nau7802_reset(){
-    if(nau7802_write_bits(BITS_RESET, 1) != I2C_SUCCESS){
-        printf("Failed to set the reset bit to 1\n");
+int nau7802_reset(){
+    int result = nau7802_write_bits(BITS_RESET, 1);
+    if(result != I2C_SUCCESS){
+        return result;
     }
     sleep_ms(1);
-    if(nau7802_write_bits(BITS_RESET, 0) != I2C_SUCCESS){
-        printf("Failed to set the reset bit to 0\n");
-    }
+    result = nau7802_write_bits(BITS_RESET, 1);
+    return result;
 }
 
 bool nau7802_is_ready(){
     uint8_t ready_bit = 0;
     if(nau7802_read_bits(BITS_READY, &ready_bit) != I2C_SUCCESS){
-        printf("Failed to get ready bits\n");
+        return false;
     }
     return ready_bit;
 }
 
-void nau7802_set_analog_power_supply(avdd_src source){
-    if(nau7802_write_bits(BITS_AVDD_S, source) != I2C_SUCCESS){
-        printf("Failed to set the analog power supply\n");
+bool nau7802_wait_till_ready_ms(uint timeout){
+    uint64_t end_time = 1000*timeout + time_us_64();
+    while(!nau7802_is_ready()){
+        if (time_us_64() > end_time) return false;
     }
+    return true;
 }
 
-void nau7802_set_digital_power(pwr_setting on_off){
-    if(nau7802_write_bits(BITS_PWR_UP_D, on_off) != I2C_SUCCESS){
-        printf("Failed to set the digital power\n");
-    }
-    byte reg = 0;
-    nau7802_read_reg(BITS_PWR_UP_D.in_reg, 1, &reg);
-    if (on_off){ // If powering up, wait for it to be ready.
-        while(!nau7802_is_ready()){
-            tight_loop_contents;
-        }
-    }
+int nau7802_set_analog_power_supply(avdd_src source){
+    return nau7802_write_bits(BITS_AVDD_S, source);
 }
 
-void nau7802_set_analog_power(pwr_setting on_off){
-    if(nau7802_write_bits(BITS_PWR_UP_A, on_off) != I2C_SUCCESS){
-        printf("Failed to set the analog power\n");
-    }
+int nau7802_set_digital_power(pwr_setting on_off){
+    return nau7802_write_bits(BITS_PWR_UP_D, on_off);
 }
 
-void nau7802_set_conversions(conversion_setting on_off){
-    if(nau7802_write_bits(BITS_CS, on_off) != I2C_SUCCESS){
-        printf("Failed to set conversions\n");
-    }
+int nau7802_set_analog_power(pwr_setting on_off){
+    return nau7802_write_bits(BITS_PWR_UP_A, on_off);
 }
 
-void nau7802_set_gain(gain g){
-    if(nau7802_write_bits(BITS_GAIN, g) != I2C_SUCCESS){
-        printf("Failed to update gain\n");
-    }
+int nau7802_set_conversions(conversion_setting on_off){
+    return nau7802_write_bits(BITS_CS, on_off);
 }
 
-void nau7802_set_ldo_voltage(ldo_voltage v){
-    if(nau7802_write_bits(BITS_VLDO, v) != I2C_SUCCESS){
-        printf("Failed to update LDO voltage\n");
-    }
+int nau7802_set_gain(gain g){
+    return nau7802_write_bits(BITS_GAIN, g);
 }
 
-void nau7802_set_ldo_mode(ldo_mode mode){
-    if(nau7802_write_bits(BITS_LDO_MODE, mode) != I2C_SUCCESS){
-        printf("Failed to update LDO mode\n");
-    }
+int nau7802_set_ldo_voltage(ldo_voltage v){
+    return nau7802_write_bits(BITS_VLDO, v);
 }
 
-void nau7802_set_chopper_clock(chp_clk val){
-    if(nau7802_write_bits(BITS_REG_CHPS, val) != I2C_SUCCESS){
-        printf("Failed to update chopper clock\n");
-    }
+int nau7802_set_ldo_mode(ldo_mode mode){
+    return nau7802_write_bits(BITS_LDO_MODE, mode);
 }
 
-void nau7802_set_pga_filter(pga_setting off_on){
-    if(nau7802_write_bits(BITS_PGA_CAP, off_on) != I2C_SUCCESS){
-        printf("Failed to update pga filter cap status\n");
-    }
+int nau7802_set_chopper_clock(chp_clk val){
+    return nau7802_write_bits(BITS_REG_CHPS, val);
+}
+
+int nau7802_set_pga_filter(pga_setting off_on){
+    return nau7802_write_bits(BITS_PGA_CAP, off_on);
 }
 
 bool nau7802_data_ready(){
     uint8_t is_ready = 0;
-    if(nau7802_read_bits(BITS_CR, &is_ready) != I2C_SUCCESS){
-        printf("Failed to get conversion status\n");
-    }
-    return (is_ready==1);
+    int result = nau7802_read_bits(BITS_CR, &is_ready);
+    if(result != I2C_SUCCESS) return false;
+
+    return is_ready;
 }
 
-void nau7802_read_raw(uint32_t * dst){
+int nau7802_read_raw(uint32_t * dst){
     if (nau7802_data_ready()){
-        nau7802_read_reg(REG_ADCO_B2, 3, (uint8_t*)dst);
+        int result = nau7802_read_reg(REG_ADCO_B2, 3, (uint8_t*)dst);
+        if(result != I2C_SUCCESS) return result;
+
         uint32_t b0 = ((*dst)&0xFF0000);
         uint32_t b1 = ((*dst)&0x00FF00);
         uint32_t b2 = ((*dst)&0x0000FF);
@@ -181,12 +163,17 @@ void nau7802_read_raw(uint32_t * dst){
 
 int nau7802_read_mg(){
     uint32_t val;
-    nau7802_read_raw(&val);
+    if(nau7802_read_raw(&val)!= I2C_SUCCESS){
+        return 0;
+    }
+
     return _conversion_factor_mg*((int)val-(int)_scale_origin);
 }
 
-void nau7802_zero(){
-    nau7802_read_raw(&_scale_origin);
+int nau7802_zero(){
+    if(nau7802_read_raw(&_scale_origin)!= I2C_SUCCESS){
+        return PICO_ERROR_GENERIC;
+    }
 }
 
 bool nau7802_at_val_mg(int val){
@@ -208,7 +195,42 @@ static void _nau7802_hw_init(uint8_t scl_pin, uint8_t sda_pin){
     gpio_pull_up(scl_pin);
 }
 
-void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
+static int _nau7802_setup(){
+    if(nau7802_reset()){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_digital_power(PWR_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    
+    if(nau7802_set_analog_power_supply(AVDD_SRC_INTERNAL)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_analog_power(PWR_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_ldo_voltage(VLDO_3_0)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_ldo_mode(LDO_MODE_ACCURATE)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_gain(GAIN_128)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_chopper_clock(CHP_CLK_OFF)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_pga_filter(PGA_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_conversions(CONVERSIONS_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    return PICO_ERROR_NONE;
+}
+
+int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
     if(nau7802_i2c != NULL){
         _nau7802_i2c = nau7802_i2c;
     } 
@@ -216,18 +238,11 @@ void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, f
 
     _nau7802_hw_init(scl_pin, sda_pin);
 
-    nau7802_reset();
-    nau7802_set_analog_power_supply(AVDD_SRC_INTERNAL);
-    nau7802_set_digital_power(PWR_ON);
-    nau7802_set_analog_power(PWR_ON);
-    
-    nau7802_set_ldo_voltage(VLDO_3_0);
-    nau7802_set_ldo_mode(LDO_MODE_ACCURATE);
-    nau7802_set_gain(GAIN_128);
-    nau7802_set_chopper_clock(CHP_CLK_OFF);
-    nau7802_set_pga_filter(PGA_ON);
-
-    nau7802_set_conversions(CONVERSIONS_ON);
+    // Try to setup scale up to ten times.
+    for(int i = 0; i<10; i++){
+        if(_nau7802_setup() == PICO_ERROR_NONE) break;
+        if(i==9)return PICO_ERROR_GENERIC;
+    }
 
     while(_scale_origin == 0){
         nau7802_zero();
