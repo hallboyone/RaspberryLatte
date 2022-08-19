@@ -90,7 +90,7 @@ int nau7802_write_bits(const bit_range bits, uint8_t val){
 
 int nau7802_reset(){
     int result = nau7802_write_bits(BITS_RESET, 1);
-    if(result != I2C_SUCCESS){
+    if(result != I2C_BUS_SUCCESS){
         return result;
     }
     sleep_ms(1);
@@ -100,7 +100,7 @@ int nau7802_reset(){
 
 bool nau7802_is_ready(){
     uint8_t ready_bit = 0;
-    if(nau7802_read_bits(BITS_READY, &ready_bit) != I2C_SUCCESS){
+    if(nau7802_read_bits(BITS_READY, &ready_bit) != I2C_BUS_SUCCESS){
         return false;
     }
     return ready_bit;
@@ -153,7 +153,7 @@ int nau7802_set_pga_filter(pga_setting off_on){
 bool nau7802_data_ready(){
     uint8_t is_ready = 0;
     int result = nau7802_read_bits(BITS_CR, &is_ready);
-    if(result != I2C_SUCCESS) return false;
+    if(result != I2C_BUS_SUCCESS) return false;
 
     return is_ready;
 }
@@ -252,7 +252,7 @@ int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, fl
     } 
     _conversion_factor_mg = conversion_factor_mg;
 
-    _nau7802_hw_init(scl_pin, sda_pin);
+    i2c_bus_setup(_nau7802_i2c, 100000, scl_pin, sda_pin);
 
     // Try to setup scale up to ten times.
     for(int i = 0; i<10; i++){
