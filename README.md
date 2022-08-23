@@ -24,6 +24,7 @@ While ssh is fun, a mobile application would be significantly more convenient. T
 - [ ] Add BOM for hardware
 - [ ] Implement Network level
 - [ ] Implement mobile UI level
+- [ ] Write project documentation
 
 ## Inspiration
 This project has taken inspiration from others who have taken the time to write up their own builds. The two primary sources have been the [Es(pi)resso project](https://home-automations.net/project-coffee-espiresso-machine/), and the [Espresso for Geeks blog](https://www.instructables.com/Espresso-for-Geeks/). Big thank you to both those makers for sharing the great work they did!
