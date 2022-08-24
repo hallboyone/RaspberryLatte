@@ -1,5 +1,6 @@
-#ifndef _PINOUT_H
-#define _PINOUT_H
+#ifndef PINOUT_H
+#define PINOUT_H
+
 #define SCALE_CLOCK_PIN            2
 #define SCALE_DATA_PIN             3
 #define PHASECONTROL_0CROSS_PIN   4

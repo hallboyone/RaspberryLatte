@@ -13,8 +13,8 @@
  * then call plant_apply_float(u).
  */
 
-#ifndef _PID_H
-#define _PID_H
+#ifndef PID_H
+#define PID_H
 
 #include "pico/stdlib.h"
 #include "pico/time.h"

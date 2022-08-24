@@ -6,8 +6,8 @@
  * \date 2022-08-16
  */
 
-#ifndef _AUTOBREW_H
-#define _AUTOBREW_H
+#ifndef AUTOBREW_H
+#define AUTOBREW_H
 #include "pico/stdlib.h"
 
 /** \brief Function prototype that will be called during a function call leg */

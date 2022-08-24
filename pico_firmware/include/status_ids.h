@@ -1,5 +1,5 @@
-#ifndef _STATUS_IDS_H
-#define _STATUS_IDS_H
+#ifndef STATUS_IDS_H
+#define STATUS_IDS_H
 
 #define SUCCESS          0x00
 #define IDX_OUT_OF_RANGE 0xF0
