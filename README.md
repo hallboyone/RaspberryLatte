@@ -1,6 +1,19 @@
 # RaspberryLatte
 
-A full stack suite to add smarts to a single boiler espresso machine using a Raspberry Pi Pico as the brains. 
+A full stack suite to add smarts to a single boiler espresso machine using a Raspberry Pi Pico as the brains. The project was started with the following goals in mind:
+- **Feature Rich:** Going beyond the standard PID tempurature control, RaspberryLatte should provide advanced features that make pulling the perfect shot easier. These include
+  - PID tempurature control with feedforward components
+  - Pressure and/or flow control
+  - Output scale
+  - Preinfusion and auto brew routines
+  - Coffee profiles *[Planned]*
+  - Scheduled heating *[Planned]*
+  - Realtime state viewer (mobile UI) *[Planned]*
+  - Machine statistic tracking *[Planned]*
+  - Shot diagnosis and logging  *[Planned]*
+- **Low Cost:** The cost should be minimized. The base hardware should be less than $100.
+- **Discrete Appearance:** External parts, which would typically be 3D printed, should be minimized. Furthermore, the design should not require any external displays. In other words, the finished product should be discrete and not *look* like a DIY IoT device. 
+
 
 ## Description
 
@@ -20,10 +33,12 @@ While ssh is fun, a mobile application would be significantly more convenient. T
 - [X] Finish Software Level
 - [x] Combine Firmware and Software levels to run together on the Pi pico W (eliminates the Pi 0w)
 - [x] Add carrier board design to repository
+- [ ] Add UI based on onboard switches and LEDs
 - [ ] Add wiring diagram
 - [ ] Add BOM for hardware
-- [ ] Implement Network level
+- [ ] Implement network level
 - [ ] Implement mobile UI level
+- [ ] Design logo
 - [ ] Write project documentation
 
 ## Inspiration
