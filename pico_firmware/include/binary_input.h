@@ -18,10 +18,12 @@
  * \brief Data related to a binary input. Handles multithrow switches and allows for muxed hardware.
  */
 typedef struct {
-    uint8_t num_pins; /**< How many GPIO pins are used in binary input. */
-    uint8_t* pins;    /**< Array of pin numbers used in binary input. */
-    bool muxed;       /**< Flag indicating if the input is muxed (pins read as binary numer). */
-    bool inverted;    /**< Flag indicating if the wiring requires the pins to be inverted. */
+    uint8_t num_pins;  /**< How many GPIO pins are used in binary input. */
+    uint8_t* pins;     /**< Array of pin numbers used in binary input. */
+    bool * pin_states; /**< Pin state after adjusting for inversion and any debouncing */
+    uint debounce_us;  /**< Length of time a binary input must remain constant before switching */
+    bool muxed;        /**< Flag indicating if the input is muxed (pins read as binary numer). */
+    bool inverted;     /**< Flag indicating if the wiring requires the pins to be inverted. */
 } binary_input;
 
 /**
@@ -33,10 +35,12 @@ typedef struct {
  * \param num_pins The number of pins for the binary input.
  * \param pins Pointer to an array of GPIO pin numbers of length num_pins.
  * \param pull_dir Set to either BINARY_INPUT_PULL_UP or BINARY_INPUT_PULL_DOWN 
+ * \param debounce_us Length a GPIO pin has to dwell in state before reading as switched (rapid changes are ignored). TO USE
+ * DEBOUNCE LOGIC, NO OTHER GPIO INTURUPTS SHOULD BE USED!  
  * \param invert Flag indicating if the pins should be inverted. 
  * \param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
  */
-void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, bool invert, bool muxed);
+void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, uint debounce_us, bool invert, bool muxed);
 
 /**
  * \brief Reads the requested switch. If switch is muxed, returns the bit mask of the pins. Else
