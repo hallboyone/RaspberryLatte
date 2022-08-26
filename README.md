@@ -19,13 +19,16 @@ A full stack suite to add smarts to a single boiler espresso machine using a Ras
 
 This project can be thought of in several layers. 
 ### Hardware Level
-The lowest level is the hardware such as sensors and switches required to create a smart espresso machine. Additionally, a custom carrier board is needed to interface with these components. This PCB contains any circuitry required to support the sensors and switches. Mounted to this carrier board is the Raspberry Pi Pico W. 
-![Overhead view of main board](https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board.png?raw=true)
+The lowest level is the hardware such as sensors and switches required to create a smart espresso machine. Additionally, a custom carrier board is needed to interface with these components. This PCB contains any circuitry required to support the sensors and switches. Mounted to this carrier board is the Raspberry Pi Pico W.
+| Front View | Back View |
+| --- | --- |
+<img src="https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board_front.png?raw=true" alt="Front view of main board" width="500"/> | <img src="https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board_back.png?raw=true" alt="Back view of main board" width="500"/>
 
+  
 ### Firmware Level
 The next level consists of the firmware running on the Pico. This code, written in c, contains all the sensor drivers and machine logic. The firmware is partitioned onto a single core of the dual core Pico.
 ### Network Level (Planned)
-The network level runs on the second core on the Pico. It collects information from the firmware running on core 0 and shares that over BLE with the Mobile UI level (see below). It also passes settings received from a BLE client to the firmware so that the machines performance can be tailored to achieve the desired brew characteristics. NOTE: This cannot be implemented until the pico SDK add BLE support.
+The network level runs on the second core on the Pico. It collects information from the firmware running on core 0 and shares that over BLE with the Mobile UI level (see below). It also passes settings received from a BLE client to the firmware so that the machines performance can be tailored to achieve the desired brew characteristics. NOTE: This cannot be implemented until the pico SDK adds BLE support.
 ### Mobile UI Level (Planned)
 While ssh is fun, a mobile application would be significantly more convenient. This level would allow users to create and share their brew profiles for different coffees, visualize a shots flow rate, pressure, temperature, etc. in real time, and troubleshoot their shots. This application would interface with the Pi 0w over BLE.
 
