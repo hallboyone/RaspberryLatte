@@ -30,7 +30,7 @@ The next level consists of the firmware running on the Pico. This code, written 
 ### Network Level (Planned)
 The network level runs on the second core on the Pico. It collects information from the firmware running on core 0 and shares that over BLE with the Mobile UI level (see below). It also passes settings received from a BLE client to the firmware so that the machines performance can be tailored to achieve the desired brew characteristics. NOTE: This cannot be implemented until the pico SDK adds BLE support.
 ### Mobile UI Level (Planned)
-While ssh is fun, a mobile application would be significantly more convenient. This level would allow users to create and share their brew profiles for different coffees, visualize a shots flow rate, pressure, temperature, etc. in real time, and troubleshoot their shots. This application would interface with the Pi 0w over BLE.
+While ssh is fun, a mobile application would be significantly more convenient. This level would allow users to create and share their brew profiles for different coffees, visualize a shot's flow rate, pressure, temperature, etc. in real time, and troubleshoot their shots. This application would interface with the Network level using BLE, simplifying the connection process.
 
 ## To-Do
 - [X] Finish Software Level
