@@ -6,26 +6,45 @@
 #include "binary_input.h"
 #include "status_ids.h"
 
-/** \brief The absolute time points when binary input last changed */
-static volatile absolute_time_t _trigger_times [32];
+/** \brief The binary input owning the corrisponding GPIO */
+static binary_input * _binary_inputs [32] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
+                                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 
-/** \brief ISR for debouncing. Records the transition time of each pin */
-static void _save_trigger_time(uint gpio, uint32_t events){
-    _trigger_times[gpio] = get_absolute_time();
+/** \brief Sets flag that indicates bouncing has ended
+ * 
+ * When a debounced pin transitions between states, a flag is set that indicates the pin recently
+ * changed and an alarm is set that will call this callback to clear the alarm. If that alarm is 
+ * not canceled (by another transition, for example), the binary_input has setteled and future read
+ * operations will read the pins state instead of using the recorded ones
+ */
+static int64_t _debounce_callback(alarm_id_t id, void * b_in){
+    binary_input * b = (binary_input*) b_in;
+    b->bouncing = false;
+}
+
+/** \brief ISR for debouncing. */
+static void _set_debounce_alarm(uint gpio, uint32_t events){
+    _binary_inputs[gpio]->bouncing = true;
+    if(_binary_inputs[gpio]->debounce_alarm != -1){
+        cancel_alarm(_binary_inputs[gpio]->debounce_alarm);
+    }
+    _binary_inputs[gpio]->debounce_alarm = add_alarm_in_us(_binary_inputs[gpio]->debounce_us, &_debounce_callback, _binary_inputs[gpio], true);
 }
 
 /**
- * \brief Iterates through each pin and saves its state taking into account pull direction, invertion, and debouncing logic.
+ * \brief If input is not bouncing, iterates through each pin and saves its state 
+ * while taking into account pull direction and invertion.
  * 
  * \param b Pointer to binary_input object that will be updated.
  */
 static inline void _binary_input_update_pin_states(binary_input * b){
-    absolute_time_t cur_t = get_absolute_time();
-    for(uint8_t p = 0; p<b->num_pins; p++){
-        if (b->debounce_us == 0 || absolute_time_diff_us(_trigger_times[b->pins[p]], cur_t) >= b->debounce_us){
-            // Debounce not active or satisfied. Save pin state.
+    if (!b->bouncing){
+        for(uint8_t p_idx = 0; p_idx < b->num_pins; p_idx++){
+            uint8_t p = b->pins[p_idx];
             bool var = (gpio_is_pulled_down(p) ? gpio_get(p) : !gpio_get(p));
-            b->pin_states[p] = b->inverted ? !var : var;
+            b->pin_states[p_idx] = b->inverted ? !var : var;
         }
     }
 }
@@ -38,6 +57,8 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
     b->debounce_us = debounce_us;
     b->muxed       = muxed;
     b->inverted    = invert;
+    b->bouncing    = false;
+    b->debounce_alarm = -1;
 
     // Init the allocated arrays
     memcpy(b->pins, pins, num_pins);
@@ -49,11 +70,10 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
         gpio_set_dir(b->pins[p], false);
         gpio_set_pulls(b->pins[p], pull_dir == BINARY_INPUT_PULL_UP,
                        pull_dir != BINARY_INPUT_PULL_UP);
+        _binary_inputs[b->pins[p]] = b;
         if(debounce_us > 0){
             // Attach irq to each pin if debouncing
-            gpio_set_irq_callback(_save_trigger_time);
-            gpio_set_irq_enabled(b->pins[p], GPIO_IRQ_EDGE_FALL || GPIO_IRQ_EDGE_RISE, true);
-            _trigger_times[b->pins[p]] = get_absolute_time();
+            gpio_set_irq_enabled_with_callback(b->pins[p], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &_set_debounce_alarm);
         }
     }
 }

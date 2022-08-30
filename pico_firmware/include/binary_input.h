@@ -21,9 +21,11 @@ typedef struct {
     uint8_t num_pins;  /**< How many GPIO pins are used in binary input. */
     uint8_t* pins;     /**< Array of pin numbers used in binary input. */
     bool * pin_states; /**< Pin state after adjusting for inversion and any debouncing */
-    uint debounce_us;  /**< Length of time a binary input must remain constant before switching */
     bool muxed;        /**< Flag indicating if the input is muxed (pins read as binary numer). */
     bool inverted;     /**< Flag indicating if the wiring requires the pins to be inverted. */
+    uint64_t debounce_us;  /**< Length of time a binary input must remain constant before switching */
+    volatile alarm_id_t debounce_alarm; /**< ID of alarm used to debounce the button */
+    volatile bool bouncing; /**< Flag set on transition and cleared after debounce_alarm */
 } binary_input;
 
 /**
