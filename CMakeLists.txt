@@ -10,4 +10,4 @@ set(CMAKE_C_STANDARD 11)
 set(PICO_BOARD pico_w)
 pico_sdk_init()
 
-add_subdirectory(pico_firmware)
+add_subdirectory(firmware)
