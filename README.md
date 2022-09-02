@@ -22,7 +22,7 @@ This project can be thought of in several layers.
 The lowest level is the hardware such as sensors and switches required to create a smart espresso machine. Additionally, a custom carrier board is needed to interface with these components. This PCB contains any circuitry required to support the sensors and switches. Mounted to this carrier board is the Raspberry Pi Pico W.
 | Front View | Back View |
 | --- | --- |
-<img src="https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board_front.png?raw=true" alt="Front view of main board" width="500"/> | <img src="https://github.com/hallboyone/RaspberryLatte/blob/master/docs/RaspberryLatte_main_board_back.png?raw=true" alt="Back view of main board" width="500"/>
+<img src="https://github.com/hallboyone/RaspberryLatte/blob/master/hardware/RaspberryLatte_main_board_front.png?raw=true" alt="Front view of main board" width="500"/> | <img src="https://github.com/hallboyone/RaspberryLatte/blob/master/hardware/RaspberryLatte_main_board_back.png?raw=true" alt="Back view of main board" width="500"/>
 
   
 ### Firmware Level
