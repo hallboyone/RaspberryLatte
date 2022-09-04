@@ -44,6 +44,14 @@ typedef struct{
 int i2c_bus_setup(i2c_inst_t * bus, uint baudrate, uint8_t scl_pin, uint8_t sda_pin);
 
 /**
+ * \brief Checks to see if a device at the given address is attached to i2c bus
+ * 
+ * \param bus Pointer to i2c_inst_t where the device will be looked for
+ * \param dev Address of device to search for.
+ */
+bool i2c_bus_is_connected(i2c_inst_t * bus, dev_addr dev);
+
+/**
  * \brief Sets the bits within buf specified by the from_bit and to_bit. Only the specified bits
  * are ever written to. If the value does not fit within the specified bits, the highest 
  * bits are truncated.

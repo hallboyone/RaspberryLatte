@@ -33,6 +33,11 @@ int i2c_bus_setup(i2c_inst_t * bus, uint baudrate, uint8_t scl_pin, uint8_t sda_
     return I2C_BUS_SUCCESS;
 }
 
+bool i2c_bus_is_connected(i2c_inst_t * bus, dev_addr dev){
+    uint8_t dummy;
+    int result = i2c_read_timeout_us(bus, dev, &dummy, 1, false, 500);
+    return result>=0;
+}
 
 void i2c_bus_set_bits(byte* buf, bit_range bits, uint8_t val){
     const uint8_t val_mask = 0xFFu>>(7-(bits.to - bits.from));
