@@ -70,7 +70,7 @@ static uint32_t _scale_origin = 0;       /**< Origin of the scale */
 static float _conversion_factor_mg = 1;  /**< Value that converts raw ADC reading to mg */
 
 i2c_inst_t * _nau7802_i2c = i2c_default; /**< I2C Channel to use for the NAU7802.*/
-const uint16_t _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
+const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
 
 int nau7802_read_reg(const reg_addr reg_idx, uint8_t len, uint8_t * dst){
     return i2c_bus_read_bytes(_nau7802_i2c, _nau7802_addr, reg_idx, 1, len, dst);
@@ -213,6 +213,9 @@ static void _nau7802_hw_init(uint8_t scl_pin, uint8_t sda_pin){
  * \returns PICO_OK if setup successfully. Else returns error code.
  */
 static int _nau7802_setup(){
+    if(!i2c_bus_is_connected(_nau7802_i2c, _nau7802_addr)){
+        return PICO_ERROR_GENERIC;
+    }
     if(nau7802_reset()){
         return PICO_ERROR_GENERIC;
     }
