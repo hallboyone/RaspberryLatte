@@ -255,7 +255,7 @@ int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, fl
     } 
     _conversion_factor_mg = conversion_factor_mg;
 
-    i2c_bus_setup(_nau7802_i2c, 10000, scl_pin, sda_pin);
+    i2c_bus_setup(_nau7802_i2c, 100000, scl_pin, sda_pin);
 
     // Try to setup scale up to ten times.
     for(int i = 0; i<10; i++){
