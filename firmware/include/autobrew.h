@@ -11,7 +11,7 @@
 #include "pico/stdlib.h"
 
 /** \brief Function prototype that will be called during a function call leg */
-typedef void (*autobrew_fun)();
+typedef int (*autobrew_fun)();
 
 /** \brief Function prototype for an ending trigger. Used to terminate a leg prior to the timeout */
 typedef bool (*autobrew_trigger)();
