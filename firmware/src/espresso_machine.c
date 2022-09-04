@@ -133,6 +133,15 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
         return 1;
     }
 
+    // Setup heater as a slow_pwm object
+    slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
+    heater_pid.K.p = PID_GAIN_P; heater_pid.K.i = PID_GAIN_I; heater_pid.K.d = PID_GAIN_D;
+    heater_pid.min_time_between_ticks_ms = 100;
+    heater_pid.sensor = &read_boiler_thermo;
+    heater_pid.plant = &apply_boiler_input;
+    heater_pid.setpoint = 0;
+    pid_init(&heater_pid, 0, 150, 1000);
+
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     binary_output_setup(&leds, led_pins, 3);
@@ -153,15 +162,6 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup nau7802. This is the only non-struct based object. 
     nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1, SCALE_CONVERSION_MG);
-
-    // Setup heater as a slow_pwm object
-    slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
-    heater_pid.K.p = PID_GAIN_P; heater_pid.K.i = PID_GAIN_I; heater_pid.K.d = PID_GAIN_D;
-    heater_pid.min_time_between_ticks_ms = 100;
-    heater_pid.sensor = &read_boiler_thermo;
-    heater_pid.plant = &apply_boiler_input;
-    heater_pid.setpoint = 0;
-    pid_init(&heater_pid, 0, 150, 1000);
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
