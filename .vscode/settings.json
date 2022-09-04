@@ -36,6 +36,7 @@
         "pid.h": "c",
         "message_ids.h": "c",
         "machine_configuration.h": "c",
-        "loop_rate_limiter.h": "c"
+        "loop_rate_limiter.h": "c",
+        "i2c_bus.h": "c"
     },
 }

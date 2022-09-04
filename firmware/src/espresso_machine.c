@@ -140,6 +140,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup the binary inputs for pump switch and mode dial.
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
+
     binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, true, false);
     binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, 10000, false, true);
 

@@ -1,245 +1,168 @@
-#include <stdio.h>
-#include <string.h>
-
 #include "nau7802.h"
-#include "status_ids.h"
 
-const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL};
-const bit_range BITS_PWR_UP_D    = {.from = 1, .to = 1, .in_reg = REG_PU_CTRL};
-const bit_range BITS_PWR_UP_A    = {.from = 2, .to = 2, .in_reg = REG_PU_CTRL};
-const bit_range BITS_READY       = {.from = 3, .to = 3, .in_reg = REG_PU_CTRL};
-const bit_range BITS_CS          = {.from = 4, .to = 4, .in_reg = REG_PU_CTRL};
-const bit_range BITS_CR          = {.from = 5, .to = 5, .in_reg = REG_PU_CTRL};
-const bit_range BITS_OSCS        = {.from = 6, .to = 6, .in_reg = REG_PU_CTRL};
-const bit_range BITS_AVDD_S      = {.from = 7, .to = 7, .in_reg = REG_PU_CTRL};
+const reg_addr REG_PU_CTRL = 0x0;  /**< NAU7802 register address: Power-up control */
+const reg_addr REG_CTRL_1  = 0x01; /**< NAU7802 register address: Configuration 1 */
+const reg_addr REG_CTRL_2  = 0x02; /**< NAU7802 register address: Configuration 2 */
+const reg_addr REG_I2C_CTRL= 0x11; /**< NAU7802 register address: I2C Configuation*/
+const reg_addr REG_ADCO_B2 = 0x12; /**< NAU7802 register address: Conversion result 23-16*/
+const reg_addr REG_ADCO_B1 = 0x13; /**< NAU7802 register address: Conversion result 15-8*/
+const reg_addr REG_ADCO_B0 = 0x14; /**< NAU7802 register address: Conversion result 7-0*/
+const reg_addr REG_ADC_CTRL= 0x15; /**< NAU7802 register address: ADC configuration */
+const reg_addr REG_PGA     = 0x1B; /**< NAU7802 register address: Programmable gain amp config */
+const reg_addr REG_PWR_CTRL= 0x1C; /**< NAU7802 register address: Power control */
+const reg_addr REG_DEV_REV = 0x1F; /**< NAU7802 register address: Device information */
 
-const bit_range BITS_GAIN        = {.from = 0, .to = 2, .in_reg = REG_CTRL_1};
-const bit_range BITS_VLDO        = {.from = 3, .to = 5, .in_reg = REG_CTRL_1};
-const bit_range BITS_DRDY_SEL    = {.from = 6, .to = 6, .in_reg = REG_CTRL_1};
-const bit_range BITS_CRP         = {.from = 7, .to = 7, .in_reg = REG_CTRL_1};
+const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_PWR_UP_D    = {.from = 1, .to = 1, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_PWR_UP_A    = {.from = 2, .to = 2, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_READY       = {.from = 3, .to = 3, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_CS          = {.from = 4, .to = 4, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_CR          = {.from = 5, .to = 5, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_OSCS        = {.from = 6, .to = 6, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
+const bit_range BITS_AVDD_S      = {.from = 7, .to = 7, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
 
-const bit_range BITS_CAL_MODE    = {.from = 0, .to = 1, .in_reg = REG_CTRL_2};
-const bit_range BITS_CALS        = {.from = 2, .to = 2, .in_reg = REG_CTRL_2};
-const bit_range BITS_CAL_ERR     = {.from = 3, .to = 3, .in_reg = REG_CTRL_2};
-const bit_range BITS_CRS         = {.from = 4, .to = 6, .in_reg = REG_CTRL_2};
-const bit_range BITS_CHS         = {.from = 7, .to = 7, .in_reg = REG_CTRL_2};
+const bit_range BITS_GAIN        = {.from = 0, .to = 2, .in_reg = REG_CTRL_1, .reg_addr_len = 1};
+const bit_range BITS_VLDO        = {.from = 3, .to = 5, .in_reg = REG_CTRL_1, .reg_addr_len = 1};
+const bit_range BITS_DRDY_SEL    = {.from = 6, .to = 6, .in_reg = REG_CTRL_1, .reg_addr_len = 1};
+const bit_range BITS_CRP         = {.from = 7, .to = 7, .in_reg = REG_CTRL_1, .reg_addr_len = 1};
 
-const bit_range BITS_BGPCP       = {.from = 0, .to = 0, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_TS          = {.from = 1, .to = 1, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_BOPGA       = {.from = 2, .to = 2, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_SI          = {.from = 3, .to = 3, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_WPD         = {.from = 4, .to = 4, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_SPE         = {.from = 5, .to = 5, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_FRD         = {.from = 6, .to = 6, .in_reg = REG_I2C_CTRL};
-const bit_range BITS_CRSD        = {.from = 7, .to = 7, .in_reg = REG_I2C_CTRL};
+const bit_range BITS_CAL_MODE    = {.from = 0, .to = 1, .in_reg = REG_CTRL_2, .reg_addr_len = 1};
+const bit_range BITS_CALS        = {.from = 2, .to = 2, .in_reg = REG_CTRL_2, .reg_addr_len = 1};
+const bit_range BITS_CAL_ERR     = {.from = 3, .to = 3, .in_reg = REG_CTRL_2, .reg_addr_len = 1};
+const bit_range BITS_CRS         = {.from = 4, .to = 6, .in_reg = REG_CTRL_2, .reg_addr_len = 1};
+const bit_range BITS_CHS         = {.from = 7, .to = 7, .in_reg = REG_CTRL_2, .reg_addr_len = 1};
 
-const bit_range BITS_B23_16      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B2};
+const bit_range BITS_BGPCP       = {.from = 0, .to = 0, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_TS          = {.from = 1, .to = 1, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_BOPGA       = {.from = 2, .to = 2, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_SI          = {.from = 3, .to = 3, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_WPD         = {.from = 4, .to = 4, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_SPE         = {.from = 5, .to = 5, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_FRD         = {.from = 6, .to = 6, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
+const bit_range BITS_CRSD        = {.from = 7, .to = 7, .in_reg = REG_I2C_CTRL, .reg_addr_len = 1};
 
-const bit_range BITS_B15_08      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B1};
+const bit_range BITS_B23_16      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B2, .reg_addr_len = 1};
 
-const bit_range BITS_B07_00      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B0};
+const bit_range BITS_B15_08      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B1, .reg_addr_len = 1};
 
-const bit_range BITS_REG_CHP     = {.from = 0, .to = 1, .in_reg = REG_ADC_CTRL};
-const bit_range BITS_ADC_VCM     = {.from = 2, .to = 3, .in_reg = REG_ADC_CTRL};
-const bit_range BITS_REG_CHPS    = {.from = 4, .to = 5, .in_reg = REG_ADC_CTRL};
+const bit_range BITS_B07_00      = {.from = 0, .to = 7, .in_reg = REG_ADCO_B0, .reg_addr_len = 1};
 
-const bit_range BITS_PGA_CHP_DIS = {.from = 0, .to = 0, .in_reg = REG_PGA};
-const bit_range BITS_PGA_INV     = {.from = 3, .to = 3, .in_reg = REG_PGA};
-const bit_range BITS_PGA_BYP_EN  = {.from = 4, .to = 4, .in_reg = REG_PGA};
-const bit_range BITS_PGA_OBUF_EN = {.from = 5, .to = 5, .in_reg = REG_PGA};
-const bit_range BITS_LDO_MODE    = {.from = 6, .to = 6, .in_reg = REG_PGA};
-const bit_range BITS_RD_OTP_SEL  = {.from = 7, .to = 7, .in_reg = REG_PGA};
+const bit_range BITS_REG_CHP     = {.from = 0, .to = 1, .in_reg = REG_ADC_CTRL, .reg_addr_len = 1};
+const bit_range BITS_ADC_VCM     = {.from = 2, .to = 3, .in_reg = REG_ADC_CTRL, .reg_addr_len = 1};
+const bit_range BITS_REG_CHPS    = {.from = 4, .to = 5, .in_reg = REG_ADC_CTRL, .reg_addr_len = 1};
 
-const bit_range BITS_PGA_CURR    = {.from = 0, .to = 1, .in_reg = REG_PWR_CTRL};
-const bit_range BITS_ADC_CURR    = {.from = 2, .to = 3, .in_reg = REG_PWR_CTRL};
-const bit_range BITS_MST_BS_CURR = {.from = 4, .to = 6, .in_reg = REG_PWR_CTRL};
-const bit_range BITS_PGA_CAP     = {.from = 7, .to = 7, .in_reg = REG_PWR_CTRL};
+const bit_range BITS_PGA_CHP_DIS = {.from = 0, .to = 0, .in_reg = REG_PGA, .reg_addr_len = 1};
+const bit_range BITS_PGA_INV     = {.from = 3, .to = 3, .in_reg = REG_PGA, .reg_addr_len = 1};
+const bit_range BITS_PGA_BYP_EN  = {.from = 4, .to = 4, .in_reg = REG_PGA, .reg_addr_len = 1};
+const bit_range BITS_PGA_OBUF_EN = {.from = 5, .to = 5, .in_reg = REG_PGA, .reg_addr_len = 1};
+const bit_range BITS_LDO_MODE    = {.from = 6, .to = 6, .in_reg = REG_PGA, .reg_addr_len = 1};
+const bit_range BITS_RD_OTP_SEL  = {.from = 7, .to = 7, .in_reg = REG_PGA, .reg_addr_len = 1};
 
-const bit_range BITS_REVISION_ID = {.from = 0, .to = 3, .in_reg = REG_DEV_REV};
+const bit_range BITS_PGA_CURR    = {.from = 0, .to = 1, .in_reg = REG_PWR_CTRL, .reg_addr_len = 1};
+const bit_range BITS_ADC_CURR    = {.from = 2, .to = 3, .in_reg = REG_PWR_CTRL, .reg_addr_len = 1};
+const bit_range BITS_MST_BS_CURR = {.from = 4, .to = 6, .in_reg = REG_PWR_CTRL, .reg_addr_len = 1};
+const bit_range BITS_PGA_CAP     = {.from = 7, .to = 7, .in_reg = REG_PWR_CTRL, .reg_addr_len = 1};
 
-/**
- * \brief Last ADC reading.
- */
-static uint32_t last_val = 0;
+const bit_range BITS_REVISION_ID = {.from = 0, .to = 3, .in_reg = REG_DEV_REV, .reg_addr_len = 1};
 
-static uint32_t _scale_origin = 0;
+static uint32_t last_val = 0;            /**< Last ADC reading */
+static uint32_t _scale_origin = 0;       /**< Origin of the scale */
+static float _conversion_factor_mg = 1;  /**< Value that converts raw ADC reading to mg */
 
-static float _conversion_factor_mg = 1;
-
-/**
- * \brief I2C Channel to use for the NAU7802.
- */
-static i2c_inst_t * _nau7802_i2c = i2c_default;
-
-/**
- * \brief Returns the bits within buf specified by the bit_range bits.
- * 
- * \param buf Byte storing packed binary data.
- * \param bits A bit_range structure indicating the bits to extract.
- * 
- * \returns The targeted bits in buf with the LS target bit shifted to bit 0.
- */
-uint8_t extractBits(const byte buf, const bit_range bits){
-    uint8_t val = buf;
-    val = val<<(7-bits.to);
-    val = val>>(7-bits.to + bits.from);
-    return val;
-}
-
-/**
- * \brief Sets the bits within buf specified by the bit_range bits. Only the specified bits
- * are ever written to. If the value does not fit within the specified bits, the highest 
- * bits are truncated.
- * 
- * \param buf  Byte storing packed binary data.
- * \param bits A bit_range structure indicating the bits to extract.
- * \param val  The value to store in targeted bits. 
- * 
- * \return The original buf with the targeted bits overwritten with the val. 
- */
-uint8_t setBits(const byte buf, const bit_range bits, uint8_t val){
-    const uint8_t val_mask = 0xFFu>>(7-(bits.to - bits.from));
-    const uint8_t buf_mask = ~(val_mask<<bits.from);
-    return (buf & buf_mask) | ((val & val_mask))<<bits.from;
-}
+i2c_inst_t * _nau7802_i2c = i2c_default; /**< I2C Channel to use for the NAU7802.*/
+const uint16_t _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
 
 int nau7802_read_reg(const reg_addr reg_idx, uint8_t len, uint8_t * dst){
-    // Send the starting register address
-    if(i2c_write_blocking(_nau7802_i2c, ADDR_NAU7802, &reg_idx, 1, true) == PICO_ERROR_GENERIC){
-        printf("WARNING: Write operation failed! [nau7802_read_reg]\n");
-        return NAU7802_ERROR_WRITE_FAILURE;
-    }
-    // Read each register into dst 
-    if(i2c_read_blocking(_nau7802_i2c, ADDR_NAU7802, dst, len, false) == PICO_ERROR_GENERIC){
-        printf("WARNING: Read operation failed! [nau7802_read_reg]\n");
-        return NAU7802_ERROR_READ_FAILURE;
-    }
-    return NAU7802_SUCCESS;
+    return i2c_bus_read_bytes(_nau7802_i2c, _nau7802_addr, reg_idx, 1, len, dst);
 }
 
 int nau7802_write_reg(const reg_addr reg_idx, uint8_t len, uint8_t * src){
-    uint8_t buf [len+1];
-    buf[0] = reg_idx;
-    memcpy(&buf[1], src, len);
-    if(i2c_write_blocking(_nau7802_i2c, ADDR_NAU7802, buf, len+1, false) == PICO_ERROR_GENERIC){
-        printf("WARNING: Write operation failed! [nau7802Write2Bit]\n");
-        return NAU7802_ERROR_WRITE_FAILURE;
-    }
-    return NAU7802_SUCCESS;
+    return i2c_bus_write_bytes(_nau7802_i2c, _nau7802_addr, reg_idx, 1, len, src);
 }
 
 int nau7802_read_bits(const bit_range bits, uint8_t * dst){
-    int err_code = 0;
-    if((err_code=nau7802_read_reg(bits.in_reg, 1, dst)) != NAU7802_SUCCESS){
-        return err_code;
-    }
-    *dst = extractBits(*dst, bits);
-    return NAU7802_SUCCESS;
+    return i2c_bus_read_bits(_nau7802_i2c, _nau7802_addr, bits, dst);
 }
 
 int nau7802_write_bits(const bit_range bits, uint8_t val){
-    byte reg = 0;
-    int err_code = 0;
-    if((err_code=nau7802_read_reg(bits.in_reg, 1, &reg)) != NAU7802_SUCCESS){
-        return err_code;
-    }
-    reg = setBits(reg, bits, val);
-    if((err_code=nau7802_write_reg(bits.in_reg, 1, &reg)) != NAU7802_SUCCESS){
-        return err_code;
-    }
-    return NAU7802_SUCCESS;
+    return i2c_bus_write_bits(_nau7802_i2c, _nau7802_addr, bits, val);
 }
 
-void nau7802_reset(){
-    if(nau7802_write_bits(BITS_RESET, 1) != NAU7802_SUCCESS){
-        printf("Failed to set the reset bit to 1\n");
+int nau7802_reset(){
+    int result = nau7802_write_bits(BITS_RESET, 1);
+    if(result != I2C_BUS_SUCCESS){
+        return result;
     }
     sleep_ms(1);
-    if(nau7802_write_bits(BITS_RESET, 0) != NAU7802_SUCCESS){
-        printf("Failed to set the reset bit to 0\n");
-    }
+    result = nau7802_write_bits(BITS_RESET, 0);
+    return result;
 }
 
 bool nau7802_is_ready(){
     uint8_t ready_bit = 0;
-    if(nau7802_read_bits(BITS_READY, &ready_bit) != NAU7802_SUCCESS){
-        printf("Failed to get ready bits\n");
+    if(nau7802_read_bits(BITS_READY, &ready_bit) != I2C_BUS_SUCCESS){
+        return false;
     }
     return ready_bit;
 }
 
-void nau7802_set_analog_power_supply(avdd_src source){
-    if(nau7802_write_bits(BITS_AVDD_S, source) != NAU7802_SUCCESS){
-        printf("Failed to set the analog power supply\n");
+bool nau7802_wait_till_ready_ms(uint timeout){
+    uint64_t end_time = 1000*timeout + time_us_64();
+    while(!nau7802_is_ready()){
+        if (time_us_64() > end_time) return false;
     }
+    return true;
 }
 
-void nau7802_set_digital_power(pwr_setting on_off){
-    if(nau7802_write_bits(BITS_PWR_UP_D, on_off) != NAU7802_SUCCESS){
-        printf("Failed to set the digital power\n");
-    }
-    byte reg = 0;
-    nau7802_read_reg(BITS_PWR_UP_D.in_reg, 1, &reg);
-    if (on_off){ // If powering up, wait for it to be ready.
-        while(!nau7802_is_ready()){
-            tight_loop_contents;
-        }
-    }
+int nau7802_set_analog_power_supply(avdd_src source){
+    return nau7802_write_bits(BITS_AVDD_S, source);
 }
 
-void nau7802_set_analog_power(pwr_setting on_off){
-    if(nau7802_write_bits(BITS_PWR_UP_A, on_off) != NAU7802_SUCCESS){
-        printf("Failed to set the analog power\n");
-    }
+int nau7802_set_digital_power(pwr_setting on_off){
+    return nau7802_write_bits(BITS_PWR_UP_D, on_off);
 }
 
-void nau7802_set_conversions(conversion_setting on_off){
-    if(nau7802_write_bits(BITS_CS, on_off) != NAU7802_SUCCESS){
-        printf("Failed to set conversions\n");
-    }
+int nau7802_set_analog_power(pwr_setting on_off){
+    return nau7802_write_bits(BITS_PWR_UP_A, on_off);
 }
 
-void nau7802_set_gain(gain g){
-    if(nau7802_write_bits(BITS_GAIN, g) != NAU7802_SUCCESS){
-        printf("Failed to update gain\n");
-    }
+int nau7802_set_conversions(conversion_setting on_off){
+    return nau7802_write_bits(BITS_CS, on_off);
 }
 
-void nau7802_set_ldo_voltage(ldo_voltage v){
-    if(nau7802_write_bits(BITS_VLDO, v) != NAU7802_SUCCESS){
-        printf("Failed to update LDO voltage\n");
-    }
+int nau7802_set_gain(gain g){
+    return nau7802_write_bits(BITS_GAIN, g);
 }
 
-void nau7802_set_ldo_mode(ldo_mode mode){
-    if(nau7802_write_bits(BITS_LDO_MODE, mode) != NAU7802_SUCCESS){
-        printf("Failed to update LDO mode\n");
-    }
+int nau7802_set_ldo_voltage(ldo_voltage v){
+    return nau7802_write_bits(BITS_VLDO, v);
 }
 
-void nau7802_set_chopper_clock(chp_clk val){
-    if(nau7802_write_bits(BITS_REG_CHPS, val) != NAU7802_SUCCESS){
-        printf("Failed to update chopper clock\n");
-    }
+int nau7802_set_ldo_mode(ldo_mode mode){
+    return nau7802_write_bits(BITS_LDO_MODE, mode);
 }
 
-void nau7802_set_pga_filter(pga_setting off_on){
-    if(nau7802_write_bits(BITS_PGA_CAP, off_on) != NAU7802_SUCCESS){
-        printf("Failed to update pga filter cap status\n");
-    }
+int nau7802_set_chopper_clock(chp_clk val){
+    return nau7802_write_bits(BITS_REG_CHPS, val);
+}
+
+int nau7802_set_pga_filter(pga_setting off_on){
+    return nau7802_write_bits(BITS_PGA_CAP, off_on);
 }
 
 bool nau7802_data_ready(){
     uint8_t is_ready = 0;
-    if(nau7802_read_bits(BITS_CR, &is_ready) != NAU7802_SUCCESS){
-        printf("Failed to get conversion status\n");
-    }
-    return (is_ready==1);
+    int result = nau7802_read_bits(BITS_CR, &is_ready);
+    if(result != I2C_BUS_SUCCESS) return false;
+
+    return is_ready;
 }
 
-void nau7802_read_raw(uint32_t * dst){
+int nau7802_read_raw(uint32_t * dst){
     if (nau7802_data_ready()){
-        nau7802_read_reg(REG_ADCO_B2, 3, (uint8_t*)dst);
+        int result = nau7802_read_reg(REG_ADCO_B2, 3, (uint8_t*)dst);
+        if(result != I2C_BUS_SUCCESS) return result;
+
         uint32_t b0 = ((*dst)&0xFF0000);
         uint32_t b1 = ((*dst)&0x00FF00);
         uint32_t b2 = ((*dst)&0x0000FF);
@@ -252,12 +175,17 @@ void nau7802_read_raw(uint32_t * dst){
 
 int nau7802_read_mg(){
     uint32_t val;
-    nau7802_read_raw(&val);
+    if(nau7802_read_raw(&val)!= I2C_BUS_SUCCESS){
+        return 0;
+    }
+
     return _conversion_factor_mg*((int)val-(int)_scale_origin);
 }
 
-void nau7802_zero(){
-    nau7802_read_raw(&_scale_origin);
+int nau7802_zero(){
+    if(nau7802_read_raw(&_scale_origin)!= I2C_BUS_SUCCESS){
+        return PICO_ERROR_GENERIC;
+    }
 }
 
 bool nau7802_at_val_mg(int val){
@@ -279,26 +207,63 @@ static void _nau7802_hw_init(uint8_t scl_pin, uint8_t sda_pin){
     gpio_pull_up(scl_pin);
 }
 
-void nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
+/**
+ * \brief Assign standard values to the registers of the NAU7802 chip.
+ * 
+ * \returns PICO_OK if setup successfully. Else returns error code.
+ */
+static int _nau7802_setup(){
+    if(nau7802_reset()){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_digital_power(PWR_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(!nau7802_wait_till_ready_ms(25)){
+        return PICO_ERROR_TIMEOUT;
+    }
+    if(nau7802_set_analog_power_supply(AVDD_SRC_INTERNAL)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_analog_power(PWR_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_ldo_voltage(VLDO_3_0)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_ldo_mode(LDO_MODE_ACCURATE)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_gain(GAIN_128)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_chopper_clock(CHP_CLK_OFF)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_pga_filter(PGA_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    if(nau7802_set_conversions(CONVERSIONS_ON)){
+        return PICO_ERROR_GENERIC;
+    }
+    return PICO_OK;
+}
+
+int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
     if(nau7802_i2c != NULL){
         _nau7802_i2c = nau7802_i2c;
     } 
     _conversion_factor_mg = conversion_factor_mg;
 
-    _nau7802_hw_init(scl_pin, sda_pin);
+    i2c_bus_setup(_nau7802_i2c, 10000, scl_pin, sda_pin);
 
-    nau7802_reset();
-    nau7802_set_analog_power_supply(AVDD_SRC_INTERNAL);
-    nau7802_set_digital_power(PWR_ON);
-    nau7802_set_analog_power(PWR_ON);
-    
-    nau7802_set_ldo_voltage(VLDO_3_0);
-    nau7802_set_ldo_mode(LDO_MODE_ACCURATE);
-    nau7802_set_gain(GAIN_128);
-    nau7802_set_chopper_clock(CHP_CLK_OFF);
-    nau7802_set_pga_filter(PGA_ON);
-
-    nau7802_set_conversions(CONVERSIONS_ON);
+    // Try to setup scale up to ten times.
+    for(int i = 0; i<10; i++){
+        if(_nau7802_setup() == PICO_ERROR_NONE) break;
+        if(i==9){
+            return PICO_ERROR_GENERIC;
+        } 
+    }
 
     while(_scale_origin == 0){
         nau7802_zero();
