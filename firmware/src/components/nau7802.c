@@ -193,21 +193,6 @@ bool nau7802_at_val_mg(int val){
 }
 
 /**
- * \brief Prepare the GPIO pins and I2C bank to interface with the NAU7802. The GPIO functions are
- * set to I2C and they are internally pulled up. This function is called from nau7802_setup();
- * 
- * \param scl_pin GPIO number serving as SCL pin
- * \param sda_pin GPIO number serving as SDA pin
- */
-static void _nau7802_hw_init(uint8_t scl_pin, uint8_t sda_pin){
-    i2c_init(_nau7802_i2c, 100 * 1000);
-    gpio_set_function(sda_pin, GPIO_FUNC_I2C);
-    gpio_set_function(scl_pin, GPIO_FUNC_I2C);
-    gpio_pull_up(sda_pin);
-    gpio_pull_up(scl_pin);
-}
-
-/**
  * \brief Assign standard values to the registers of the NAU7802 chip.
  * 
  * \returns PICO_OK if setup successfully. Else returns error code.
