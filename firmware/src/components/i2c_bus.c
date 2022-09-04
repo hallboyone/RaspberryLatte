@@ -1,5 +1,10 @@
 #include "i2c_bus.h"
 
+/**
+ * \brief Checks if the provided GPIO numbers corrispond to valid pins for the indicated I2C channel.
+ *
+ * \returns True if pins are valid. False otherwise.
+ */
 static bool i2c_bus_are_valid_pins(i2c_inst_t * bus, uint8_t scl_pin, uint8_t sda_pin){
     if(bus == i2c0){
         if((scl_pin%4 != 1) || (sda_pin%4 != 0)){
