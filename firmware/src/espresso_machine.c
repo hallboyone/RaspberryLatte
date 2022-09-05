@@ -27,6 +27,7 @@ static binary_output solenoid;
 static slow_pwm      heater;
 static pid_ctrl      heater_pid;
 static lmt01         thermo; 
+static nau7802       scale;
 
 static autobrew_leg autobrew_legs [5];
 static autobrew_routine autobrew_plan;
@@ -49,7 +50,11 @@ static void apply_boiler_input(float u){
  * \brief Returns true if scale is greater than or equal to the current output. 
  */
 static bool scale_at_output(){
-    return nau7802_at_val_mg(BREW_YIELD_MG);
+    return nau7802_at_val_mg(&scale, BREW_YIELD_MG);
+}
+
+static int zero_scale(){
+    return nau7802_zero(&scale);
 }
 
 /**
@@ -69,7 +74,7 @@ static void espresso_machine_update_state(){
     _state.pump.pump_lock = _state.switches.pump_switch && (mode_changed || _state.pump.pump_lock);
 
     // Zero scale if mode changed
-    if(mode_changed) nau7802_zero();
+    if(mode_changed) nau7802_zero(&scale);
 
     // Update setpoints
     if(_state.switches.ac_switch) _state.boiler.setpoint = 16*TEMP_SETPOINTS[new_mode];
@@ -123,7 +128,7 @@ static void espresso_machine_update_boiler(){
 static void espresso_machine_update_leds(){
     binary_output_put(&leds, 0, _state.switches.ac_switch);
     binary_output_put(&leds, 1, _state.switches.ac_switch && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
-    binary_output_put(&leds, 2, _state.switches.ac_switch && !_state.switches.pump_switch && nau7802_at_val_mg(BREW_DOSE_MG));
+    binary_output_put(&leds, 2, _state.switches.ac_switch && !_state.switches.pump_switch && nau7802_at_val_mg(&scale, BREW_DOSE_MG));
 }
 
 int espresso_machine_setup(espresso_machine_viewer * state_viewer){
@@ -163,13 +168,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
     binary_output_setup(&solenoid, solenoid_pin, 1);
 
-    // Setup nau7802. This is the only non-struct based object. 
-    nau7802_setup(bus, SCALE_CONVERSION_MG);
+    // Setup nau7802.
+    nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
 
-    autobrew_leg_setup_function_call(&(autobrew_legs[0]), 0, &nau7802_zero);
+    autobrew_leg_setup_function_call(&(autobrew_legs[0]), 0, &zero_scale);
     autobrew_leg_setup_linear_power(&(autobrew_legs[1]),  60,  AUTOBREW_PREINFUSE_END_POWER,  AUTOBREW_PREINFUSE_ON_TIME_US, NULL);
     autobrew_leg_setup_linear_power(&(autobrew_legs[2]),   0,   0,  AUTOBREW_PREINFUSE_OFF_TIME_US, NULL);
     autobrew_leg_setup_linear_power(&(autobrew_legs[3]),  60, 127,  AUTOBREW_BREW_RAMP_TIME, NULL);

@@ -14,6 +14,13 @@
 #include "pico/stdlib.h"
 #include "i2c_bus.h"
 
+typedef struct {
+    i2c_inst_t * bus;
+    float conversion_factor_mg;
+    uint32_t latest_val;            /**< Last ADC reading */
+    uint32_t origin;   
+} nau7802;
+
 /** Options for the voltage supplied to load cell */
 typedef enum { 
     VLDO_2_4 = 0b111,
@@ -139,7 +146,7 @@ typedef enum {
  * \return NAU7802_SUCCESS if operation is completed successfully, NAU7802_ERROR_WRITE_FAILURE if write 
  * operation failed and NAU7802_ERROR_READ_FAILURE if read operation failed. 
  */
-int nau7802_read_reg(const reg_addr reg_idx, uint8_t len, uint8_t * dst);
+int nau7802_read_reg(nau7802 * scale, const reg_addr reg_idx, uint8_t len, uint8_t * dst);
 
 /**
  * \brief Write from src array to nau7802 registers ranging from reg_idx to reg_idx+len. 
@@ -151,7 +158,7 @@ int nau7802_read_reg(const reg_addr reg_idx, uint8_t len, uint8_t * dst);
  * \return NAU7802_SUCCESS if operation is completed successfully and 
  * NAU7802_ERROR_WRITE_FAILURE if write operation failed. 
  */
-int nau7802_write_reg(const reg_addr reg_idx, uint8_t len, uint8_t * src);
+int nau7802_write_reg(nau7802 * scale, const reg_addr reg_idx, uint8_t len, uint8_t * src);
 
 /**
  * \brief Read the bits in reg idx specified by bit_range bits into dst.
@@ -161,7 +168,7 @@ int nau7802_write_reg(const reg_addr reg_idx, uint8_t len, uint8_t * src);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise. 
  */
-int nau7802_read_bits(const bit_range bits, uint8_t * dst);
+int nau7802_read_bits(nau7802 * scale, const bit_range bits, uint8_t * dst);
 
 /**
  * \brief Write a val to specific bits in reg idx specified by bit_range bits.
@@ -171,7 +178,7 @@ int nau7802_read_bits(const bit_range bits, uint8_t * dst);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise. 
  */
-int nau7802_write_bits(const bit_range bits, uint8_t val);
+int nau7802_write_bits(nau7802 * scale, const bit_range bits, uint8_t val);
 
 /** 
  * \brief Sets and unsets the reset bit in the NAU7802. This clears the registers
@@ -180,14 +187,14 @@ int nau7802_write_bits(const bit_range bits, uint8_t val);
  * 
  * \returns I2C_BUS_SUCCESS if successfull. Else, an error code.
  */
-int nau7802_reset();
+int nau7802_reset(nau7802 * scale);
 
 /**
  * \brief Checks if the bit indicating the NAU7802 is ready is set.
  * 
  * \return True if NAU7802 ready bit is set. False otherwise. 
  */
-bool nau7802_is_ready();
+bool nau7802_is_ready(nau7802 * scale);
 
 /**
  * \brief Wait up to timeout for nau7802 IC is ready. 
@@ -195,7 +202,7 @@ bool nau7802_is_ready();
  * \param ms 
  * \returns True if ready within timeout. Else, returns false. 
  */
-bool nau7802_wait_till_ready_ms(uint timeout);
+bool nau7802_wait_till_ready_ms(nau7802 * scale, uint timeout);
 
 /**
  * \brief Select the source of the analog power. This can either come from an onboard
@@ -206,7 +213,7 @@ bool nau7802_wait_till_ready_ms(uint timeout);
  * 
  * \returns I2C_BUS_SUCCESS if successfull. Else, an error code.
 */
-int nau7802_set_analog_power_supply(avdd_src source);
+int nau7802_set_analog_power_supply(nau7802 * scale, avdd_src source);
 
 /**
  * \brief Activate or disable the digital logic on the NAU7802.  
@@ -215,7 +222,7 @@ int nau7802_set_analog_power_supply(avdd_src source);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_digital_power(pwr_setting on_off);
+int nau7802_set_digital_power(nau7802 * scale, pwr_setting on_off);
 
 /**
  * \brief Activate or disable the analog circuit on the NAU7802.  
@@ -224,7 +231,7 @@ int nau7802_set_digital_power(pwr_setting on_off);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_analog_power(pwr_setting on_off);
+int nau7802_set_analog_power(nau7802 * scale, pwr_setting on_off);
 
 /**
  * \brief Start or stop the ADC conversions.
@@ -233,7 +240,7 @@ int nau7802_set_analog_power(pwr_setting on_off);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_conversions(conversion_setting on_off);
+int nau7802_set_conversions(nau7802 * scale, conversion_setting on_off);
 
 /**
  * \brief Set the gain of the ADC process in the NAU7802.
@@ -242,7 +249,7 @@ int nau7802_set_conversions(conversion_setting on_off);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_gain(gain g);
+int nau7802_set_gain(nau7802 * scale, gain g);
 
 /**
  * \brief Set the LDO voltage in the NAU7802.
@@ -251,7 +258,7 @@ int nau7802_set_gain(gain g);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_ldo_voltage(ldo_voltage v);
+int nau7802_set_ldo_voltage(nau7802 * scale, ldo_voltage v);
 
 /**
  * \brief Set the LDO mode in the NAU7802.
@@ -260,7 +267,7 @@ int nau7802_set_ldo_voltage(ldo_voltage v);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_ldo_mode(ldo_mode mode);
+int nau7802_set_ldo_mode(nau7802 * scale, ldo_mode mode);
 
 /**
  * \brief Set the chopper clock on the NAU7802. Turned off is the only setting in the NAU7802.
@@ -269,7 +276,7 @@ int nau7802_set_ldo_mode(ldo_mode mode);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_chopper_clock(chp_clk val);
+int nau7802_set_chopper_clock(nau7802 * scale, chp_clk val);
 
 /**
  * \brief Enable or disable the PGA filter in the NAU7802.
@@ -278,14 +285,14 @@ int nau7802_set_chopper_clock(chp_clk val);
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_set_pga_filter(pga_setting off_on);
+int nau7802_set_pga_filter(nau7802 * scale, pga_setting off_on);
 
 /**
  * \brief Check if a new data conversion is ready in the NAU7802.
  * 
  * \return True if conversion is ready and no error. False else. 
  */
-bool nau7802_data_ready();
+bool nau7802_data_ready(nau7802 * scale);
 
 /**
  * \brief Read the latest conversion result into dst. If no conversion has ever been read, 0 is returned.
@@ -294,7 +301,7 @@ bool nau7802_data_ready();
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_read_raw(uint32_t * dst);
+int nau7802_read_raw(nau7802 * scale, uint32_t * dst);
 
 /**
  * \brief Read the latest conversion result and convert into milligrams.
@@ -302,14 +309,14 @@ int nau7802_read_raw(uint32_t * dst);
  * \returns The latest conversion shifted by the last zero point and converted to milligrams. 
  * 0 on error.
  */
-int nau7802_read_mg();
+int nau7802_read_mg(nau7802 * scale);
 
 /**
  * \brief Saves the current conversion result and subtracts this from future reads. 
  * 
  * \return NAU7802_SUCCESS if successfull and an error code otherwise.
  */
-int nau7802_zero();
+int nau7802_zero(nau7802 * scale);
 
 /**
  * \brief Helper function indicating if latest conversion is at val
@@ -318,7 +325,7 @@ int nau7802_zero();
  * 
  * \returns True if the scale reads more than val and no error. Else, returns false.
  */
-bool nau7802_at_val_mg(int val);
+bool nau7802_at_val_mg(nau7802 * scale, int val);
 
 /**
  * Initalize HW and set NAU7802 registers to the default values:
@@ -337,5 +344,5 @@ bool nau7802_at_val_mg(int val);
  * 
  * \returns PICO_ERROR_NONE if successful. Else, an error code.
  */
-int nau7802_setup(i2c_inst_t * nau7802_i2c, float conversion_factor_mg);
+int nau7802_setup(nau7802 * scale, i2c_inst_t * nau7802_i2c, float conversion_factor_mg);
 #endif
