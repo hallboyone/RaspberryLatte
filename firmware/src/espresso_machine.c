@@ -1,6 +1,7 @@
 #include "pinout.h"
 
 #include "i2c_bus.h"
+
 #include "analog_input.h"
 #include "binary_output.h"
 #include "binary_input.h"
@@ -17,19 +18,22 @@
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
-static i2c_inst_t *  bus = i2c1; /** I2C bus connected to RTC, memory, scale ADC, and I2C port */
+/** I2C bus connected to RTC, memory, scale ADC, and I2C port */
+static i2c_inst_t *  bus = i2c1;
 
+/** All the peripheral components for the espresso machine */
 static analog_input  pressure_sensor;
 static binary_output leds;
 static binary_input  pump_switch, mode_dial;
 static phasecontrol  pump;
 static binary_output solenoid;
 static slow_pwm      heater;
-static pid_ctrl      heater_pid;
 static lmt01         thermo; 
 static nau7802       scale;
 
-static autobrew_leg autobrew_legs [5];
+/** Autobrew and control objects */
+static pid_ctrl         heater_pid;
+static autobrew_leg     autobrew_legs [5];
 static autobrew_routine autobrew_plan;
 
 /**
@@ -41,6 +45,8 @@ static float read_boiler_thermo(){
 
 /**
  * \brief Helper function for the PID controller. Applies an input to the boiler heater.
+ * 
+ * \param u Output for the boiler. 1 is full on, 0 is full off.
  */
 static void apply_boiler_input(float u){
     slow_pwm_set_float_duty(&heater, u);
