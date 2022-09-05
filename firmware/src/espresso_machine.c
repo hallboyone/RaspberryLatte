@@ -1,5 +1,6 @@
 #include "pinout.h"
 
+#include "i2c_bus.h"
 #include "analog_input.h"
 #include "binary_output.h"
 #include "binary_input.h"
@@ -15,6 +16,8 @@
 #include "brew_parameters.h"
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
+
+static i2c_inst_t *  bus = i2c1; /** I2C bus connected to RTC, memory, scale ADC, and I2C port */
 
 static analog_input  pressure_sensor;
 static binary_output leds;
@@ -128,10 +131,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
         *state_viewer = &_state;
     }
 
-    // Setup the pressure sensor
-    if(analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN)){
-        return 1;
-    }
+    i2c_bus_setup(bus, 100000, I2C_SCL_PIN, I2C_SDA_PIN);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
@@ -141,6 +141,9 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     heater_pid.plant = &apply_boiler_input;
     heater_pid.setpoint = 0;
     pid_init(&heater_pid, 0, 150, 1000);
+
+    // Setup the pressure sensor
+    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
@@ -161,7 +164,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     binary_output_setup(&solenoid, solenoid_pin, 1);
 
     // Setup nau7802. This is the only non-struct based object. 
-    nau7802_setup(SCALE_CLOCK_PIN, SCALE_DATA_PIN, i2c1, SCALE_CONVERSION_MG);
+    nau7802_setup(bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);

@@ -332,12 +332,10 @@ bool nau7802_at_val_mg(int val);
  * - Activate PGA filter,
  * - Start conversions.
  * 
- * \param scl_pin GPIO number serving as SCL pin
- * \param sda_pin GPIO number serving as SDA pin
- * \param nau7802_i2c pointer to desired I2C instance. If NULL, default I2C instane is used.
+ * \param nau7802_i2c pointer to desired I2C instance. Should be initalized with i2c_bus_setup
  * \param conversion_factor_mg The conversion factor that takes the raw value and converts it to mg.
  * 
  * \returns PICO_ERROR_NONE if successful. Else, an error code.
  */
-int nau7802_setup(uint8_t scl_pin, uint8_t sda_pin, i2c_inst_t * nau7802_i2c, float conversion_factor_mg);
+int nau7802_setup(i2c_inst_t * nau7802_i2c, float conversion_factor_mg);
 #endif

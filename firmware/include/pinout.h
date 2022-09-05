@@ -1,8 +1,8 @@
 #ifndef PINOUT_H
 #define PINOUT_H
 
-#define SCALE_CLOCK_PIN            3
-#define SCALE_DATA_PIN             2
+#define I2C_SDA_PIN                2
+#define I2C_SCL_PIN                3
 #define PHASECONTROL_0CROSS_PIN    4
 #define SOLENOID_PIN               5
 #define LMT01_DATA_PIN             6
