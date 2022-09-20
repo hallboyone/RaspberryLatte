@@ -30,6 +30,26 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true
+        },
+        { 
+            "name": "MacOS: Pico Debug",
+            "device": "RP2040",
+            "gdbPath": "arm-none-eabi-gdb",
+            "cwd": "${workspaceRoot}",
+            "executable": "${command:cmake.launchTargetPath}",
+            "request": "launch",
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "configFiles": [
+                "/interface/picoprobe.cfg",
+                "/target/rp2040.cfg"
+            ],
+            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
+            "runToEntryPoint": "main",
+            "postRestartCommands": [
+                "break main",
+                "continue"
+            ]
         }
     ]
 }
