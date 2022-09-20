@@ -11,8 +11,8 @@
 #define PUMP_SWITCH_PIN            9
 #define PHASECONTROL_OUT_PIN      10
 #define HEATER_PWM_PIN            11
-#define LED0_PIN                  13
-#define LED1_PIN                  12
+#define LED0_PIN                  12
+#define LED1_PIN                  13
 #define LED2_PIN                  15
 #define PRESSURE_SENSOR_PIN       28
 
