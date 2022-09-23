@@ -18,7 +18,7 @@ const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.0015;
 const float PID_GAIN_D = 0.0005;
 
-const float SCALE_CONVERSION_MG = 0.152710615479;
+const float SCALE_CONVERSION_MG = -0.152710615479;
 
 const unsigned int BREW_DOSE_MG = 16000;
 const unsigned int BREW_YIELD_MG = 30000;
