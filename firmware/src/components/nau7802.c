@@ -166,6 +166,7 @@ int nau7802_read_raw(nau7802 * scale, uint32_t * dst){
     } else {
         *dst = scale->latest_val;
     }
+    return I2C_BUS_SUCCESS;
 }
 
 int nau7802_read_mg(nau7802 * scale){
@@ -202,11 +203,11 @@ static int _nau7802_setup(nau7802 * scale){
     if(nau7802_set_digital_power(scale, PWR_ON)){
         return PICO_ERROR_GENERIC;
     }
-    if(!nau7802_wait_till_ready_ms(scale, 25)){
-        return PICO_ERROR_TIMEOUT;
-    }
     if(nau7802_set_analog_power_supply(scale, AVDD_SRC_INTERNAL)){
         return PICO_ERROR_GENERIC;
+    }
+    if(!nau7802_wait_till_ready_ms(scale, 25)){
+        return PICO_ERROR_TIMEOUT;
     }
     if(nau7802_set_analog_power(scale, PWR_ON)){
         return PICO_ERROR_GENERIC;

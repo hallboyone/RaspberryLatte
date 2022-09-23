@@ -1,5 +1,5 @@
 #include "i2c_bus.h"
-
+#include <string.h>
 /**
  * \brief Checks if the provided GPIO numbers corrispond to valid pins for the indicated I2C channel.
  *
@@ -46,7 +46,7 @@ void i2c_bus_set_bits(byte* buf, bit_range bits, uint8_t val){
 }
 
 int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * dst){
-    if(i2c_write_blocking(bus, dev, (uint8_t *)(&reg), reg_addr_len, true) == PICO_ERROR_GENERIC){
+    if(i2c_write_blocking(bus, dev, (uint8_t *)(&reg), reg_addr_len, false) == PICO_ERROR_GENERIC){
         return I2C_BUS_ERROR_WRITE_FAILURE;
     }
     // Read each register into dst 
@@ -57,10 +57,12 @@ int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg
 }
 
 int i2c_bus_write_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * src){
-    if(i2c_write_blocking(bus, dev, (uint8_t *)&reg, reg_addr_len, true) == PICO_ERROR_GENERIC){
-        return I2C_BUS_ERROR_WRITE_FAILURE;
-    }
-    if(i2c_write_blocking(bus, dev, src, len, false) == PICO_ERROR_GENERIC){
+    // Copy register address and payload into message buffer
+    uint8_t msg_buff [reg_addr_len + len];
+    memcpy(msg_buff, (uint8_t*)&reg, reg_addr_len);
+    memcpy(&msg_buff[reg_addr_len], src, len);
+
+    if(i2c_write_blocking(bus, dev, msg_buff, reg_addr_len + len, false) == PICO_ERROR_GENERIC){
         return I2C_BUS_ERROR_WRITE_FAILURE;
     }
     return I2C_BUS_SUCCESS;
