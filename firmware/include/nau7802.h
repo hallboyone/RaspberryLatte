@@ -288,6 +288,13 @@ int nau7802_set_chopper_clock(nau7802 * scale, chp_clk val);
 int nau7802_set_pga_filter(nau7802 * scale, pga_setting off_on);
 
 /**
+ * \brief Calibrate the NAU7802.
+ * 
+ * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ */
+int nau7802_calibrate(nau7802 * scale);
+
+/**
  * \brief Check if a new data conversion is ready in the NAU7802.
  * 
  * \return True if conversion is ready and no error. False else. 

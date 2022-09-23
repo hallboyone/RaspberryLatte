@@ -145,6 +145,22 @@ int nau7802_set_pga_filter(nau7802 * scale, pga_setting off_on){
     return nau7802_write_bits(scale, BITS_PGA_CAP, off_on);
 }
 
+int nau7802_calibrate(nau7802 * scale){
+    nau7802_write_bits(scale, BITS_CALS, 1);
+
+    uint64_t end_time = 1000000 + time_us_64();
+    uint8_t buf = 1;
+    while(buf){
+        sleep_ms(1);
+        if (time_us_64() > end_time) return false;
+        nau7802_read_bits(scale, BITS_CALS, &buf);
+    }
+
+    nau7802_read_bits(scale, BITS_CAL_ERR, &buf);
+    if(buf) return -1;
+    else return 0;
+}
+
 bool nau7802_data_ready(nau7802 * scale){
     uint8_t is_ready = 0;
     int result = nau7802_read_bits(scale, BITS_CR, &is_ready);
@@ -227,9 +243,13 @@ static int _nau7802_setup(nau7802 * scale){
     if(nau7802_set_pga_filter(scale, PGA_ON)){
         return PICO_ERROR_GENERIC;
     }
+    if(nau7802_calibrate(scale)){
+        return PICO_ERROR_GENERIC;
+    }
     if(nau7802_set_conversions(scale, CONVERSIONS_ON)){
         return PICO_ERROR_GENERIC;
     }
+
     return PICO_OK;
 }
 
