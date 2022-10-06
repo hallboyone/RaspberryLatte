@@ -2,17 +2,17 @@
 
 const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
 
-const reg_addr REG_PU_CTRL = 0x0;  /**< NAU7802 register address: Power-up control */
-const reg_addr REG_CTRL_1  = 0x01; /**< NAU7802 register address: Configuration 1 */
-const reg_addr REG_CTRL_2  = 0x02; /**< NAU7802 register address: Configuration 2 */
-const reg_addr REG_I2C_CTRL= 0x11; /**< NAU7802 register address: I2C Configuation*/
-const reg_addr REG_ADCO_B2 = 0x12; /**< NAU7802 register address: Conversion result 23-16*/
-const reg_addr REG_ADCO_B1 = 0x13; /**< NAU7802 register address: Conversion result 15-8*/
-const reg_addr REG_ADCO_B0 = 0x14; /**< NAU7802 register address: Conversion result 7-0*/
-const reg_addr REG_ADC_CTRL= 0x15; /**< NAU7802 register address: ADC configuration */
-const reg_addr REG_PGA     = 0x1B; /**< NAU7802 register address: Programmable gain amp config */
-const reg_addr REG_PWR_CTRL= 0x1C; /**< NAU7802 register address: Power control */
-const reg_addr REG_DEV_REV = 0x1F; /**< NAU7802 register address: Device information */
+#define REG_PU_CTRL  0x0   /**< NAU7802 register address: Power-up control */
+#define REG_CTRL_1   0x01  /**< NAU7802 register address: Configuration 1 */
+#define REG_CTRL_2   0x02  /**< NAU7802 register address: Configuration 2 */
+#define REG_I2C_CTRL 0x11  /**< NAU7802 register address: I2C Configuation*/
+#define REG_ADCO_B2  0x12  /**< NAU7802 register address: Conversion result 23-16*/
+#define REG_ADCO_B1  0x13  /**< NAU7802 register address: Conversion result 15-8*/
+#define REG_ADCO_B0  0x14  /**< NAU7802 register address: Conversion result 7-0*/
+#define REG_ADC_CTRL 0x15  /**< NAU7802 register address: ADC configuration */
+#define REG_PGA      0x1B  /**< NAU7802 register address: Programmable gain amp config */
+#define REG_PWR_CTRL 0x1C  /**< NAU7802 register address: Power control */
+#define REG_DEV_REV  0x1F  /**< NAU7802 register address: Device information */
 
 const bit_range BITS_RESET       = {.from = 0, .to = 0, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
 const bit_range BITS_PWR_UP_D    = {.from = 1, .to = 1, .in_reg = REG_PU_CTRL, .reg_addr_len = 1};
