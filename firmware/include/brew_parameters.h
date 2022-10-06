@@ -4,14 +4,12 @@
 
 #ifdef COUNTER_CULTURE_FORTY_SIX
 const float TEMP_SETPOINTS [4] = {140, 100, 93, 93};
-#endif
-
-#ifdef COUNTER_CULTURE_SLOW_MOTION
+#elif COUNTER_CULTURE_SLOW_MOTION
 const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
-#endif
-
-#ifdef CAMERONS_HAWAIIAN_BLEND
+#elif CAMERONS_HAWAIIAN_BLEND
 const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
+#else // No-heat
+const float TEMP_SETPOINTS [4] = {0,0,0,0};
 #endif
 
 const float PID_GAIN_P = 0.05;
