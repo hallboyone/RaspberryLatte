@@ -154,11 +154,11 @@ float pid_tick(pid_ctrl * controller){
         datapoint new_reading = {.t = sec_since_boot(), .v = controller->sensor()};
         datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
-        // If Ki (Kd) non-zero, compute the error sum (slope). Convert from us to s.
+        // If Ki (Kd) non-zero, compute the error sum (slope).
         float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_add_point(&(controller->err_sum), new_err));
         float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_add_point(&(controller->err_slope), new_err));
-
-        float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope;
+        float ff = (controller->sensor_feedforward != NULL ? controller->sensor_feedforward() : 0);
+        float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
 
         controller->plant(input);
         return input;
