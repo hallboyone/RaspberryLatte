@@ -23,6 +23,11 @@
 #define PID_NO_WINDUP_UB  1000000 /**< Large value used to indicate no windup upper bound */
 
 /**
+ * \brief Helper function returning the microseconds since booting
+ */
+float sec_since_boot();
+
+/**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
  */
 typedef struct {

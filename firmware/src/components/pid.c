@@ -6,7 +6,7 @@
 /**
  * \brief Helper function returning the microseconds since booting
  */
-static float sec_since_boot(){
+float sec_since_boot(){
     return to_us_since_boot(get_absolute_time())/1000000.;
 }
 
@@ -70,7 +70,7 @@ float discrete_derivative_read(discrete_derivative *d) {
  * d->filter_span_ms millaseconds behind cur_t. If all points are outside of
  * this range, the most recent point is always kept.
  */
-void _discrete_derivative_remove_old_points(discrete_derivative *d, uint64_t cur_t) {
+void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
     uint16_t keep_from_idx = 0;
     for (keep_from_idx; keep_from_idx < d->_num_el - 1; keep_from_idx++) {
         // Find first point within the time range from cur_t
