@@ -15,7 +15,7 @@
 #define ESPRESSO_MACHINE_H
 #include "pico/stdlib.h"
 
-/** \brief The different modes of the espresso machine corrisponding to the 4P dial */
+/** \brief The different modes of the espresso machine corresponding to the 4P dial */
 enum espresso_machine_modes {MODE_STEAM, MODE_HOT, MODE_MANUAL, MODE_AUTO};
 
 /**
@@ -32,7 +32,7 @@ typedef struct {
  */
 typedef struct {
     uint16_t setpoint;    /**< Current setpoint of the boiler. */
-    int16_t tempurature;  /**< Current tempurature of the boiler. */
+    int16_t temperature;  /**< Current temperature of the boiler. */
     uint8_t power_level;  /**< Current power level applied to the boiler. */
     uint16_t error_sum;   /**< Current error sum of the boiler's controller. */
     uint16_t error_slope; /**< Current error slope of the boiler's controller. */
@@ -68,11 +68,11 @@ typedef struct {
 typedef const espresso_machine_state * espresso_machine_viewer;
 
 /**
- * \brief Setup the espresso machine and save a pointer to an accessable state viewer.
+ * \brief Setup the espresso machine and save a pointer to an accessible state viewer.
  * 
  * \param state_viewer Pointer to an espresso_machine_viewer. This is saved so the machine state can be passed out to caller.
  * 
- * \returns 0 if successfull, 1 on failure.
+ * \returns 0 if successful, 1 on failure.
  */
 int espresso_machine_setup(espresso_machine_viewer * state_viewer);
 

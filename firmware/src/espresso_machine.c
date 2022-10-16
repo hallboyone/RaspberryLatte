@@ -128,7 +128,7 @@ static void espresso_machine_update_boiler(){
     heater_pid.setpoint = _state.boiler.setpoint/16.;
     pid_tick(&heater_pid);
 
-    _state.boiler.tempurature = lmt01_read(&thermo);
+    _state.boiler.temperature = lmt01_read(&thermo);
 }
 
 static void espresso_machine_update_leds(){
