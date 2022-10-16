@@ -38,16 +38,16 @@ void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin);
  * 
  * \param l Pointer to lmt01 struct that contains the parameters for the LMT01 interface
  * 
- * \returns The current tempurature in 16*C.
+ * \returns The current temperature in 16*C.
  */
 int lmt01_read(lmt01 * l);
 
 /**
- * \brief Returns the current tempurature in C.
+ * \brief Returns the current temperature in C.
  * 
 * \param l Pointer to lmt01 struct that contains the parameters for the LMT01 interface
  * 
- * \returns The current tempurature in C.
+ * \returns The current temperature in C.
  */
 float lmt01_read_float(lmt01 * l);
 #endif
