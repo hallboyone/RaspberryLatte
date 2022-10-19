@@ -39,4 +39,8 @@
         "loop_rate_limiter.h": "c",
         "i2c_bus.h": "c"
     },
+    "cSpell.words": [
+        "fram",
+        "PICO"
+    ],
 }
