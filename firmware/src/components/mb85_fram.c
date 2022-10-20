@@ -76,33 +76,29 @@ int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_
     return PICO_ERROR_NONE;
 }
 
-uint16_t mb85_fram_get_size(mb85_fram * dev){
-    uint8_t byte_aa = 0xAA;
-    uint8_t byte_ab = 0xAB;
+uint16_t mb85_fram_get_max_addr(mb85_fram * dev){
+    uint32_t size_options [7] = {1<<9, 1<<11, 1<<13, 1<<14, 1<<15, 1<<16, 1<<17};
 
-    // Set byte 0 to some non-zero value
+    // Save byte 0
     uint8_t byte_0 = 0;
     if(mb85_fram_i2c_read(dev, 0, 1, &byte_0)) return 0;
-    if(mb85_fram_i2c_write(dev, 0, 1, &byte_aa)) return 0;
 
-    
-    uint8_t byte_buf [64];
-    uint16_t mem_len = 1;
-    while(true){
-        mb85_fram_i2c_read(dev, mem_len, 64, byte_buf);
-        for(uint8_t i = 0; i<64; i++){
-            if (byte_buf[i] == 0xAA){
-                if(mb85_fram_i2c_write(dev, mem_len + i, 1, &byte_ab)) return 0; // Write 0xAB to what may be 0
-                if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf[i])) return 0;    // Read from 0 byte to see if changed
-                if(mb85_fram_i2c_write(dev, mem_len + i, 1, &byte_aa)) return 0; // Write original value back
-                if (byte_buf[i] != byte_ab){ 
-                    // If write at mem_len+i changed byte 0 (addresses have wrapped)
-                    return mem_len;
-                }
+    uint8_t byte_buf;
+    for (uint8_t i = 0; i<7; i++){
+        if(mb85_fram_i2c_read(dev, size_options[i], 1, &byte_buf)) return 0;
+        if(byte_buf==byte_0){
+            // Write a different value and see if byte 0 changes.
+            byte_buf += 1;
+            if(mb85_fram_i2c_write(dev, size_options[i], 1, &byte_buf)) return 0;
+            if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf)) return 0;
+            if(mb85_fram_i2c_write(dev, size_options[i], 1, &byte_0)) return 0;
+            if (byte_buf != byte_0){
+                const uint32_t max_addr = size_options[i] - 1;
+                return max_addr;
             }
-            mem_len += 1;
         }
     }
+    return 0;
 }
 
 int mb85_fram_set_all(mb85_fram * dev, uint8_t value){

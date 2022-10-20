@@ -32,14 +32,13 @@ typedef struct {
 */
 int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_pins, uint8_t * init_val);
 
-/** \brief Finds the device's memory capacity. Very slow (~2-3s) because it must loop through 
- * all memory locations 
+/** \brief Finds the device's max address.
  * 
  * \param dev Initalized MB85 device struct to examine
  * 
- * \returns The capacity of the MB85 device in bytes. 0 on error.
+ * \returns The max address of the MB85 device. 0 on error.
  */
-uint16_t mb85_fram_get_size(mb85_fram * dev);
+uint16_t mb85_fram_get_max_addr(mb85_fram * dev);
 
 /** \brief Set all memory locations in MB85 to the passed in value.
  * 

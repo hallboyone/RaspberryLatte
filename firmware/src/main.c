@@ -84,7 +84,7 @@ int main(){
         printf("Passed test 3\n");
     }
 
-    if(mb85_fram_get_size(&fram) != 8192){
+    if(mb85_fram_get_max_addr(&fram) != 8191){
         printf("Failed test 4\n");
         return PICO_ERROR_GENERIC;
     } else {
