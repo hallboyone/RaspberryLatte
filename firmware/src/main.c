@@ -98,5 +98,15 @@ int main(){
     } else {
         printf("Passed test 5\n");
     }
+
+    mb85_fram_set_all(&fram, 0xAA);
+    uint8_t single_byte;    
+    mb85_fram_link_var(&fram, &single_byte, 128, 1, MB85_FRAM_INIT_FROM_FRAM);
+    if(single_byte != 0xAA){
+        printf("Failed test 6\n");
+        return PICO_ERROR_GENERIC;
+    } else {
+        printf("Passed test 6\n");
+    }
     return PICO_ERROR_NONE;
 }

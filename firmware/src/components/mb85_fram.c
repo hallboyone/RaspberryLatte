@@ -102,20 +102,16 @@ uint16_t mb85_fram_get_max_addr(mb85_fram * dev){
 }
 
 int mb85_fram_set_all(mb85_fram * dev, uint8_t value){
-    // By setting the values 32 registers at a time, the runtime is dramatically reduced.
-    uint8_t repeated_value [32];
-    memset(repeated_value, value, 32);
+    uint32_t cap = mb85_fram_get_max_addr(dev) + 1;
 
-    // Set byte 0 to something other than the new value
-    uint8_t byte_buf = value + 1;
-    if(mb85_fram_i2c_write(dev, 0, 1, &byte_buf)) return PICO_ERROR_IO;
+    // By setting the values 256 registers at a time, the runtime is dramatically reduced.
+    const uint16_t write_size = 256;
+    uint8_t repeated_value [write_size];
+    memset(repeated_value, value, write_size);
 
-    uint16_t mem_addr = 1;
-    do {
-        if(mb85_fram_i2c_write(dev, mem_addr, 32, repeated_value)) return PICO_ERROR_IO;
-        if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf)) return PICO_ERROR_IO;
-    } while (byte_buf != value);
-
+    for(uint32_t i = 0; i < cap; i += write_size){
+        mb85_fram_i2c_write(dev, i, write_size, repeated_value);
+    }
     return PICO_ERROR_NONE;
 }
 
