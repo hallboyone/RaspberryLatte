@@ -4,28 +4,71 @@
 
 #define MB85_DEVICE_CODE 0b1010000
 
-void static mb85_fram_i2c_read(mb85_fram * dev, reg_addr mem_addr, uint16_t len, uint8_t * dst){
-    i2c_bus_read_bytes(dev->bus, dev->addr, mem_addr, 2, len, dst);
-}
-
-void static mb85_fram_i2c_write(mb85_fram * dev, reg_addr mem_addr, uint16_t len, uint8_t * src){
-    i2c_bus_write_bytes(dev->bus, dev->addr, mem_addr, 2, len, src);
-}
-
-/** \brief Check for a MB85 device on the indicated I2C bus at the device address
- * specified by the address_pins. If the device exists and init_val != NULL, init_val
- * is written to every memory block in device.
- * \param dev Structure for the MB85 device that will be set up. 
- * \param nau7802_i2c Pointer to desired I2C instance. Should be initalized with i2c_bus_setup.
- * \param address_pins Bitfield indicating which of the three device address pins have been pulled high.
- * \param init_val Optional pointer to a value that will be used to overwrite the memory.
+/** \brief Read value from MB85 device over I2C 
+ * 
+ * \param dev Initalized MB85 device to read from.
+ * \param mem_addr Starting memory address to read from.
+ * \param len Number of bytes to read.
+ * \param dst Pointer to preallocated array where the data will be stored.
+ * 
+ * \returns 0 on success. I2C_BUS error code on failure.
 */
+static int mb85_fram_i2c_read(mb85_fram * dev, reg_addr mem_addr, uint16_t len, uint8_t * dst){
+    return i2c_bus_read_bytes(dev->bus, dev->addr, mem_addr, 2, len, dst);
+}
+
+/** \brief Write value to MB85 device over I2C
+ * 
+ * \param dev Initalized MB85 device to write to.
+ * \param mem_addr Starting memory address to write to.
+ * \param len Number of bytes to write.
+ * \param dst Pointer to data array of length \p len holding the data to be written.
+ * 
+ * \returns 0 on success. I2C_BUS error code on failure.
+*/
+static int mb85_fram_i2c_write(mb85_fram * dev, reg_addr mem_addr, uint16_t len, uint8_t * src){
+    return i2c_bus_write_bytes(dev->bus, dev->addr, mem_addr, 2, len, src);
+}
+
+/** \brief Iterate through the current device variables looking for one matching var.
+ * 
+ * \param dev Initalized MB85 device struct that will be searched.
+ * \param var Pointer to variable is the subject of the search.
+ * 
+ * \returns Pointer to internal variable structure if a match is found. Else, returns NULL.
+*/
+static mb85_fram_remote_var * mb85_fram_find_var(mb85_fram * dev, void * var){
+    uint8_t * var_addr = (uint8_t*)var;
+    uint16_t var_idx = 0;
+    for(var_idx = 0; var_idx < dev->num_vars; var_idx++){
+        if (dev->vars[var_idx].local_addr == var_addr) return &(dev->vars[var_idx]);
+    }
+    return NULL;
+}
+
+/** \brief Double the size of the variable buffer if full. 
+ * 
+ * \param dev Initalized MB85 device struct.
+*/
+static void mb85_fram_resize_buf(mb85_fram * dev){
+    if(dev->var_buf_len == dev->num_vars){
+        mb85_fram_remote_var * old_var_buf = dev->vars;
+        dev->vars = (mb85_fram_remote_var*)malloc(2*dev->var_buf_len*sizeof(mb85_fram_remote_var));
+        memcmp(dev->vars, old_var_buf, dev->num_vars*sizeof(mb85_fram_remote_var));
+        dev->var_buf_len *= 2;
+    }
+}
+
 int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_pins, uint8_t * init_val){
     if (address_pins > 7) return PICO_ERROR_INVALID_ARG;
-    dev->addr = MB85_DEVICE_CODE & address_pins;
+    dev->addr = MB85_DEVICE_CODE | address_pins;
     dev->bus = nau7802_i2c;
     if(!i2c_bus_is_connected(dev->bus, dev->addr)) return PICO_ERROR_IO;
 
+    dev->var_buf_len = 16;
+    dev->vars = (mb85_fram_remote_var*)malloc(dev->var_buf_len*sizeof(mb85_fram_remote_var));
+    dev->num_vars = 0;
+    
     if(init_val != NULL){
         mb85_fram_set_all(dev, *init_val);
     }
@@ -33,19 +76,18 @@ int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_
     return PICO_ERROR_NONE;
 }
 
-/** \brief Finds the device's memory capacity */
 uint16_t mb85_fram_get_size(mb85_fram * dev){
     uint8_t byte_0 = 0;
-    mb85_fram_i2c_read(dev, 0, 1, &byte_0);
+    if(mb85_fram_i2c_read(dev, 0, 1, &byte_0)) return 0;
     uint16_t mem_len = 1;
     uint8_t byte_buf;
     while(true){
         mb85_fram_i2c_read(dev, mem_len, 1, &byte_buf);
         if (byte_buf == byte_0){
             byte_buf += 1;
-            mb85_fram_i2c_write(dev, mem_len, 1, &byte_buf); // Write to what may be 0
-            mb85_fram_i2c_read(dev, 0, 1, &byte_buf);        // Read from 0 byte
-            mb85_fram_i2c_write(dev, mem_len, 1, &byte_0); // Write original value back
+            if(mb85_fram_i2c_write(dev, mem_len, 1, &byte_buf)) return 0; // Write to what may be 0
+            if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf)) return 0;        // Read from 0 byte
+            if(mb85_fram_i2c_write(dev, mem_len, 1, &byte_0)) return 0; // Write original value back
             if (byte_buf != byte_0){ 
                 // If write at mem_len changed byte 0 (addresses have wrapped)
                 return mem_len;
@@ -55,46 +97,47 @@ uint16_t mb85_fram_get_size(mb85_fram * dev){
     }
 }
 
-/** \brief Set all memory locations in MB85 to the passed in value.
- * \param device A value between 0 and 7 matching the address pins of the chip to write to.
- * \param value The value to write to all memory locations.
- */
 int mb85_fram_set_all(mb85_fram * dev, uint8_t value){
+    // By setting the values 32 registers at a time, the runtime is dramatically reduced.
     uint8_t repeated_value [32];
     memset(repeated_value, value, 32);
 
     // Set byte 0 to something other than the new value
     uint8_t byte_buf = value + 1;
-    mb85_fram_i2c_write(dev, 0, 1, &byte_buf);
+    if(mb85_fram_i2c_write(dev, 0, 1, &byte_buf)) return PICO_ERROR_IO;
 
     uint16_t mem_addr = 1;
     do {
-        mb85_fram_i2c_write(dev, mem_addr, 32, repeated_value);
-        mb85_fram_i2c_read(dev, 0, 1, &byte_buf);
+        if(mb85_fram_i2c_write(dev, mem_addr, 32, repeated_value)) return PICO_ERROR_IO;
+        if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf)) return PICO_ERROR_IO;
     } while (byte_buf != value);
+
+    return PICO_ERROR_NONE;
 }
 
-/** \brief Allocates memory for the memory object and fills it with whatever was on the
- * MB85 at that address.
- * \param var A remote_var object that will be initalized.
- * \param addr Starting address of variable memory.
- * \param num_bytes Size of object that will be stored. 
-*/
-int mb85_fram_init_var(mb85_fram * dev, remote_var * var, reg_addr mem_addr, uint16_t num_bytes){
-    var->dev = dev;
-    var->mem_addr = mem_addr;
-    var->num_bytes = num_bytes;
-    var->val = malloc(num_bytes);
-    
-    mb85_fram_read(var);
+int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, init_dir init_from_fram){
+    mb85_fram_resize_buf(dev);
+    dev->vars[dev->num_vars].local_addr = (uint8_t*)var;
+    dev->vars[dev->num_vars].remote_addr = remote_addr;
+    dev->vars[dev->num_vars].num_bytes = num_bytes;
+
+    dev->num_vars += 1;
+
+    if(init_from_fram){
+        return mb85_fram_read(dev, var);
+    } else {
+        return mb85_fram_write(dev, var);
+    }
 }
 
-/** \brief Reads the current value stored in MB85 chip into remote_var */
-int mb85_fram_read(remote_var * var){
-    mb85_fram_i2c_read(var->dev, var->mem_addr, var->num_bytes, var->val);
+int mb85_fram_read(mb85_fram * dev, void * var){
+    mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
+    if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
+    return mb85_fram_i2c_read(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
 }
 
-/** \brief Writes the current values in remote_var onto MB85 chip */
-int mb85_fram_write(remote_var * var){
-    mb85_fram_i2c_write(var->dev, var->mem_addr, var->num_bytes, var->val);
+int mb85_fram_write(mb85_fram * dev, void * var){
+    mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
+    if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
+    return mb85_fram_i2c_write(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
 }
