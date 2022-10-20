@@ -21,6 +21,17 @@ static bool i2c_bus_are_valid_pins(i2c_inst_t * bus, uint8_t scl_pin, uint8_t sd
     return true;
 }
 
+/** \brief Multibyte register addresses have to be reversed before being sent to the I2C client. */
+static reg_addr i2c_bus_reverse_addr_bytes(reg_addr reg, uint8_t reg_addr_len){
+    reg_addr flipped_addr = 0;
+    for(uint8_t i = 0; i < reg_addr_len; i++){
+        flipped_addr = flipped_addr<<8;
+        flipped_addr = flipped_addr | (reg & 0xFF);
+        reg = reg>>8;
+    }
+    return flipped_addr;
+}
+
 int i2c_bus_setup(i2c_inst_t * bus, uint baudrate, uint8_t scl_pin, uint8_t sda_pin){
     if (!i2c_bus_are_valid_pins(bus, scl_pin, sda_pin)){
         return I2C_BUS_ERROR_CONFIGURATION;
@@ -46,7 +57,8 @@ void i2c_bus_set_bits(byte* buf, bit_range bits, uint8_t val){
 }
 
 int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * dst){
-    if(i2c_write_blocking(bus, dev, (uint8_t *)(&reg), reg_addr_len, false) == PICO_ERROR_GENERIC){
+    reg_addr flipped_reg_addr = i2c_bus_reverse_addr_bytes(reg, reg_addr_len);
+    if(i2c_write_blocking(bus, dev, (uint8_t *)(&flipped_reg_addr), reg_addr_len, false) == PICO_ERROR_GENERIC){
         return I2C_BUS_ERROR_WRITE_FAILURE;
     }
     // Read each register into dst 
@@ -57,9 +69,11 @@ int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg
 }
 
 int i2c_bus_write_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * src){
+    reg_addr flipped_reg_addr = i2c_bus_reverse_addr_bytes(reg, reg_addr_len);
+
     // Copy register address and payload into message buffer
     uint8_t msg_buff [reg_addr_len + len];
-    memcpy(msg_buff, (uint8_t*)&reg, reg_addr_len);
+    memcpy(msg_buff, (uint8_t*)&flipped_reg_addr, reg_addr_len);
     memcpy(&msg_buff[reg_addr_len], src, len);
 
     if(i2c_write_blocking(bus, dev, msg_buff, reg_addr_len + len, false) == PICO_ERROR_GENERIC){
