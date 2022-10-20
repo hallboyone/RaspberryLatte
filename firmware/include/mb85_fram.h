@@ -70,7 +70,7 @@ int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16
  * 
  * \returns PICO_ERROR_NONE on success. PICO_ERROR_INVALID_ARG if no link found. I2C Bus error is problem reading over I2C.  
 */
-int mb85_fram_read(mb85_fram * dev, void * var);
+int mb85_fram_load(mb85_fram * dev, void * var);
 
 /** \brief Writes the current values in remote_var onto MB85 chip 
  * 
@@ -79,6 +79,6 @@ int mb85_fram_read(mb85_fram * dev, void * var);
  * 
  * \returns PICO_ERROR_NONE on success. PICO_ERROR_INVALID_ARG if no link found. I2C Bus error is problem writing over I2C.  
 */
-int mb85_fram_write(mb85_fram * dev, void * var);
+int mb85_fram_save(mb85_fram * dev, void * var);
 
 #endif

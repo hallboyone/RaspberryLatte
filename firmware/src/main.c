@@ -62,8 +62,8 @@ int main(){
     }
 
     var_2 += 1;
-    mb85_fram_write(&fram, &var_2);
-    mb85_fram_read(&fram, &var_1);
+    mb85_fram_save(&fram, &var_2);
+    mb85_fram_load(&fram, &var_1);
     if(var_2 != var_1){
         printf("Failed test 2\n");
         return PICO_ERROR_GENERIC;
@@ -91,7 +91,7 @@ int main(){
         printf("Passed test 4\n");
     }
 
-    mb85_fram_read(&fram, &s1);
+    mb85_fram_load(&fram, &s1);
     if(s1.c != s2.c){
         printf("Failed test 5\n");
         return PICO_ERROR_GENERIC;

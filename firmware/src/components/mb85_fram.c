@@ -124,19 +124,19 @@ int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16
     dev->num_vars += 1;
 
     if(init_from_fram){
-        return mb85_fram_read(dev, var);
+        return mb85_fram_load(dev, var);
     } else {
-        return mb85_fram_write(dev, var);
+        return mb85_fram_save(dev, var);
     }
 }
 
-int mb85_fram_read(mb85_fram * dev, void * var){
+int mb85_fram_load(mb85_fram * dev, void * var){
     mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
     if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
     return mb85_fram_i2c_read(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
 }
 
-int mb85_fram_write(mb85_fram * dev, void * var){
+int mb85_fram_save(mb85_fram * dev, void * var){
     mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
     if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
     return mb85_fram_i2c_write(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
