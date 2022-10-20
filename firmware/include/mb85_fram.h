@@ -4,7 +4,7 @@
 #include "pico/stdlib.h"
 #include "i2c_bus.h"
 
-typedef enum {MB85_FRAM_INIT_FROM_VAR = 0, MB85_FRAM_INIT_FROM_FRAM = 1} init_dir;
+typedef enum {MB85_FRAM_INIT_FROM_VAR = 0, MB85_FRAM_INIT_FROM_FRAM = 1} mb85_fram_init_dir;
 typedef struct {
     uint8_t * local_addr;  /**< Pointer to local memory address holding local copy*/
     reg_addr remote_addr;  /**< Starting address of variable copy */
@@ -61,7 +61,7 @@ int mb85_fram_set_all(mb85_fram * dev, uint8_t value);
  * 
  * \returns PICO_ERROR_NONE on success. I2C Bus error is problem communicating over I2C. 
 */
-int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, init_dir init_from_fram);
+int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, mb85_fram_init_dir init_from_fram);
 
 /** \brief Reads the current value stored in MB85 chip into remote_var 
  * 

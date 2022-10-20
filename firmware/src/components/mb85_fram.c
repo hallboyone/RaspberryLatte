@@ -77,23 +77,31 @@ int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_
 }
 
 uint16_t mb85_fram_get_size(mb85_fram * dev){
+    uint8_t byte_aa = 0xAA;
+    uint8_t byte_ab = 0xAB;
+
+    // Set byte 0 to some non-zero value
     uint8_t byte_0 = 0;
     if(mb85_fram_i2c_read(dev, 0, 1, &byte_0)) return 0;
+    if(mb85_fram_i2c_write(dev, 0, 1, &byte_aa)) return 0;
+
+    
+    uint8_t byte_buf [64];
     uint16_t mem_len = 1;
-    uint8_t byte_buf;
     while(true){
-        mb85_fram_i2c_read(dev, mem_len, 1, &byte_buf);
-        if (byte_buf == byte_0){
-            byte_buf += 1;
-            if(mb85_fram_i2c_write(dev, mem_len, 1, &byte_buf)) return 0; // Write to what may be 0
-            if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf)) return 0;        // Read from 0 byte
-            if(mb85_fram_i2c_write(dev, mem_len, 1, &byte_0)) return 0; // Write original value back
-            if (byte_buf != byte_0){ 
-                // If write at mem_len changed byte 0 (addresses have wrapped)
-                return mem_len;
+        mb85_fram_i2c_read(dev, mem_len, 64, byte_buf);
+        for(uint8_t i = 0; i<64; i++){
+            if (byte_buf[i] == 0xAA){
+                if(mb85_fram_i2c_write(dev, mem_len + i, 1, &byte_ab)) return 0; // Write 0xAB to what may be 0
+                if(mb85_fram_i2c_read(dev, 0, 1, &byte_buf[i])) return 0;    // Read from 0 byte to see if changed
+                if(mb85_fram_i2c_write(dev, mem_len + i, 1, &byte_aa)) return 0; // Write original value back
+                if (byte_buf[i] != byte_ab){ 
+                    // If write at mem_len+i changed byte 0 (addresses have wrapped)
+                    return mem_len;
+                }
             }
+            mem_len += 1;
         }
-        mem_len += 1;
     }
 }
 
@@ -115,7 +123,7 @@ int mb85_fram_set_all(mb85_fram * dev, uint8_t value){
     return PICO_ERROR_NONE;
 }
 
-int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, init_dir init_from_fram){
+int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, mb85_fram_init_dir init_from_fram){
     mb85_fram_resize_buf(dev);
     dev->vars[dev->num_vars].local_addr = (uint8_t*)var;
     dev->vars[dev->num_vars].remote_addr = remote_addr;
