@@ -37,6 +37,7 @@
         "message_ids.h": "c",
         "machine_configuration.h": "c",
         "loop_rate_limiter.h": "c",
-        "i2c_bus.h": "c"
+        "i2c_bus.h": "c",
+        "value_flasher.h": "c"
     },
 }
