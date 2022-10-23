@@ -40,4 +40,8 @@
         "i2c_bus.h": "c",
         "value_flasher.h": "c"
     },
+    "cSpell.words": [
+        "fram",
+        "PICO"
+    ],
 }

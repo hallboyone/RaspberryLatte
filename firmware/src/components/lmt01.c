@@ -21,7 +21,7 @@ static const int PULSE_SHIFTS [20] = {-827, -824, -827, -823, -823,
                                       -777, -777, -777, -742, -798};
 
 /**
- * \brief Converts a pulse count to the corresponding tempurature multiplied by 16
+ * \brief Converts a pulse count to the corresponding temperature multiplied by 16
  * 
  * \param pulse_count the number of pulses from the LMT01 sensor
  * \return The corresponding temp. Divide by 16 to get temp in C
@@ -112,7 +112,7 @@ void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
     lmt01_program_init(l, offset);
 
     while(l->_latest_temp<=0 || l->_latest_temp>2800){
-        // Wait till a valid tempurature is measured
+        // Wait till a valid temperature is measured
         lmt01_read(l);
     }
 }
