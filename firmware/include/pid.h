@@ -23,6 +23,11 @@
 #define PID_NO_WINDUP_UB  1000000 /**< Large value used to indicate no windup upper bound */
 
 /**
+ * \brief Helper function returning the microseconds since booting
+ */
+float sec_since_boot();
+
+/**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
  */
 typedef struct {
@@ -147,6 +152,7 @@ typedef struct {
     float p; /**< The proportional gain. */
     float i; /**< The integral gain. */
     float d; /**< The derivative gain. */
+    float f; /**< The feedforward gain. */
 } pid_gains;
 
 /**
@@ -169,6 +175,7 @@ typedef struct {
     float setpoint;                     /**< The current setpoint the PID is regulating to. */
     pid_gains K;                        /**< The gains of the PID controller. */
     read_sensor sensor;                 /**< The sensor function. */
+    read_sensor sensor_feedforward;     /**< The sensor providing feedforward values. */
     apply_input plant;                  /**< The plant function that applies the input to the system. */
     discrete_derivative err_slope;      /**< A discrete_derivative tracking the slope of the error. */
     discrete_integral err_sum;          /**< A discrete_integral tracking the sum of the error. */

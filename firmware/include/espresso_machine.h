@@ -52,6 +52,7 @@ typedef struct {
  */
 typedef struct {
     int32_t val_mg; /**< Value of the scale in mg. */
+    float flowrate_mg_s; /**< The change in the scale in mg/s. */
 } espresso_machine_scale_state;
 
 /**

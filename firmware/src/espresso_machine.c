@@ -22,14 +22,15 @@ static espresso_machine_state _state = {.pump.pump_lock = true};
 static i2c_inst_t *  bus = i2c1;
 
 /** All the peripheral components for the espresso machine */
-static analog_input  pressure_sensor;
-static binary_output leds;
-static binary_input  pump_switch, mode_dial;
-static phasecontrol  pump;
-static binary_output solenoid;
-static slow_pwm      heater;
-static lmt01         thermo; 
-static nau7802       scale;
+static analog_input        pressure_sensor;
+static binary_output       leds;
+static binary_input        pump_switch, mode_dial;
+static phasecontrol        pump;
+static binary_output       solenoid;
+static slow_pwm            heater;
+static lmt01               thermo; 
+static nau7802             scale;
+static discrete_derivative scale_flowrate;
 
 /** Autobrew and control objects */
 static pid_ctrl         heater_pid;
@@ -41,6 +42,13 @@ static autobrew_routine autobrew_plan;
  */
 static float read_boiler_thermo(){
     return lmt01_read_float(&thermo);
+}
+
+/**
+ * \brief Helper function that tracks and returns the scale's flowrate
+*/
+static float read_scale_flowrate(){
+    return _state.scale.flowrate_mg_s;
 }
 
 /**
@@ -79,8 +87,14 @@ static void espresso_machine_update_state(){
     //Pump lock
     _state.pump.pump_lock = _state.switches.pump_switch && (mode_changed || _state.pump.pump_lock);
 
-    // Zero scale if mode changed
-    if(mode_changed) nau7802_zero(&scale);
+    // Update scale
+    if(mode_changed){
+        nau7802_zero(&scale);
+        discrete_derivative_reset(&scale_flowrate);
+    }
+    _state.scale.val_mg = nau7802_read_mg(&scale);
+    datapoint scale_val = {.t = sec_since_boot(), .v = nau7802_read_mg(&scale)};
+    _state.scale.flowrate_mg_s = discrete_derivative_add_point(&scale_flowrate, scale_val);
 
     // Update setpoints
     if(_state.switches.ac_switch) _state.boiler.setpoint = 16*TEMP_SETPOINTS[new_mode];
@@ -89,33 +103,40 @@ static void espresso_machine_update_state(){
 
 static void espresso_machine_update_pump(){
     if(!_state.switches.pump_switch){
+        heater_pid.K.f = 0;
         autobrew_routine_reset(&autobrew_plan);
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
     } else if (_state.pump.pump_lock){
+        heater_pid.K.f = 0;
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
     } else {
         switch(_state.switches.mode_dial){
             case MODE_STEAM:
+                heater_pid.K.f = 0;
                 phasecontrol_set_duty_cycle(&pump, 0);
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_HOT:
+                heater_pid.K.f = 0;
                 phasecontrol_set_duty_cycle(&pump, 127);
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_MANUAL:
+                heater_pid.K.f = 0;
                 phasecontrol_set_duty_cycle(&pump, 127);
                 binary_output_put(&solenoid, 0, 1);
                 break;
             case MODE_AUTO:
                 if(!autobrew_routine_tick(&autobrew_plan)){
+                    heater_pid.K.f = PID_GAIN_F;
                     binary_output_put(&solenoid, 0, 1);
                     if(autobrew_plan.state.pump_setting_changed){
                         phasecontrol_set_duty_cycle(&pump, autobrew_plan.state.pump_setting);
                     }
                 } else {
+                    heater_pid.K.f = 0;
                     phasecontrol_set_duty_cycle(&pump, 0);
                     binary_output_put(&solenoid, 0, 0);
                 }
@@ -146,9 +167,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
-    heater_pid.K.p = PID_GAIN_P; heater_pid.K.i = PID_GAIN_I; heater_pid.K.d = PID_GAIN_D;
+    heater_pid.K.p = PID_GAIN_P;
+    heater_pid.K.i = PID_GAIN_I; 
+    heater_pid.K.d = PID_GAIN_D;
+    heater_pid.K.f = 0;
     heater_pid.min_time_between_ticks_ms = 100;
     heater_pid.sensor = &read_boiler_thermo;
+    heater_pid.sensor_feedforward = &read_scale_flowrate;
     heater_pid.plant = &apply_boiler_input;
     heater_pid.setpoint = 0;
     pid_init(&heater_pid, 0, 150, 1000);
@@ -174,8 +199,9 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
     binary_output_setup(&solenoid, solenoid_pin, 1);
 
-    // Setup nau7802.
+    // Setup nau7802 and flowrate tracker
     nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);
+    discrete_derivative_init(&scale_flowrate, 250);
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);

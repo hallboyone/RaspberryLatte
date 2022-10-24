@@ -6,7 +6,7 @@
 /**
  * \brief Helper function returning the microseconds since booting
  */
-static float sec_since_boot(){
+float sec_since_boot(){
     return to_us_since_boot(get_absolute_time())/1000000.;
 }
 
@@ -70,7 +70,7 @@ float discrete_derivative_read(discrete_derivative *d) {
  * d->filter_span_ms millaseconds behind cur_t. If all points are outside of
  * this range, the most recent point is always kept.
  */
-void _discrete_derivative_remove_old_points(discrete_derivative *d, uint64_t cur_t) {
+void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
     uint16_t keep_from_idx = 0;
     for (keep_from_idx; keep_from_idx < d->_num_el - 1; keep_from_idx++) {
         // Find first point within the time range from cur_t
@@ -154,11 +154,11 @@ float pid_tick(pid_ctrl * controller){
         datapoint new_reading = {.t = sec_since_boot(), .v = controller->sensor()};
         datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
-        // If Ki (Kd) non-zero, compute the error sum (slope). Convert from us to s.
+        // If Ki (Kd) non-zero, compute the error sum (slope).
         float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_add_point(&(controller->err_sum), new_err));
         float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_add_point(&(controller->err_slope), new_err));
-
-        float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope;
+        float ff = (controller->sensor_feedforward != NULL ? controller->sensor_feedforward() : 0);
+        float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
 
         controller->plant(input);
         return input;
