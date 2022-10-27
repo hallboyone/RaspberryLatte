@@ -130,6 +130,20 @@ int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16
     }
 }
 
+int mb85_fram_unlink_var(mb85_fram * dev, void * var){
+    for (uint16_t i = 0; i < dev->num_vars; i++){
+        if (dev->vars[i].local_addr == var){
+            // Shift all remaining elements left by 1 space to overwrite unlinked var
+            for (uint16_t j = i+1; j < dev->num_vars; j++){
+                dev->vars[j-1] = dev->vars[j];
+            }
+            dev->num_vars -= 1;
+            return PICO_ERROR_NONE;
+        }
+    }
+    return PICO_ERROR_NONE;
+}
+
 int mb85_fram_load(mb85_fram * dev, void * var){
     mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
     if(var_s == NULL) return PICO_ERROR_INVALID_ARG;

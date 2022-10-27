@@ -62,6 +62,16 @@ int mb85_fram_set_all(mb85_fram * dev, uint8_t value);
 */
 int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, mb85_fram_init_dir init_from_fram);
 
+/** \brief Breaks the link if it exists between the local object pointed at by var and the 
+ * memory location on the remote device.
+ * 
+ * \param dev Initalized MB85 device to link with.
+ * \param var Pointer to the starting memory location of the local object that will be unlinked.
+ * 
+ * \returns PICO_ERROR_NONE. 
+*/
+int mb85_fram_unlink_var(mb85_fram * dev, void * var);
+
 /** \brief Reads the current value stored in MB85 chip into remote_var 
  * 
  * \param dev Initalized MB85 device to read from.

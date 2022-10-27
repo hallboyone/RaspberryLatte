@@ -108,5 +108,19 @@ int main(){
     } else {
         printf("Passed test 6\n");
     }
+
+    uint16_t var_3 = 1234;
+    uint16_t var_4 = 4321;
+    mb85_fram_link_var(&fram, &var_3, 365, 2, MB85_FRAM_INIT_FROM_VAR);
+    mb85_fram_link_var(&fram, &var_4, 367, 2, MB85_FRAM_INIT_FROM_VAR);
+    mb85_fram_unlink_var(&fram, &var_3);
+    mb85_fram_link_var(&fram, &var_3, 367, 2, MB85_FRAM_INIT_FROM_FRAM);
+    if(var_3 != 4321){
+        printf("Failed test 7\n");
+        return PICO_ERROR_GENERIC;
+    } else {
+        printf("Passed test 7\n");
+    }
+    
     return PICO_ERROR_NONE;
 }
