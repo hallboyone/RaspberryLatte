@@ -40,14 +40,29 @@ typedef struct {
 typedef struct {
     uint16_t dose_cg;
     uint16_t yield_cg;
-    uint16_t brew_temp_cC;
-    brew_times times;
-} brew_profile;
+} brew_weights;
 
 typedef struct {
-    uint8_t active_profile;
-    brew_profile profile [9];
-    
+    uint16_t brew_dc;
+    uint16_t hot_dc;
+    uint16_t steam_dc;
+} brew_temps;
+
+typedef struct {
+    uint8_t pre_percent;
+    uint8_t brew_percent;
+} brew_powers;
+
+typedef struct {
+    brew_times   times;
+    brew_weights weights;
+    brew_temps   temps;
+    brew_powers  powers;
 } machine_parameters;
 
+int machine_parameters_setup(machine_parameters * p, mb85_fram * mem);
+
+int machine_parameters_set_profile(uint8_t * profile);
+
+int machine_parameters_save(machine_parameters * p);
 #endif
