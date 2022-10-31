@@ -1,77 +1,38 @@
 #ifndef MACHINE_SETTINGS_H
 #define MACHINE_SETTINGS_H
 
-#define MACHINE_SETTINGS_STARTING_ADDRESS 0x00
-
 #include "pico/stdlib.h"
+#include "mb85_fram.h"
 
-#if defined(COUNTER_CULTURE_FORTY_SIX)
-const float TEMP_SETPOINTS [4] = {140, 100, 93, 93};
-#elif defined(COUNTER_CULTURE_SLOW_MOTION)
-const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
-#elif defined(CAMERONS_HAWAIIAN_BLEND)
-const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
-#else // No-heat
-const float TEMP_SETPOINTS [4] = {0,0,0,0};
-#endif
+typedef uint16_t machine_setting;
+typedef const machine_setting* machine_settings;
 
-const float PID_GAIN_P = 0.05;
-const float PID_GAIN_I = 0.0015;
-const float PID_GAIN_D = 0.0005;
-const float PID_GAIN_F = 0.00005;
-
-const float SCALE_CONVERSION_MG = -0.152710615479;
-
-const unsigned int BREW_DOSE_MG = 16000;
-const unsigned int BREW_YIELD_MG = 30000;
-const unsigned int AUTOBREW_PREINFUSE_END_POWER    = 80;
-const unsigned int AUTOBREW_PREINFUSE_ON_TIME_US   = 4000000;
-const unsigned int AUTOBREW_PREINFUSE_OFF_TIME_US  = 4000000;
-const unsigned int AUTOBREW_BREW_RAMP_TIME         = 1000000;   
-const unsigned int AUTOBREW_BREW_TIMEOUT_US        = 60000000; // 60s
-
-/** \brief The time parameters associated with the espresso machine */
-typedef struct {
-    uint8_t pre_on_ds;  /**< The duration of the preinfuse on time in s/10 */
-    uint8_t pre_off_ds; /**< The duration of the preinfuse off time in s/10 */
-    uint8_t timeout_s;  /**< The maximum duration of the autobrew routine in s */
-    uint8_t ramp_ds;    /**< The duration of the power ramp in s/10 */
-} brew_times;
-
-/** \brief The weight parameters associated with the espresso machine */
-typedef struct {
-    uint16_t dose_cg;  /**< The weight of the grounds used in g/100 */
-    uint16_t yield_cg; /**< The weight of espresso output in g/100 */
-} brew_weights;
-
-typedef struct {
-    uint16_t brew_dc;
-    uint16_t hot_dc;
-    uint16_t steam_dc;
-} brew_temps;
-
-typedef struct {
-    uint8_t pre_per;
-    uint8_t brew_per;
-} brew_powers;
-
-typedef struct {
-    brew_times   time;
-    brew_weights weight;
-    brew_temps   temp;
-    brew_powers  power;
-} machine_settings;
+/** \brief Enumerated setting IDs. Used to read and set the various parameters */
+typedef enum {
+    MACHINE_SETTING_TIME_PREINF_ON_DS = 0, /**< The duration of the preinfuse on time in s/10 */
+    MACHINE_SETTING_TIME_PRE_OFF_DS,       /**< The duration of the preinfuse off time in s/10 */
+    MACHINE_SETTING_TIME_TIMEOUT_S,        /**< The maximum duration of the autobrew routine in s */
+    MACHINE_SETTING_TIME_RAMP_DS,          /**< The duration of the power ramp in s/10 */
+    MACHINE_SETTING_WEIGHT_DOSE_CG,        /**< The weight of the grounds used in g/100 */
+    MACHINE_SETTING_WEIGHT_YIELD_CG,       /**< The weight of espresso output in g/100 */
+    MACHINE_SETTING_TEMP_BREW_DC,          /**< The tempurature for brewing in C/10 */
+    MACHINE_SETTING_TEMP_HOT_DC,           /**< The tempurature for hot water in C/10 */
+    MACHINE_SETTING_TEMP_STEAM_DC,         /**< The tempurature for steam in C/10 */
+    MACHINE_SETTING_PWR_PREINF_PER,        /**< The preinfuse power in % */
+    MACHINE_SETTING_PWR_BREW_PER,          /**< The brew power in % */
+    MACHINE_SETTING_COUNT                  /**< The last element in the enum. Used for counting. */
+} machine_setting_id;
 
 /** \brief Initalize the settings and attach to memory device. 
  * \param mem A pointer to an initalized mb85_fram structure.
  * \returns A const pointer to the global settings structure or NULL on error. 
 */
-const machine_settings * machine_settings_setup(mb85_fram * mem);
+machine_settings machine_settings_setup(mb85_fram * mem);
 
 /** \brief Get const pointer to internal settings structure. 
  * \returns Pointer to internal settings structure or NULL if not setup.
 */
-const machine_settings * machine_settings_aquire();
+machine_settings machine_settings_aquire();
 
 /**
  * \brief Save the current internal settings structure as the indicated ID.
@@ -80,7 +41,7 @@ const machine_settings * machine_settings_aquire();
  * 
  * \returns PICO_ERROR_NONE if successfull. Else error code. 
 */
-int machine_settings_save_profile(uint8_t * profile);
+int machine_settings_save_profile(uint8_t profile);
 
 /**
  * \brief Load the idicated profile int the internal settings structure.
@@ -91,20 +52,18 @@ int machine_settings_save_profile(uint8_t * profile);
  * 
  * \returns PICO_ERROR_NONE if successfull. Else error code. 
 */
-int machine_settings_load_profile(uint8_t * profile);
+int machine_settings_load_profile(uint8_t profile);
 
-int machine_settings_set_time_pre_on(uint8_t t_ds);
-int machine_settings_set_time_pre_off(uint8_t t_ds);
-int machine_settings_set_time_timeout(uint8_t t_s);
-int machine_settings_set_time_ramp(uint8_t t_ds);
+/**
+ * \brief Sets the parameter matching p_id to val. If val is out of range,
+ * it is clipped to be within the parameter's bounds.
+ * 
+ * \param p_id ID of parameter that should be updated. 
+ * \param val New value of the parameter in the correct units.
+ * 
+ * \returns PICO_ERROR_INVALID_ARG if p_id is out of range. Else PICO_ERROR_NONE.
+*/
+int machine_settings_set(machine_setting_id p_id, machine_setting val);
 
-int machine_settings_set_weight_dose(uint8_t cg);
-int machine_settings_set_weight_yield(uint8_t cg);
-
-int machine_settings_set_temp_brew(uint16_t t_dc);
-int machine_settings_set_temp_hot(uint16_t t_dc);
-int machine_settings_set_temp_steam(uint16_t t_dc);
-
-int machine_settings_set_power_pre(uint8_t pwr);
-int machine_settings_set_power_brew(uint8_t pwr);
+int machine_settings_print();
 #endif

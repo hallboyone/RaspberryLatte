@@ -3,28 +3,27 @@
 #include "espresso_machine.h"
 #include "loop_rate_limiter.h"
 
+#include "machine_settings.h"
+#include "pinout.h"
+
 int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 
-    espresso_machine_viewer espresso_machine;
-    if(espresso_machine_setup(&espresso_machine)){
-        return 1;
-    }
+    i2c_inst_t *  bus = i2c1;
+    i2c_bus_setup(bus, 100000, I2C_SCL_PIN, I2C_SDA_PIN);
 
-    // Run main machine loop
-    uint64_t last_msg_time = time_us_64();
-    uint64_t last_loop_time_us = time_us_64();
+    mb85_fram mem;
+    mb85_fram_setup(&mem, bus, 0x00, NULL);
     
-    while(true){
-        espresso_machine_tick();
-
-        if(last_msg_time + 500000 <= time_us_64()){
-            last_msg_time += 500000;
-            printf("T = %0.2f / %0.2f\n", espresso_machine->boiler.temperature/16., espresso_machine->boiler.setpoint/16.);
-            // printf("Scale = %0.2f / %0.2f\n\n", espresso_machine->scale.val_mg/1000., espresso_machine->scale.flowrate_mg_s);
-            printf("%0.2f\n", espresso_machine->scale.flowrate_mg_s);
-        }
-        loop_rate_limiter_us(&last_loop_time_us, 10000);
-    }
+    machine_settings settings = machine_settings_setup(& mem);
+    machine_settings_print();
+    machine_settings_set(MACHINE_SETTING_TEMP_BREW_DC, 920);
+    machine_settings_print();
+    machine_settings_save_profile(1);
+    machine_settings_set(MACHINE_SETTING_TEMP_BREW_DC, 890);
+    machine_settings_print();
+    machine_settings_load_profile(1);
+    machine_settings_print();
+    return 0;
 }
