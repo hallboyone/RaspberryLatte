@@ -6,7 +6,7 @@ pico_generate_pio_header(RaspberryLattePico ${CMAKE_CURRENT_LIST_DIR}/src/compon
 
 target_sources(RaspberryLattePico
                PRIVATE ./src/main.c
-               PRIVATE src/machine_parameters.c
+               PRIVATE src/machine_settings.c
                PRIVATE src/espresso_machine.c
                PRIVATE src/components/analog_input.c
                PRIVATE src/components/binary_output.c
