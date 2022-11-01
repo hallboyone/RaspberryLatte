@@ -85,7 +85,7 @@ static void espresso_machine_update_state(){
     _state.switches.mode_dial = new_mode;
 
     //Pump lock
-    _state.pump.pump_lock = _state.switches.pump_switch && (mode_changed || _state.pump.pump_lock);
+    _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (mode_changed || _state.pump.pump_lock));
 
     // Update scale
     if(mode_changed){
