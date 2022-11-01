@@ -116,7 +116,7 @@ int machine_settings_load_profile(uint8_t profile_id){
 }
 
 int machine_settings_set(machine_setting_id p_id, machine_setting val){
-    if(p_id >= MACHINE_SETTING_COUNT) return PICO_ERROR_INVALID_ARG;
+    if(p_id >= MS_COUNT) return PICO_ERROR_INVALID_ARG;
     
     if(val < _setting_min[p_id]){
         val = _setting_min[p_id];

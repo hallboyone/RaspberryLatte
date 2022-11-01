@@ -103,9 +103,15 @@ static void espresso_machine_update_state(){
 
     // Update setpoints
     if(_state.switches.ac_switch){
-        if(new_mode == MODE_STEAM)    _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_STEAM_DC];
-        else if(new_mode == MODE_HOT) _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_HOT_DC];
-        else                          _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_BREW_DC];
+        if(new_mode == MODE_STEAM){
+            _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_STEAM_DC];
+        } else if(new_mode == MODE_HOT){
+            _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_HOT_DC];
+        } else {
+            volatile uint16_t tmp = TEMP_SETPOINTS[MS_TEMP_BREW_DC];
+            tmp *= 1.6;
+            _state.boiler.setpoint = tmp;
+        }
     } else {
         _state.boiler.setpoint = 0;
     }
