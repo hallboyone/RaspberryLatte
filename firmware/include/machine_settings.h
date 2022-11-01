@@ -9,18 +9,18 @@ typedef const machine_setting* machine_settings;
 
 /** \brief Enumerated setting IDs. Used to read and set the various parameters */
 typedef enum {
-    MACHINE_SETTING_TIME_PREINF_ON_DS = 0, /**< The duration of the preinfuse on time in s/10 */
-    MACHINE_SETTING_TIME_PRE_OFF_DS,       /**< The duration of the preinfuse off time in s/10 */
-    MACHINE_SETTING_TIME_TIMEOUT_S,        /**< The maximum duration of the autobrew routine in s */
-    MACHINE_SETTING_TIME_RAMP_DS,          /**< The duration of the power ramp in s/10 */
-    MACHINE_SETTING_WEIGHT_DOSE_CG,        /**< The weight of the grounds used in g/100 */
-    MACHINE_SETTING_WEIGHT_YIELD_CG,       /**< The weight of espresso output in g/100 */
-    MACHINE_SETTING_TEMP_BREW_DC,          /**< The tempurature for brewing in C/10 */
-    MACHINE_SETTING_TEMP_HOT_DC,           /**< The tempurature for hot water in C/10 */
-    MACHINE_SETTING_TEMP_STEAM_DC,         /**< The tempurature for steam in C/10 */
-    MACHINE_SETTING_PWR_PREINF_PER,        /**< The preinfuse power in % */
-    MACHINE_SETTING_PWR_BREW_PER,          /**< The brew power in % */
-    MACHINE_SETTING_COUNT                  /**< The last element in the enum. Used for counting. */
+    MS_TIME_PREINF_ON_DS = 0, /**< The duration of the preinfuse on time in s/10 */
+    MS_TIME_PREINF_OFF_DS,    /**< The duration of the preinfuse off time in s/10 */
+    MS_TIME_TIMEOUT_S,        /**< The maximum duration of the autobrew routine in s */
+    MS_TIME_RAMP_DS,          /**< The duration of the power ramp in s/10 */
+    MS_WEIGHT_DOSE_CG,        /**< The weight of the grounds used in g/100 */
+    MS_WEIGHT_YIELD_CG,       /**< The weight of espresso output in g/100 */
+    MS_TEMP_BREW_DC,          /**< The tempurature for brewing in C/10 */
+    MS_TEMP_HOT_DC,           /**< The tempurature for hot water in C/10 */
+    MS_TEMP_STEAM_DC,         /**< The tempurature for steam in C/10 */
+    MS_PWR_PREINF_I8,         /**< The preinfuse power in [0,127] */
+    MS_PWR_BREW_I8,           /**< The brew power in [0,127] */
+    MS_COUNT                  /**< The last element in the enum. Used for counting. */
 } machine_setting_id;
 
 /** \brief Initalize the settings and attach to memory device. 

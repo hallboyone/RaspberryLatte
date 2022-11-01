@@ -1,8 +1,9 @@
 #include "machine_settings.h"
-#include "string.h"
+#include <stdio.h>
+#include <string.h>
 
 static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
-static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = MACHINE_SETTING_COUNT*sizeof(machine_setting);
+static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = MS_COUNT*sizeof(machine_setting);
 
 typedef struct{
     machine_setting min;
@@ -10,7 +11,7 @@ typedef struct{
     machine_setting max;
 } machine_setting_limits;
 
-static const machine_setting _setting_min [MACHINE_SETTING_COUNT] = {
+static const machine_setting _setting_min [MS_COUNT] = {
     0,  // MACHINE_SETTING_TIME_PREINF_ON_DS
     0,  // MACHINE_SETTING_TIME_PRE_OFF_DS
     20, // MACHINE_SETTING_TIME_TIMEOUT_S
@@ -24,7 +25,7 @@ static const machine_setting _setting_min [MACHINE_SETTING_COUNT] = {
     60  // MACHINE_SETTING_PWR_BREW_PER
 };
 
-static const machine_setting _setting_default [MACHINE_SETTING_COUNT] = {
+static const machine_setting _setting_default [MS_COUNT] = {
     40,   // MACHINE_SETTING_TIME_PREINF_ON_DS
     40,   // MACHINE_SETTING_TIME_PRE_OFF_DS
     60,   // MACHINE_SETTING_TIME_TIMEOUT_S
@@ -34,11 +35,11 @@ static const machine_setting _setting_default [MACHINE_SETTING_COUNT] = {
     900,  // MACHINE_SETTING_TEMP_BREW_DC
     1000, // MACHINE_SETTING_TEMP_HOT_DC
     1450, // MACHINE_SETTING_TEMP_STEAM_DC
-    80,   // MACHINE_SETTING_PWR_PREINF_PER
-    100   // MACHINE_SETTING_PWR_BREW_PER
+    80,   // MACHINE_SETTING_PWR_PREINF_I8
+    127   // MACHINE_SETTING_PWR_BREW_I8
 };
 
-static const machine_setting _setting_max [MACHINE_SETTING_COUNT] = {
+static const machine_setting _setting_max [MS_COUNT] = {
     600,  // MACHINE_SETTING_TIME_PREINF_ON_DS
     600,  // MACHINE_SETTING_TIME_PRE_OFF_DS
     180,  // MACHINE_SETTING_TIME_TIMEOUT_S
@@ -48,15 +49,15 @@ static const machine_setting _setting_max [MACHINE_SETTING_COUNT] = {
     1450, // MACHINE_SETTING_TEMP_BREW_DC
     1450, // MACHINE_SETTING_TEMP_HOT_DC
     1450, // MACHINE_SETTING_TEMP_STEAM_DC
-    100,  // MACHINE_SETTING_PWR_PREINF_PER
-    100   // MACHINE_SETTING_PWR_BREW_PER
+    127,  // MACHINE_SETTING_PWR_PREINF_I8
+    127   // MACHINE_SETTING_PWR_BREW_I8
 };
 
 static mb85_fram * _mem = NULL;
-static machine_setting _settings [MACHINE_SETTING_COUNT];
+static machine_setting _settings [MS_COUNT];
 
 bool machine_settings_verify(){
-    for(uint8_t p_id = 0; p_id < MACHINE_SETTING_COUNT; p_id++){
+    for(uint8_t p_id = 0; p_id < MS_COUNT; p_id++){
         if(_settings[p_id] < _setting_min[p_id] || _settings[p_id] > _setting_max[p_id]){
             memcpy(_settings, _setting_default, MACHINE_SETTINGS_MEMORY_SIZE);
             return true;

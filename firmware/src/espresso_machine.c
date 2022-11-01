@@ -9,11 +9,13 @@
 #include "nau7802.h"
 #include "slow_pwm.h"
 #include "lmt01.h"
+#include "mb85_fram.h"
 
 #include "pid.h"
 #include "autobrew.h"
 
 #include "espresso_machine.h"
+#include "machine_settings.h"
 #include "brew_parameters.h"
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
@@ -31,10 +33,13 @@ static slow_pwm            heater;
 static lmt01               thermo; 
 static nau7802             scale;
 static discrete_derivative scale_flowrate;
+static mb85_fram           mem;
+
+static machine_settings    settings;
 
 /** Autobrew and control objects */
 static pid_ctrl         heater_pid;
-static autobrew_leg     autobrew_legs [5];
+static autobrew_leg     autobrew_legs [6];
 static autobrew_routine autobrew_plan;
 
 /**
@@ -64,7 +69,7 @@ static void apply_boiler_input(float u){
  * \brief Returns true if scale is greater than or equal to the current output. 
  */
 static bool scale_at_output(){
-    return nau7802_at_val_mg(&scale, BREW_YIELD_MG);
+    return nau7802_at_val_mg(&scale, settings[MS_WEIGHT_YIELD_CG]*10);
 }
 
 static int zero_scale(){
@@ -97,8 +102,13 @@ static void espresso_machine_update_state(){
     _state.scale.flowrate_mg_s = discrete_derivative_add_point(&scale_flowrate, scale_val);
 
     // Update setpoints
-    if(_state.switches.ac_switch) _state.boiler.setpoint = 16*TEMP_SETPOINTS[new_mode];
-    else _state.boiler.setpoint = 0;
+    if(_state.switches.ac_switch){
+        if(new_mode == MODE_STEAM)    _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_STEAM_DC];
+        else if(new_mode == MODE_HOT) _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_HOT_DC];
+        else                          _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_BREW_DC];
+    } else {
+        _state.boiler.setpoint = 0;
+    }
 }
 
 static void espresso_machine_update_pump(){
@@ -153,9 +163,51 @@ static void espresso_machine_update_boiler(){
 }
 
 static void espresso_machine_update_leds(){
-    binary_output_put(&leds, 0, _state.switches.ac_switch);
-    binary_output_put(&leds, 1, _state.switches.ac_switch && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
-    binary_output_put(&leds, 2, _state.switches.ac_switch && !_state.switches.pump_switch && nau7802_at_val_mg(&scale, BREW_DOSE_MG));
+    binary_output_put(
+        &leds, 0, 
+        _state.switches.ac_switch);
+    binary_output_put(
+        &leds, 1, 
+        _state.switches.ac_switch 
+        && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 
+        && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
+    binary_output_put(
+        &leds, 2, 
+        _state.switches.ac_switch 
+        && !_state.switches.pump_switch 
+        && nau7802_at_val_mg(&scale, settings[MS_WEIGHT_DOSE_CG]*10));
+}
+
+static void espresso_machine_autobrew_setup(){
+    uint32_t preinf_ramp_dur;
+    uint32_t preinf_on_dur;
+    uint8_t preinf_pwr = settings[MS_PWR_PREINF_I8];
+    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_PREINF_ON_DS]){
+        preinf_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
+        preinf_on_dur = (settings[MS_TIME_PREINF_ON_DS]-settings[MS_TIME_RAMP_DS])*100000UL;
+    } else {
+        preinf_ramp_dur = settings[MS_TIME_PREINF_ON_DS]*100000UL;
+        preinf_on_dur = 0;
+    }
+
+    uint32_t brew_ramp_dur;
+    uint32_t brew_on_dur;
+    uint8_t brew_pwr = settings[MS_PWR_BREW_I8];
+    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_TIMEOUT_S]){
+        brew_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
+        brew_on_dur = (settings[MS_TIME_TIMEOUT_S]*10-settings[MS_TIME_RAMP_DS])*100000UL;
+    } else {
+        brew_ramp_dur = settings[MS_TIME_TIMEOUT_S]*1000000UL;
+        brew_on_dur = 0;
+    }
+
+    autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur,                 NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr, preinf_pwr, preinf_on_dur,                   NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,          0,          settings[MS_TIME_PREINF_OFF_DS], NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,                   &scale_at_output);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,                     &scale_at_output);
+    autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
 }
 
 int espresso_machine_setup(espresso_machine_viewer * state_viewer){
@@ -164,6 +216,10 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     }
 
     i2c_bus_setup(bus, 100000, I2C_SCL_PIN, I2C_SDA_PIN);
+
+    mb85_fram_setup(&mem, bus, 0x00, NULL);
+
+    settings = machine_settings_setup(&mem);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
@@ -206,12 +262,8 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
 
-    autobrew_leg_setup_function_call(&(autobrew_legs[0]), 0, &zero_scale);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[1]),  60,  AUTOBREW_PREINFUSE_END_POWER,  AUTOBREW_PREINFUSE_ON_TIME_US, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[2]),   0,   0,  AUTOBREW_PREINFUSE_OFF_TIME_US, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[3]),  60, 127,  AUTOBREW_BREW_RAMP_TIME, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 127, 127, AUTOBREW_BREW_TIMEOUT_US, &scale_at_output);
-    autobrew_routine_setup(&autobrew_plan, autobrew_legs, 5);
+    // Autobrew setup
+    espresso_machine_autobrew_setup();
 
     espresso_machine_update_state();
 
