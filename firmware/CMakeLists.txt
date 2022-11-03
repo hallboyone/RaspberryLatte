@@ -8,6 +8,7 @@ target_sources(RaspberryLattePico
                PRIVATE ./src/main.c
                PRIVATE src/machine_settings.c
                PRIVATE src/espresso_machine.c
+               PRIVATE src/local_ui.c
                PRIVATE src/components/analog_input.c
                PRIVATE src/components/binary_output.c
                PRIVATE src/components/binary_input.c
