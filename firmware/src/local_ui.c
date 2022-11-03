@@ -32,6 +32,9 @@ static void _local_ui_init_folder_name(local_ui_folder * f, const char * name){
     f->name[name_len] = '\0';    
 }
 
+/** \brief Compute the ID for a subfolder. Value is based on parent's ID and the order
+ * in which subfolder was added to parent.
+*/
 static void _local_ui_init_subfolder_id(local_ui_folder * parent, local_ui_folder * child){
     const uint32_t child_level_id = parent->num_subfolders;
     const uint32_t parent_level = local_ui_folder_level(parent);
@@ -74,12 +77,11 @@ void local_ui_go_to_root(local_ui_folder_tree * tree){
 }
 
 void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx){
-    if(subfolder_idx < tree->cur_folder->num_subfolders){
-        // If entering action folder, just call action instead of entering
-        if(tree->cur_folder->subfolders[subfolder_idx]->action != NULL){
-            tree->cur_folder->subfolders[subfolder_idx]->action(tree->cur_folder->subfolders[subfolder_idx]->id);
-        } else {
-            tree->cur_folder = tree->cur_folder->subfolders[subfolder_idx];
-        }
+    if(tree->cur_folder->action != NULL){
+        // If in action folder, just call action instead of entering subfolder
+        tree->cur_folder->action(tree->cur_folder->id, subfolder_idx);
+    } else if(subfolder_idx < tree->cur_folder->num_subfolders){
+        // Not in action folder. Enter subfolder if valid index
+        tree->cur_folder = tree->cur_folder->subfolders[subfolder_idx];
     }
 }
