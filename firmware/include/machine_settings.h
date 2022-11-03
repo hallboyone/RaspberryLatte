@@ -4,7 +4,7 @@
 #include "pico/stdlib.h"
 #include "mb85_fram.h"
 
-typedef uint16_t machine_setting;
+typedef int16_t machine_setting;
 typedef const machine_setting* machine_settings;
 
 /** \brief Enumerated setting IDs. Used to read and set the various parameters */

@@ -124,6 +124,8 @@ int machine_settings_set(machine_setting_id p_id, machine_setting val){
         val = _setting_max[p_id];
     }
     _settings[p_id] = val;
+
+    mb85_fram_save(_mem, &_settings);
     return PICO_ERROR_NONE;
 }
 
