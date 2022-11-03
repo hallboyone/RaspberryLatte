@@ -2,20 +2,29 @@
 #define LOCAL_UI_H
 #include "pico/stdlib.h"
 
-typedef void (*folder_action)(uint32_t);
+/** \brief Unique, structured ID of folder. Assigned when added to tree. */
+typedef uint32_t folder_id;
 
+/** \brief Action function asigned to folder. */
+typedef void (*folder_action)(folder_id, uint8_t);
+
+/** \brief A single folder. The folder structure is basically a linked
+ * list with some extra functionality. Therefore, the folder can be thought
+ * of as a node in a linked list.
+*/
 typedef struct local_ui_folder_ {
-    uint32_t id;
-    char * name;
-    folder_action action;
-    uint8_t num_subfolders;
-    struct local_ui_folder_ ** subfolders;
-    uint8_t _subfolder_buf_size;
+    uint32_t id;                            /**< A unique ID assigned to a folder */
+    char * name;                            /**< The folder's name as a null-terminated string*/
+    folder_action action;                   /**< An optional folder action callback*/
+    uint8_t num_subfolders;                 /**< The number of subfolders under folder */
+    struct local_ui_folder_ ** subfolders;  /**< A list of pointers to a folder's subfolders */
+    uint8_t _subfolder_buf_size;            /**< Internal var used to allocate space for subfolder pointers*/
 } local_ui_folder;
 
+/** \brief Object representing an entire folder structure. */
 typedef struct local_ui_folder_tree_{
-    local_ui_folder * root;
-    local_ui_folder * cur_folder;
+    local_ui_folder * root;       /**< Pointer to the root of the tree */
+    local_ui_folder * cur_folder; /**< Pointer to the tree's active folder*/
 } local_ui_folder_tree;
 
 /**
@@ -56,8 +65,11 @@ void local_ui_go_to_root(local_ui_folder_tree * tree);
  * \brief Enter a subfolder of the active folder in the tree.
  * 
  * If the index is out of range, nothing is done and the function returns.
- * If the subfolder is an action folder, the action callback is triggered and the 
- * current folder doesn't change.
+ * If the subfolder is an action folder, the action callback is triggered and the subfolder_idx
+ * is passed as a parameter.
+ * 
+ * \param tree Full tree structure
+ * \param subfolder_idx Index of subfolder to enter or parameter passed to callback.
  */
 void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx);
 #endif
