@@ -16,6 +16,7 @@
 
 #include "espresso_machine.h"
 #include "machine_settings.h"
+#include "local_ui.h"
 #include "brew_parameters.h"
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
@@ -41,6 +42,52 @@ static machine_settings    settings;
 static pid_ctrl         heater_pid;
 static autobrew_leg     autobrew_legs [6];
 static autobrew_routine autobrew_plan;
+
+/** Local UI folder objects for updating machine settings */
+static local_ui_folder_tree settings_modifier;
+static local_ui_folder folder_root;
+static local_ui_folder   folder_settings;
+static local_ui_folder     folder_settings_temp;
+static local_ui_folder       folder_settings_temp_brew;
+static local_ui_folder       folder_settings_temp_hot;
+static local_ui_folder       folder_settings_temp_steam;
+static local_ui_folder     folder_settings_weight;
+static local_ui_folder       folder_settings_weight_yield;
+static local_ui_folder       folder_settings_weight_dose;
+static local_ui_folder     folder_settings_more;
+static local_ui_folder       folder_settings_more_power;
+static local_ui_folder         folder_settings_more_power_brew;
+static local_ui_folder         folder_settings_more_power_hot;
+static local_ui_folder       folder_settings_more_preinfuse;
+static local_ui_folder         folder_settings_more_preinfuse_on_time;
+static local_ui_folder         folder_settings_more_preinfuse_on_power;
+static local_ui_folder         folder_settings_more_preinfuse_off_time;
+static local_ui_folder       folder_settings_more_misc;
+static local_ui_folder         folder_settings_more_misc_timeout;
+static local_ui_folder         folder_settings_more_misc_ramp_time;
+static local_ui_folder   folder_presets;
+
+void set_temp(folder_id id, uint8_t val){
+    if (val > 2) return;
+    const machine_setting deltas [] = {-10, 1, 10};
+    if(id == folder_settings_temp_brew.id) {
+        machine_settings_set(MS_TEMP_BREW_DC, deltas[val]);
+    } else if(id == folder_settings_temp_hot.id){
+        machine_settings_set(MS_TEMP_HOT_DC, deltas[val]);
+    } else {
+        machine_settings_set(MS_TEMP_STEAM_DC, deltas[val]);
+    }
+}
+
+void set_weight(folder_id id, uint8_t val){
+    if (val > 2) return;
+    const machine_setting deltas [] = {-10, 1, 10};
+    if(id == folder_settings_weight_dose.id) {
+        machine_settings_set(MS_WEIGHT_DOSE_DG, deltas[val]);
+    } else {
+        machine_settings_set(MS_WEIGHT_YIELD_DG, deltas[val]);
+    }
+}
 
 /**
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
@@ -69,7 +116,7 @@ static void apply_boiler_input(float u){
  * \brief Returns true if scale is greater than or equal to the current output. 
  */
 static bool scale_at_output(){
-    return nau7802_at_val_mg(&scale, settings[MS_WEIGHT_YIELD_CG]*10);
+    return nau7802_at_val_mg(&scale, settings[MS_WEIGHT_YIELD_DG]*100);
 }
 
 static int zero_scale(){
@@ -181,7 +228,7 @@ static void espresso_machine_update_leds(){
         &leds, 2, 
         _state.switches.ac_switch 
         && !_state.switches.pump_switch 
-        && nau7802_at_val_mg(&scale, settings[MS_WEIGHT_DOSE_CG]*10));
+        && nau7802_at_val_mg(&scale, settings[MS_WEIGHT_DOSE_DG]*100));
 }
 
 static void espresso_machine_autobrew_setup(){
@@ -214,6 +261,18 @@ static void espresso_machine_autobrew_setup(){
     autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,                   &scale_at_output);
     autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,                     &scale_at_output);
     autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
+}
+
+static void espresso_machine_setup_local_ui(){
+    local_ui_folder_tree_init(&settings_modifier, &folder_root, "RaspberryLatte");
+    local_ui_add_subfolder(&folder_root, &folder_settings, "Settings", NULL);
+    local_ui_add_subfolder(&folder_settings, &folder_settings_temp, "Temperatures", NULL);
+    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_brew, "Brew", &set_temp);
+    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_hot, "Hot", &set_temp);
+    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_steam, "Steam", &set_temp);
+    local_ui_add_subfolder(&folder_settings, &folder_settings_weight, "Weights", NULL);
+    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_dose, "Dose", NULL);
+    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_yield, "Yield", NULL);
 }
 
 int espresso_machine_setup(espresso_machine_viewer * state_viewer){
