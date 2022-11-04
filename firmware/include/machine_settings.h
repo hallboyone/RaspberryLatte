@@ -13,8 +13,8 @@ typedef enum {
     MS_TIME_PREINF_OFF_DS,    /**< The duration of the preinfuse off time in s/10 */
     MS_TIME_TIMEOUT_S,        /**< The maximum duration of the autobrew routine in s */
     MS_TIME_RAMP_DS,          /**< The duration of the power ramp in s/10 */
-    MS_WEIGHT_DOSE_CG,        /**< The weight of the grounds used in g/100 */
-    MS_WEIGHT_YIELD_CG,       /**< The weight of espresso output in g/100 */
+    MS_WEIGHT_DOSE_DG,        /**< The weight of the grounds used in g/10 */
+    MS_WEIGHT_YIELD_DG,       /**< The weight of espresso output in g/10 */
     MS_TEMP_BREW_DC,          /**< The tempurature for brewing in C/10 */
     MS_TEMP_HOT_DC,           /**< The tempurature for hot water in C/10 */
     MS_TEMP_STEAM_DC,         /**< The tempurature for steam in C/10 */

@@ -16,8 +16,8 @@ static const machine_setting _setting_min [MS_COUNT] = {
     0,  // MACHINE_SETTING_TIME_PRE_OFF_DS
     20, // MACHINE_SETTING_TIME_TIMEOUT_S
     0,  // MACHINE_SETTING_TIME_RAMP_DS
-    0,  // MACHINE_SETTING_WEIGHT_DOSE_CG
-    0,  // MACHINE_SETTING_WEIGHT_YIELD_CG
+    0,  // MACHINE_SETTING_WEIGHT_DOSE_DG
+    0,  // MACHINE_SETTING_WEIGHT_YIELD_DG
     0,  // MACHINE_SETTING_TEMP_BREW_DC
     0,  // MACHINE_SETTING_TEMP_HOT_DC
     0,  // MACHINE_SETTING_TEMP_STEAM_DC
@@ -30,8 +30,8 @@ static const machine_setting _setting_default [MS_COUNT] = {
     40,   // MACHINE_SETTING_TIME_PRE_OFF_DS
     60,   // MACHINE_SETTING_TIME_TIMEOUT_S
     10,   // MACHINE_SETTING_TIME_RAMP_DS
-    1500, // MACHINE_SETTING_WEIGHT_DOSE_CG
-    3000, // MACHINE_SETTING_WEIGHT_YIELD_CG
+    150,  // MACHINE_SETTING_WEIGHT_DOSE_DG
+    300,  // MACHINE_SETTING_WEIGHT_YIELD_DG
     900,  // MACHINE_SETTING_TEMP_BREW_DC
     1000, // MACHINE_SETTING_TEMP_HOT_DC
     1450, // MACHINE_SETTING_TEMP_STEAM_DC
@@ -44,8 +44,8 @@ static const machine_setting _setting_max [MS_COUNT] = {
     600,  // MACHINE_SETTING_TIME_PRE_OFF_DS
     180,  // MACHINE_SETTING_TIME_TIMEOUT_S
     600,  // MACHINE_SETTING_TIME_RAMP_DS
-    3000, // MACHINE_SETTING_WEIGHT_DOSE_CG
-    6000, // MACHINE_SETTING_WEIGHT_YIELD_CG
+    300,  // MACHINE_SETTING_WEIGHT_DOSE_DG
+    600,  // MACHINE_SETTING_WEIGHT_YIELD_DG
     1450, // MACHINE_SETTING_TEMP_BREW_DC
     1450, // MACHINE_SETTING_TEMP_HOT_DC
     1450, // MACHINE_SETTING_TEMP_STEAM_DC
@@ -147,8 +147,8 @@ int machine_settings_print(){
         _settings[1]/10.,
         _settings[2],
         _settings[3]/10.,
-        _settings[4]/100.,
-        _settings[5]/100.,
+        _settings[4]/10.,
+        _settings[5]/10.,
         _settings[6]/10.,
         _settings[7]/10.,
         _settings[8]/10.,
