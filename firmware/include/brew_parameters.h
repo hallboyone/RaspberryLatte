@@ -3,17 +3,17 @@
 #define CAMERONS_HAWAIIAN_BLEND
 
 #if defined(COUNTER_CULTURE_FORTY_SIX)
-const float TEMP_SETPOINTS [4] = {140, 100, 93, 93};
+const float TEMP_SETPOINTS [4] = {145, 100, 93, 93};
 #elif defined(COUNTER_CULTURE_SLOW_MOTION)
-const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
+const float TEMP_SETPOINTS [4] = {145, 100, 95, 95};
 #elif defined(CAMERONS_HAWAIIAN_BLEND)
-const float TEMP_SETPOINTS [4] = {140, 100, 95, 95};
+const float TEMP_SETPOINTS [4] = {145, 100, 95, 95};
 #else // No-heat
 const float TEMP_SETPOINTS [4] = {0,0,0,0};
 #endif
 
 const float PID_GAIN_P = 0.05;
-const float PID_GAIN_I = 0.0015;
+const float PID_GAIN_I = 0.00175;
 const float PID_GAIN_D = 0.0005;
 const float PID_GAIN_F = 0.00005;
 

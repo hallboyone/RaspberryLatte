@@ -129,6 +129,7 @@ static int zero_scale(){
 static void espresso_machine_update_state(){
     // Switches
     _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
+    _state.enter_settings_menu = (!_state.switches.ac_switch && _state.switches.pump_switch != binary_input_read(&pump_switch));
     _state.switches.pump_switch = binary_input_read(&pump_switch);
 
     // Dial
@@ -137,7 +138,7 @@ static void espresso_machine_update_state(){
     _state.switches.mode_dial = new_mode;
 
     //Pump lock
-    _state.pump.pump_lock = _state.switches.pump_switch && (mode_changed || _state.pump.pump_lock);
+    _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (mode_changed || _state.pump.pump_lock));
 
     // Update scale
     if(mode_changed){
@@ -151,13 +152,11 @@ static void espresso_machine_update_state(){
     // Update setpoints
     if(_state.switches.ac_switch){
         if(new_mode == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_STEAM_DC];
+            _state.boiler.setpoint = 1.6*settings[MS_TEMP_STEAM_DC];
         } else if(new_mode == MODE_HOT){
-            _state.boiler.setpoint = 1.6*TEMP_SETPOINTS[MS_TEMP_HOT_DC];
+            _state.boiler.setpoint = 1.6*settings[MS_TEMP_HOT_DC];
         } else {
-            volatile uint16_t tmp = TEMP_SETPOINTS[MS_TEMP_BREW_DC];
-            tmp *= 1.6;
-            _state.boiler.setpoint = tmp;
+            _state.boiler.setpoint = 1.6*settings[MS_TEMP_BREW_DC];
         }
     } else {
         _state.boiler.setpoint = 0;
@@ -254,12 +253,14 @@ static void espresso_machine_autobrew_setup(){
         brew_on_dur = 0;
     }
 
+    uint32_t preinf_off_time = settings[MS_TIME_PREINF_OFF_DS]*100000UL;
+
     autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur,                 NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr, preinf_pwr, preinf_on_dur,                   NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,          0,          settings[MS_TIME_PREINF_OFF_DS], NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,                   &scale_at_output);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,                     &scale_at_output);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr, preinf_pwr, preinf_on_dur,   NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,          0,          preinf_off_time, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,   &scale_at_output);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,     &scale_at_output);
     autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
 }
 
@@ -340,4 +341,7 @@ void espresso_machine_tick(){
     espresso_machine_update_boiler();
     espresso_machine_update_pump();
     espresso_machine_update_leds();
+    if(_state.enter_settings_menu){
+        // Add machine_setting adjustment functionality
+    }
 }
