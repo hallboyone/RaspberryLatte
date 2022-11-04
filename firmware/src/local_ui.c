@@ -79,7 +79,9 @@ void local_ui_go_to_root(local_ui_folder_tree * tree){
 void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx){
     if(tree->cur_folder->action != NULL){
         // If in action folder, just call action instead of entering subfolder
-        tree->cur_folder->action(tree->cur_folder->id, subfolder_idx);
+        if(tree->cur_folder->action(tree->cur_folder->id, subfolder_idx)){
+            local_ui_go_to_root(tree);
+        }
     } else if(subfolder_idx < tree->cur_folder->num_subfolders){
         // Not in action folder. Enter subfolder if valid index
         tree->cur_folder = tree->cur_folder->subfolders[subfolder_idx];

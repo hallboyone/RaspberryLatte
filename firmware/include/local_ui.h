@@ -5,8 +5,8 @@
 /** \brief Unique, structured ID of folder. Assigned when added to tree. */
 typedef uint32_t folder_id;
 
-/** \brief Action function asigned to folder. */
-typedef void (*folder_action)(folder_id, uint8_t);
+/** \brief Action function asigned to folder. If true is returned, tree returns to root. */
+typedef bool (*folder_action)(folder_id, uint8_t);
 
 /** \brief A single folder. The folder structure is basically a linked
  * list with some extra functionality. Therefore, the folder can be thought
