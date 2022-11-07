@@ -20,6 +20,7 @@ typedef enum {
     MS_TEMP_STEAM_DC,         /**< The tempurature for steam in C/10 */
     MS_PWR_PREINF_I8,         /**< The preinfuse power in [0,127] */
     MS_PWR_BREW_I8,           /**< The brew power in [0,127] */
+    MS_PWR_HOT_I8,            /**< The hot water power in [0,127] */
     MS_COUNT                  /**< The last element in the enum. Used for counting. */
 } machine_setting_id;
 
