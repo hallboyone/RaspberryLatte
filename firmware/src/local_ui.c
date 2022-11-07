@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include "local_ui.h"
 
+#define DEBUG_LOCAL_UI
+
 uint8_t local_ui_id_splitter(const uint32_t id, const uint8_t level){
     if(level >= 8) return 0;
     return (id & (0xF<<(4*level)))>>(4*level);
@@ -73,6 +75,14 @@ void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolde
 }
 
 void local_ui_go_to_root(local_ui_folder_tree * tree){
+    #ifdef DEBUG_LOCAL_UI
+    if(tree->cur_folder != tree->root){
+        printf("Returned to root with subfolders:\n");
+        for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
+            printf(" (%d) [%s]\n", i+1, tree->cur_folder->subfolders[i]->name);
+        }
+    }
+    #endif
     tree->cur_folder = tree->root;
 }
 
@@ -80,10 +90,28 @@ void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx
     if(tree->cur_folder->action != NULL){
         // If in action folder, just call action instead of entering subfolder
         if(tree->cur_folder->action(tree->cur_folder->id, subfolder_idx)){
+            #ifdef DEBUG_LOCAL_UI
+            printf("Calling action on [%s] with value %d\n", tree->cur_folder->name, subfolder_idx);
+            #endif
             local_ui_go_to_root(tree);
         }
     } else if(subfolder_idx < tree->cur_folder->num_subfolders){
         // Not in action folder. Enter subfolder if valid index
         tree->cur_folder = tree->cur_folder->subfolders[subfolder_idx];
+        #ifdef DEBUG_LOCAL_UI
+        printf("Entered [%s]", tree->cur_folder->name);
+        if(tree->cur_folder->action != NULL){
+            printf(" which is an action folder.\n");
+        } else {
+            printf(" with subfolders:\n");
+            for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
+                printf(" (%d) [%s]\n", i+1, tree->cur_folder->subfolders[i]->name);
+            }
+        }
+        #endif
     }
+}
+
+bool local_ui_is_action_folder(local_ui_folder * folder){
+    return folder->action != NULL;
 }

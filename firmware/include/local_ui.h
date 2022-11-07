@@ -72,4 +72,6 @@ void local_ui_go_to_root(local_ui_folder_tree * tree);
  * \param subfolder_idx Index of subfolder to enter or parameter passed to callback.
  */
 void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx);
+
+bool local_ui_is_action_folder(local_ui_folder * folder);
 #endif
