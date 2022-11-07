@@ -17,6 +17,7 @@
 #include "espresso_machine.h"
 #include "machine_settings.h"
 #include "local_ui.h"
+#include "value_flasher.h"
 #include "brew_parameters.h"
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
@@ -37,6 +38,7 @@ static discrete_derivative scale_flowrate;
 static mb85_fram           mem;
 
 static machine_settings    settings;
+static value_flasher       setting_display;
 
 /** Autobrew and control objects */
 static pid_ctrl         heater_pid;
@@ -67,26 +69,27 @@ static local_ui_folder         folder_settings_more_misc_timeout;
 static local_ui_folder         folder_settings_more_misc_ramp_time;
 static local_ui_folder   folder_presets;
 
-void set_temp(folder_id id, uint8_t val){
-    if (val > 2) return;
+static bool update_machine_setting(folder_id id, uint8_t val){
+    if (val > 2) return true;
     const machine_setting deltas [] = {-10, 1, 10};
     if(id == folder_settings_temp_brew.id) {
-        machine_settings_set(MS_TEMP_BREW_DC, deltas[val]);
+        machine_settings_set(MS_TEMP_BREW_DC, settings[MS_TEMP_BREW_DC] + deltas[val]);
+        value_flasher_setup(&setting_display, settings[MS_TEMP_BREW_DC], 800);
     } else if(id == folder_settings_temp_hot.id){
-        machine_settings_set(MS_TEMP_HOT_DC, deltas[val]);
+        machine_settings_set(MS_TEMP_HOT_DC, settings[MS_TEMP_HOT_DC] + deltas[val]);
+        value_flasher_setup(&setting_display, settings[MS_TEMP_HOT_DC], 800);
+    } else if(id == folder_settings_temp_steam.id){
+        machine_settings_set(MS_TEMP_STEAM_DC, settings[MS_TEMP_STEAM_DC] + deltas[val]);
+        value_flasher_setup(&setting_display, settings[MS_TEMP_STEAM_DC], 800);
+    } else if(id == folder_settings_weight_dose.id) {
+        machine_settings_set(MS_WEIGHT_DOSE_DG, settings[MS_WEIGHT_DOSE_DG] + deltas[val]);
+        value_flasher_setup(&setting_display, settings[MS_WEIGHT_DOSE_DG], 800);
     } else {
-        machine_settings_set(MS_TEMP_STEAM_DC, deltas[val]);
+        machine_settings_set(MS_WEIGHT_YIELD_DG, settings[MS_WEIGHT_YIELD_DG] + deltas[val]);
+        value_flasher_setup(&setting_display, settings[MS_WEIGHT_YIELD_DG], 800);
     }
-}
-
-void set_weight(folder_id id, uint8_t val){
-    if (val > 2) return;
-    const machine_setting deltas [] = {-10, 1, 10};
-    if(id == folder_settings_weight_dose.id) {
-        machine_settings_set(MS_WEIGHT_DOSE_DG, deltas[val]);
-    } else {
-        machine_settings_set(MS_WEIGHT_YIELD_DG, deltas[val]);
-    }
+    machine_settings_print();
+    return false;
 }
 
 /**
@@ -129,7 +132,7 @@ static int zero_scale(){
 static void espresso_machine_update_state(){
     // Switches
     _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
-    _state.enter_settings_menu = (!_state.switches.ac_switch && _state.switches.pump_switch != binary_input_read(&pump_switch));
+    _state.update_settings = (!_state.switches.ac_switch && _state.switches.pump_switch != binary_input_read(&pump_switch));
     _state.switches.pump_switch = binary_input_read(&pump_switch);
 
     // Dial
@@ -160,6 +163,47 @@ static void espresso_machine_update_state(){
         }
     } else {
         _state.boiler.setpoint = 0;
+    }
+}
+
+static void espresso_machine_update_settings(){
+    if (_state.switches.ac_switch){
+        // AC on
+        _state.settings_viewer_mask = 0;
+        local_ui_go_to_root(&settings_modifier);
+    } else {
+        // AC off
+        if(_state.update_settings){
+            if(_state.switches.mode_dial == 3){
+                local_ui_go_to_root(&settings_modifier);
+                _state.settings_viewer_mask = 0;
+            } else {
+                local_ui_enter_subfolder(&settings_modifier, 2 - _state.switches.mode_dial);
+                
+                if(local_ui_is_action_folder(settings_modifier.cur_folder)){
+                    // If entered action folder, start value flasher
+                    const uint32_t id = settings_modifier.cur_folder->id;
+                    if(id == folder_settings_temp_brew.id) {
+                        value_flasher_setup(&setting_display, settings[MS_TEMP_BREW_DC], 800);
+                    } else if(id == folder_settings_temp_hot.id){
+                        value_flasher_setup(&setting_display, settings[MS_TEMP_HOT_DC], 800);
+                    } else if(id == folder_settings_temp_steam.id){
+                        value_flasher_setup(&setting_display, settings[MS_TEMP_STEAM_DC], 800);
+                    } else if(id == folder_settings_weight_dose.id) {
+                        value_flasher_setup(&setting_display, settings[MS_WEIGHT_DOSE_DG], 800);
+                    } else {
+                        value_flasher_setup(&setting_display, settings[MS_WEIGHT_YIELD_DG], 800);
+                    }
+                } else {
+                    // else in nav folder. Display id.
+                    _state.settings_viewer_mask = 3 - _state.switches.mode_dial;
+                }
+            }
+        }
+        // If in action folder, update the value flasher
+        if(local_ui_is_action_folder(settings_modifier.cur_folder)){
+            _state.settings_viewer_mask = setting_display.out_flags;
+        }
     }
 }
 
@@ -215,19 +259,23 @@ static void espresso_machine_update_boiler(){
 }
 
 static void espresso_machine_update_leds(){
-    binary_output_put(
-        &leds, 0, 
-        _state.switches.ac_switch);
-    binary_output_put(
-        &leds, 1, 
-        _state.switches.ac_switch 
-        && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 
-        && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
-    binary_output_put(
-        &leds, 2, 
-        _state.switches.ac_switch 
-        && !_state.switches.pump_switch 
-        && nau7802_at_val_mg(&scale, settings[MS_WEIGHT_DOSE_DG]*100));
+    if(_state.switches.ac_switch){
+        binary_output_put(
+            &leds, 0, 
+            _state.switches.ac_switch);
+        binary_output_put(
+            &leds, 1, 
+            _state.switches.ac_switch 
+            && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 
+            && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
+        binary_output_put(
+            &leds, 2, 
+            _state.switches.ac_switch 
+            && !_state.switches.pump_switch 
+            && nau7802_at_val_mg(&scale, settings[MS_WEIGHT_DOSE_DG]*100));
+    } else {
+        binary_output_mask(&leds, _state.settings_viewer_mask);
+    }
 }
 
 static void espresso_machine_autobrew_setup(){
@@ -264,16 +312,19 @@ static void espresso_machine_autobrew_setup(){
     autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
 }
 
+/** 
+ * \brief Setup the local UI file structure.
+*/
 static void espresso_machine_setup_local_ui(){
     local_ui_folder_tree_init(&settings_modifier, &folder_root, "RaspberryLatte");
     local_ui_add_subfolder(&folder_root, &folder_settings, "Settings", NULL);
     local_ui_add_subfolder(&folder_settings, &folder_settings_temp, "Temperatures", NULL);
-    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_brew, "Brew", &set_temp);
-    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_hot, "Hot", &set_temp);
-    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_steam, "Steam", &set_temp);
+    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_brew, "Brew", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_hot, "Hot", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_steam, "Steam", &update_machine_setting);
     local_ui_add_subfolder(&folder_settings, &folder_settings_weight, "Weights", NULL);
-    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_dose, "Dose", NULL);
-    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_yield, "Yield", NULL);
+    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_dose, "Dose", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_yield, "Yield", &update_machine_setting);
 }
 
 int espresso_machine_setup(espresso_machine_viewer * state_viewer){
@@ -330,18 +381,18 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Autobrew setup
     espresso_machine_autobrew_setup();
+    espresso_machine_setup_local_ui();
 
     espresso_machine_update_state();
 
+    machine_settings_print();
     return 0;
 }
 
 void espresso_machine_tick(){
     espresso_machine_update_state();
+    espresso_machine_update_settings();
     espresso_machine_update_boiler();
     espresso_machine_update_pump();
     espresso_machine_update_leds();
-    if(_state.enter_settings_menu){
-        // Add machine_setting adjustment functionality
-    }
 }
