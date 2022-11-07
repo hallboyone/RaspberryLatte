@@ -3,6 +3,9 @@
 
 static int64_t value_flasher_callback(alarm_id_t id, void *user_data){
     value_flasher * vf = (value_flasher*)user_data;
+    
+    if(vf->alarm_id != id) return 0;
+
     if (vf->out_flags != 0){
         vf->out_flags = 0;
     } else {
@@ -19,6 +22,7 @@ static int64_t value_flasher_callback(alarm_id_t id, void *user_data){
             vf->cur_val = vf->value_to_output;
         }
     }
+    
     return vf->period_us;
 }
 
@@ -36,6 +40,7 @@ void value_flasher_update(value_flasher * vf, uint16_t value){
     vf->value_to_output = value;
     vf->out_flags = 0b000;
 }
+
 
 void value_flasher_end(value_flasher * vf){
     cancel_alarm(vf->alarm_id);
