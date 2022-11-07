@@ -74,19 +74,14 @@ static bool update_machine_setting(folder_id id, uint8_t val){
     const machine_setting deltas [] = {-10, 1, 10};
     if(id == folder_settings_temp_brew.id) {
         machine_settings_set(MS_TEMP_BREW_DC, settings[MS_TEMP_BREW_DC] + deltas[val]);
-        value_flasher_setup(&setting_display, settings[MS_TEMP_BREW_DC], 800);
     } else if(id == folder_settings_temp_hot.id){
         machine_settings_set(MS_TEMP_HOT_DC, settings[MS_TEMP_HOT_DC] + deltas[val]);
-        value_flasher_setup(&setting_display, settings[MS_TEMP_HOT_DC], 800);
     } else if(id == folder_settings_temp_steam.id){
         machine_settings_set(MS_TEMP_STEAM_DC, settings[MS_TEMP_STEAM_DC] + deltas[val]);
-        value_flasher_setup(&setting_display, settings[MS_TEMP_STEAM_DC], 800);
     } else if(id == folder_settings_weight_dose.id) {
         machine_settings_set(MS_WEIGHT_DOSE_DG, settings[MS_WEIGHT_DOSE_DG] + deltas[val]);
-        value_flasher_setup(&setting_display, settings[MS_WEIGHT_DOSE_DG], 800);
     } else {
         machine_settings_set(MS_WEIGHT_YIELD_DG, settings[MS_WEIGHT_YIELD_DG] + deltas[val]);
-        value_flasher_setup(&setting_display, settings[MS_WEIGHT_YIELD_DG], 800);
     }
     machine_settings_print();
     return false;
