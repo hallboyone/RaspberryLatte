@@ -48,26 +48,38 @@ static autobrew_routine autobrew_plan;
 /** Local UI folder objects for updating machine settings */
 static local_ui_folder_tree settings_modifier;
 static local_ui_folder folder_root;
-static local_ui_folder   folder_settings;
-static local_ui_folder     folder_settings_temp;
-static local_ui_folder       folder_settings_temp_brew;
-static local_ui_folder       folder_settings_temp_hot;
-static local_ui_folder       folder_settings_temp_steam;
-static local_ui_folder     folder_settings_weight;
-static local_ui_folder       folder_settings_weight_yield;
-static local_ui_folder       folder_settings_weight_dose;
-static local_ui_folder     folder_settings_more;
-static local_ui_folder       folder_settings_more_power;
-static local_ui_folder         folder_settings_more_power_brew;
-static local_ui_folder         folder_settings_more_power_hot;
-static local_ui_folder       folder_settings_more_preinfuse;
-static local_ui_folder         folder_settings_more_preinfuse_on_time;
-static local_ui_folder         folder_settings_more_preinfuse_on_power;
-static local_ui_folder         folder_settings_more_preinfuse_off_time;
-static local_ui_folder       folder_settings_more_misc;
-static local_ui_folder         folder_settings_more_misc_timeout;
-static local_ui_folder         folder_settings_more_misc_ramp_time;
-static local_ui_folder   folder_presets;
+static local_ui_folder folder_settings;
+static local_ui_folder folder_settings_temp;
+static local_ui_folder folder_settings_temp_brew;
+static local_ui_folder folder_settings_temp_hot;
+static local_ui_folder folder_settings_temp_steam;
+static local_ui_folder folder_settings_weight;
+static local_ui_folder folder_settings_weight_yield;
+static local_ui_folder folder_settings_weight_dose;
+static local_ui_folder folder_settings_more;
+static local_ui_folder folder_settings_more_power;
+static local_ui_folder folder_settings_more_power_brew;
+static local_ui_folder folder_settings_more_power_hot;
+static local_ui_folder folder_settings_more_preinfuse;
+static local_ui_folder folder_settings_more_preinfuse_on_time;
+static local_ui_folder folder_settings_more_preinfuse_on_power;
+static local_ui_folder folder_settings_more_preinfuse_off_time;
+static local_ui_folder folder_settings_more_misc;
+static local_ui_folder folder_settings_more_misc_timeout;
+static local_ui_folder folder_settings_more_misc_ramp_time;
+static local_ui_folder folder_presets;
+static local_ui_folder folder_presets_profile_a;
+static local_ui_folder folder_presets_profile_a_0;
+static local_ui_folder folder_presets_profile_a_1;
+static local_ui_folder folder_presets_profile_a_2;
+static local_ui_folder folder_presets_profile_b;
+static local_ui_folder folder_presets_profile_b_0;
+static local_ui_folder folder_presets_profile_b_1;
+static local_ui_folder folder_presets_profile_b_2;
+static local_ui_folder folder_presets_profile_c;
+static local_ui_folder folder_presets_profile_c_0;
+static local_ui_folder folder_presets_profile_c_1;
+static local_ui_folder folder_presets_profile_c_2;
 
 static bool update_machine_setting(folder_id id, uint8_t val){
     if (val > 2) return true;
@@ -85,6 +97,25 @@ static bool update_machine_setting(folder_id id, uint8_t val){
     }
     machine_settings_print();
     return false;
+}
+
+static bool save_load_machine_presets(folder_id id, uint8_t val){
+    if (val > 2) return true;
+    uint8_t profile_id = 0;
+    if(id == folder_presets_profile_a_0.id) profile_id = 0;
+    else if(id == folder_presets_profile_a_1.id) profile_id = 1;
+    else if(id == folder_presets_profile_a_2.id) profile_id = 2;
+    else if(id == folder_presets_profile_b_0.id) profile_id = 3;
+    else if(id == folder_presets_profile_b_1.id) profile_id = 4;
+    else if(id == folder_presets_profile_b_2.id) profile_id = 5;
+    else if(id == folder_presets_profile_c_0.id) profile_id = 6;
+    else if(id == folder_presets_profile_c_1.id) profile_id = 7;
+    else if(id == folder_presets_profile_c_2.id) profile_id = 8;
+    if(val == 0){
+        machine_settings_save_profile(profile_id);
+    } else if(val == 1){
+        machine_settings_load_profile(profile_id);
+    }
 }
 
 /**
@@ -312,14 +343,38 @@ static void espresso_machine_autobrew_setup(){
 */
 static void espresso_machine_setup_local_ui(){
     local_ui_folder_tree_init(&settings_modifier, &folder_root, "RaspberryLatte");
-    local_ui_add_subfolder(&folder_root, &folder_settings, "Settings", NULL);
-    local_ui_add_subfolder(&folder_settings, &folder_settings_temp, "Temperatures", NULL);
-    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_brew, "Brew", &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_hot, "Hot", &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_temp, &folder_settings_temp_steam, "Steam", &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings, &folder_settings_weight, "Weights", NULL);
-    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_dose, "Dose", &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_weight, &folder_settings_weight_yield, "Yield", &update_machine_setting);
+    local_ui_add_subfolder(&folder_root,                    &folder_settings, "Settings", NULL);
+    local_ui_add_subfolder(&folder_settings,                &folder_settings_temp, "Temperatures", NULL);
+    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_brew, "Brew", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_hot, "Hot", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_steam, "Steam", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings,                &folder_settings_weight, "Weights", NULL);
+    local_ui_add_subfolder(&folder_settings_weight,         &folder_settings_weight_dose, "Dose", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_weight,         &folder_settings_weight_yield, "Yield", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings,                &folder_settings_more, "More", NULL);
+    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_power, "Power", NULL);
+    local_ui_add_subfolder(&folder_settings_more_power,     &folder_settings_more_power_brew, "Brew", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_more_power,     &folder_settings_more_power_hot, "Hot", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_preinfuse, "Preinfuse", NULL);
+    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_on_time, "On Time", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_on_power, "On Power", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_off_time, "Off Time", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_misc, "Misc", NULL);
+    local_ui_add_subfolder(&folder_settings_more_misc,      &folder_settings_more_misc_timeout, "Timeout", &update_machine_setting);
+    local_ui_add_subfolder(&folder_settings_more_misc,      &folder_settings_more_misc_ramp_time, "Ramp Time", &update_machine_setting);
+    local_ui_add_subfolder(&folder_root,                    &folder_presets, "Presets", NULL);
+    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_a, "Presets 1-3", NULL);
+    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_0, "Preset 1", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_1, "Preset 2", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_2, "Preset 3", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_b, "Presets 4-6", NULL);
+    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_0, "Preset 4", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_1, "Preset 5", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_2, "Preset 6", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_c, "Presets 7-9", NULL);
+    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_0, "Preset 7", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_1, "Preset 8", &save_load_machine_presets);
+    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_2, "Preset 9", &save_load_machine_presets);
 }
 
 int espresso_machine_setup(espresso_machine_viewer * state_viewer){
