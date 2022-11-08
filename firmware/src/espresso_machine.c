@@ -81,61 +81,65 @@ static local_ui_folder folder_presets_profile_c_0;
 static local_ui_folder folder_presets_profile_c_1;
 static local_ui_folder folder_presets_profile_c_2;
 
-static void espresso_machine_autobrew_setup();
+/**
+ * \brief Convert from folder ID to either setting ID or profile ID
+ * 
+ * \param id ID of folder to map to setting or profile
+ * \return ID of setting or profile mapped to folder 
+ */
+static machine_setting_id folder_to_machine_setting(folder_id id){
+         if(id == folder_settings_temp_brew.id)               return MS_TEMP_BREW_DC;
+    else if(id == folder_settings_temp_hot.id)                return MS_TEMP_HOT_DC;
+    else if(id == folder_settings_temp_steam.id)              return MS_TEMP_STEAM_DC;
+    else if(id == folder_settings_weight_dose.id)             return MS_WEIGHT_DOSE_DG;
+    else if(id == folder_settings_weight_yield.id)            return MS_WEIGHT_YIELD_DG;
+    else if(id == folder_settings_more_power_brew.id)         return MS_PWR_BREW_I8;
+    else if(id == folder_settings_more_power_hot.id)          return MS_PWR_HOT_I8;
+    else if(id == folder_settings_more_preinfuse_on_time.id)  return MS_TIME_PREINF_ON_DS;
+    else if(id == folder_settings_more_preinfuse_on_power.id) return MS_PWR_PREINF_I8;
+    else if(id == folder_settings_more_preinfuse_off_time.id) return MS_TIME_PREINF_OFF_DS;
+    else if(id == folder_settings_more_misc_timeout.id)       return MS_TIME_TIMEOUT_S;
+    else if(id == folder_settings_more_misc_ramp_time.id)     return MS_TIME_RAMP_DS;
+    else if(id == folder_presets_profile_a_0.id)              return 0;
+    else if(id == folder_presets_profile_a_1.id)              return 1;
+    else if(id == folder_presets_profile_a_2.id)              return 2;
+    else if(id == folder_presets_profile_b_0.id)              return 3;
+    else if(id == folder_presets_profile_b_1.id)              return 4;
+    else if(id == folder_presets_profile_b_2.id)              return 5;
+    else if(id == folder_presets_profile_c_0.id)              return 6;
+    else if(id == folder_presets_profile_c_1.id)              return 7;
+    else if(id == folder_presets_profile_c_2.id)              return 8;
+}
+
+/**
+ * \brief Callback function used by setting action folders. Increments corresponding
+ * setting.
+ * 
+ * \param id ID of calling folder
+ * \param val Value of increment index. 0 = -10, 1 = +1, and 2 = +10
+ * \returns True if value was greater than 2. False otherwise
+ */
 static bool update_machine_setting(folder_id id, uint8_t val){
     if (val > 2) return true;
     const machine_setting deltas [] = {-10, 1, 10};
-    if(id == folder_settings_temp_brew.id) {
-        machine_settings_set(MS_TEMP_BREW_DC, settings[MS_TEMP_BREW_DC] + deltas[val]);
-    } else if(id == folder_settings_temp_hot.id){
-        machine_settings_set(MS_TEMP_HOT_DC, settings[MS_TEMP_HOT_DC] + deltas[val]);
-    } else if(id == folder_settings_temp_steam.id){
-        machine_settings_set(MS_TEMP_STEAM_DC, settings[MS_TEMP_STEAM_DC] + deltas[val]);
-    } else if(id == folder_settings_weight_dose.id) {
-        machine_settings_set(MS_WEIGHT_DOSE_DG, settings[MS_WEIGHT_DOSE_DG] + deltas[val]);
-    } else if(id == folder_settings_weight_yield.id) {
-        machine_settings_set(MS_WEIGHT_YIELD_DG, settings[MS_WEIGHT_YIELD_DG] + deltas[val]);
-    } else if(id == folder_settings_more_power_brew.id) {
-        machine_settings_set(MS_PWR_BREW_I8, settings[MS_PWR_BREW_I8] + deltas[val]);
-        espresso_machine_autobrew_setup();
-    } else if(id == folder_settings_more_power_hot.id) {
-        machine_settings_set(MS_PWR_HOT_I8, settings[MS_PWR_HOT_I8] + deltas[val]);
-    } else if(id == folder_settings_more_preinfuse_on_time.id) {
-        machine_settings_set(MS_TIME_PREINF_ON_DS, settings[MS_TIME_PREINF_ON_DS] + deltas[val]);
-        espresso_machine_autobrew_setup();
-    } else if(id == folder_settings_more_preinfuse_on_power.id) {
-        machine_settings_set(MS_PWR_PREINF_I8, settings[MS_PWR_PREINF_I8] + deltas[val]);
-        espresso_machine_autobrew_setup();
-    } else if(id == folder_settings_more_preinfuse_off_time.id) {
-        machine_settings_set(MS_TIME_PREINF_OFF_DS, settings[MS_TIME_PREINF_OFF_DS] + deltas[val]);
-        espresso_machine_autobrew_setup();
-    } else if(id == folder_settings_more_misc_timeout.id) {
-        machine_settings_set(MS_TIME_TIMEOUT_S, settings[MS_TIME_TIMEOUT_S] + deltas[val]);
-        espresso_machine_autobrew_setup();
-    } else if(id == folder_settings_more_misc_ramp_time.id) {
-        machine_settings_set(MS_TIME_RAMP_DS, settings[MS_TIME_RAMP_DS] + deltas[val]);
-        espresso_machine_autobrew_setup();
-    }
+    machine_settings_increment(folder_to_machine_setting(id), deltas[val]);
     machine_settings_print();
     return false;
 }
 
+/**
+ * \brief Callback function used by profile action folders. Saves or loads the corresponding profile.
+ * 
+ * \param id ID of calling folder
+ * \param val 0 to save. 1 to load. 2 no effect. >2 return to root
+ * \returns True if value was greater than 2. False otherwise
+ */
 static bool save_load_machine_presets(folder_id id, uint8_t val){
     if (val > 2) return true;
-    uint8_t profile_id = 0;
-    if(id == folder_presets_profile_a_0.id) profile_id = 0;
-    else if(id == folder_presets_profile_a_1.id) profile_id = 1;
-    else if(id == folder_presets_profile_a_2.id) profile_id = 2;
-    else if(id == folder_presets_profile_b_0.id) profile_id = 3;
-    else if(id == folder_presets_profile_b_1.id) profile_id = 4;
-    else if(id == folder_presets_profile_b_2.id) profile_id = 5;
-    else if(id == folder_presets_profile_c_0.id) profile_id = 6;
-    else if(id == folder_presets_profile_c_1.id) profile_id = 7;
-    else if(id == folder_presets_profile_c_2.id) profile_id = 8;
     if(val == 0){
-        machine_settings_save_profile(profile_id);
+        machine_settings_save_profile(folder_to_machine_setting(id));
     } else if(val == 1){
-        machine_settings_load_profile(profile_id);
+        machine_settings_load_profile(folder_to_machine_setting(id));
     }
 }
 
@@ -169,29 +173,83 @@ static bool scale_at_output(){
     return nau7802_at_val_mg(&scale, settings[MS_WEIGHT_YIELD_DG]*100);
 }
 
+/**
+ * \brief Helper function to zero the scale. Used by the autobrew routine. 
+ */
 static int zero_scale(){
     return nau7802_zero(&scale);
 }
 
 /**
- * \brief Uses the switch state to update the machine's configuration.
+ * \brief Setup the autobrew routine using the latest machine settings.
+ */
+static void espresso_machine_autobrew_setup(){
+    uint32_t preinf_ramp_dur;
+    uint32_t preinf_on_dur;
+    uint8_t preinf_pwr = settings[MS_PWR_PREINF_I8];
+    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_PREINF_ON_DS]){
+        // Ramp and then run for remaining time
+        preinf_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
+        preinf_on_dur = (settings[MS_TIME_PREINF_ON_DS]-settings[MS_TIME_RAMP_DS])*100000UL;
+    } else {
+        // Ramp for the full time
+        preinf_ramp_dur = settings[MS_TIME_PREINF_ON_DS]*100000UL;
+        preinf_on_dur = 0;
+    }
+
+    uint32_t brew_ramp_dur;
+    uint32_t brew_on_dur;
+    uint8_t brew_pwr = settings[MS_PWR_BREW_I8];
+    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_TIMEOUT_S]){
+        // Ramp and then run for remaining time
+        brew_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
+        brew_on_dur = (settings[MS_TIME_TIMEOUT_S]*10-settings[MS_TIME_RAMP_DS])*100000UL;
+    } else {
+        // Ramp for the full time
+        brew_ramp_dur = settings[MS_TIME_TIMEOUT_S]*1000000UL;
+        brew_on_dur = 0;
+    }
+
+    uint32_t preinf_off_time = settings[MS_TIME_PREINF_OFF_DS]*100000UL;
+
+    autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr, preinf_pwr, preinf_on_dur,   NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,          0,          preinf_off_time, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,   &scale_at_output);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,     &scale_at_output);
+    autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
+}
+
+/**
+ * \brief Flag changes in switch values and use their states to update the machine's configuration
  */
 static void espresso_machine_update_state(){
-    // Switches
-    _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
-    _state.update_settings = (!_state.switches.ac_switch && _state.switches.pump_switch != binary_input_read(&pump_switch));
-    _state.switches.pump_switch = binary_input_read(&pump_switch);
-
-    // Dial
-    uint8_t new_mode = binary_input_read(&mode_dial);
-    bool mode_changed = (new_mode != _state.switches.mode_dial);
-    _state.switches.mode_dial = new_mode;
+    // Update all switches and dials
+    if(_state.switches.ac_switch != phasecontrol_is_ac_hot(&pump)){
+        _state.switches.ac_switch_changed = (_state.switches.ac_switch ? -1 : 1);
+        _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
+    } else {
+        _state.switches.ac_switch_changed = 0;
+    }
+    if(_state.switches.pump_switch != binary_input_read(&pump_switch)){
+        _state.switches.pump_switch_changed = (_state.switches.ac_switch ? -1 : 1);
+        _state.switches.pump_switch = binary_input_read(&pump_switch);
+    } else {
+        _state.switches.pump_switch_changed = 0;
+    }
+    if(_state.switches.mode_dial != binary_input_read(&mode_dial)){
+        _state.switches.mode_dial_changed = (_state.switches.mode_dial > binary_input_read(&mode_dial) ? -1 : 1);
+        _state.switches.mode_dial = binary_input_read(&mode_dial);
+    } else {
+        _state.switches.mode_dial_changed = 0;
+    }
 
     //Pump lock
-    _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (mode_changed || _state.pump.pump_lock));
+    _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || _state.pump.pump_lock));
 
     // Update scale
-    if(mode_changed){
+    if(_state.switches.mode_dial_changed){
         nau7802_zero(&scale);
         discrete_derivative_reset(&scale_flowrate);
     }
@@ -201,9 +259,9 @@ static void espresso_machine_update_state(){
 
     // Update setpoints
     if(_state.switches.ac_switch){
-        if(new_mode == MODE_STEAM){
+        if(_state.switches.mode_dial == MODE_STEAM){
             _state.boiler.setpoint = 1.6*settings[MS_TEMP_STEAM_DC];
-        } else if(new_mode == MODE_HOT){
+        } else if(_state.switches.mode_dial == MODE_HOT){
             _state.boiler.setpoint = 1.6*settings[MS_TEMP_HOT_DC];
         } else {
             _state.boiler.setpoint = 1.6*settings[MS_TEMP_BREW_DC];
@@ -213,35 +271,36 @@ static void espresso_machine_update_state(){
     }
 }
 
+/**
+ * \brief Handle any changes to the machine settings. The occurs when the AC is off and the pump 
+ * switch is toggled. When AC is switched on, this function applies the latest settings and returns
+ * the setting tree to root.
+ */
 static void espresso_machine_update_settings(){
-    if (_state.switches.ac_switch){
-        // AC on
+    if (_state.switches.ac_switch_changed == 1){
+        // AC switched on
         _state.settings_viewer_mask = 0;
         local_ui_go_to_root(&settings_modifier);
-    } else {
+
+        // Rebuild autobrew routine to account for setting changes
+        espresso_machine_autobrew_setup();
+    } else if (!_state.switches.ac_switch){
         // AC off
-        if(_state.update_settings){
+        if(_state.switches.pump_switch_changed){
             if(_state.switches.mode_dial == 3){
                 local_ui_go_to_root(&settings_modifier);
                 _state.settings_viewer_mask = 0;
             } else {
                 local_ui_enter_subfolder(&settings_modifier, 2 - _state.switches.mode_dial);
                 
-                if(local_ui_is_action_folder(settings_modifier.cur_folder)){
-                    const uint16_t FLASHER_PERIOD = 750;
-                    // If entered action folder, start value flasher
-                    const uint32_t id = settings_modifier.cur_folder->id;
-                    if(id == folder_settings_temp_brew.id) {
-                        value_flasher_setup(&setting_display, settings[MS_TEMP_BREW_DC], FLASHER_PERIOD);
-                    } else if(id == folder_settings_temp_hot.id){
-                        value_flasher_setup(&setting_display, settings[MS_TEMP_HOT_DC], FLASHER_PERIOD);
-                    } else if(id == folder_settings_temp_steam.id){
-                        value_flasher_setup(&setting_display, settings[MS_TEMP_STEAM_DC], FLASHER_PERIOD);
-                    } else if(id == folder_settings_weight_dose.id) {
-                        value_flasher_setup(&setting_display, settings[MS_WEIGHT_DOSE_DG], FLASHER_PERIOD);
-                    } else {
-                        value_flasher_setup(&setting_display, settings[MS_WEIGHT_YIELD_DG], FLASHER_PERIOD);
-                    }
+                const folder_id id = settings_modifier.cur_folder->id;
+                if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
+                   local_ui_id_in_subtree(&folder_settings, id)){
+                    // If entered action settings folder, start value flasher
+                    value_flasher_setup(
+                        &setting_display,
+                        settings[folder_to_machine_setting(id)], 
+                        750);
                 } else {
                     // else in nav folder. Display id.
                     _state.settings_viewer_mask = 3 - _state.switches.mode_dial;
@@ -324,40 +383,6 @@ static void espresso_machine_update_leds(){
     } else {
         binary_output_mask(&leds, _state.settings_viewer_mask);
     }
-}
-
-static void espresso_machine_autobrew_setup(){
-    uint32_t preinf_ramp_dur;
-    uint32_t preinf_on_dur;
-    uint8_t preinf_pwr = settings[MS_PWR_PREINF_I8];
-    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_PREINF_ON_DS]){
-        preinf_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
-        preinf_on_dur = (settings[MS_TIME_PREINF_ON_DS]-settings[MS_TIME_RAMP_DS])*100000UL;
-    } else {
-        preinf_ramp_dur = settings[MS_TIME_PREINF_ON_DS]*100000UL;
-        preinf_on_dur = 0;
-    }
-
-    uint32_t brew_ramp_dur;
-    uint32_t brew_on_dur;
-    uint8_t brew_pwr = settings[MS_PWR_BREW_I8];
-    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_TIMEOUT_S]){
-        brew_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
-        brew_on_dur = (settings[MS_TIME_TIMEOUT_S]*10-settings[MS_TIME_RAMP_DS])*100000UL;
-    } else {
-        brew_ramp_dur = settings[MS_TIME_TIMEOUT_S]*1000000UL;
-        brew_on_dur = 0;
-    }
-
-    uint32_t preinf_off_time = settings[MS_TIME_PREINF_OFF_DS]*100000UL;
-
-    autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr, preinf_pwr, preinf_on_dur,   NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,          0,          preinf_off_time, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,   &scale_at_output);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,     &scale_at_output);
-    autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
 }
 
 /** 
@@ -451,8 +476,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
 
-    // Autobrew setup
-    espresso_machine_autobrew_setup();
+    // Setup local UI
     espresso_machine_setup_local_ui();
 
     espresso_machine_update_state();

@@ -25,6 +25,9 @@ typedef struct {
     bool ac_switch;    /**< Flag indicating if the AC power is off or on. */
     bool pump_switch;  /**< Flag indicating if the pump switch is off or on. */
     uint8_t mode_dial; /**< Current value of the mode dial (0-3). */
+    int8_t ac_switch_changed;
+    int8_t pump_switch_changed;
+    int8_t mode_dial_changed;
 } espresso_machine_switch_state;
 
 /**
@@ -63,7 +66,6 @@ typedef struct {
     espresso_machine_boiler_state boiler;   /**< State of espresso machine boiler */
     espresso_machine_pump_state pump;       /**< State of espresso machine pump */
     espresso_machine_scale_state scale;     /**< State of espresso machine scale */
-    bool update_settings;                   /**< True if between two most recent ticks, AC is off and pump has toggled */
     uint8_t settings_viewer_mask;           /**< Used to display current location in settings UI and value of settings */
 } espresso_machine_state;
 
