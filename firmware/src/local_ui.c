@@ -43,6 +43,13 @@ static void _local_ui_init_subfolder_id(local_ui_folder * parent, local_ui_folde
     child->id = (parent->id | child_level_id<<(4*parent_level));
 }
 
+bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
+    const uint8_t level = local_ui_folder_level(f);
+    const folder_id id_mask = ~(~(0)<<(4*level));
+    return f->id == (id && id_mask);
+}
+
+
 void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * root, const char * root_name){
     tree->root = root;
     tree->cur_folder = root;
