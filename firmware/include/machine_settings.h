@@ -66,5 +66,16 @@ int machine_settings_load_profile(uint8_t profile);
 */
 int machine_settings_set(machine_setting_id p_id, machine_setting val);
 
+/**
+ * \brief Increments the parameter matching p_id by delta. If sum is out of range,
+ * it is clipped to be within the parameter's bounds.
+ * 
+ * \param p_id ID of parameter that should be updated. 
+ * \param delta Amount to increment the parameter in the correct units.
+ * 
+ * \returns PICO_ERROR_INVALID_ARG if p_id is out of range. Else PICO_ERROR_NONE.
+*/
+int machine_settings_increment(machine_setting_id p_id, machine_setting delta);
+
 int machine_settings_print();
 #endif

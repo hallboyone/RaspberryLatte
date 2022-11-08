@@ -129,6 +129,10 @@ int machine_settings_set(machine_setting_id p_id, machine_setting val){
     return PICO_ERROR_NONE;
 }
 
+int machine_settings_increment(machine_setting_id p_id, machine_setting delta){
+    return machine_settings_set( p_id, _settings[p_id] + delta);
+}
+
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     printf(
