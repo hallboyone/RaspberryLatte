@@ -46,7 +46,7 @@ static void _local_ui_init_subfolder_id(local_ui_folder * parent, local_ui_folde
 bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
     const uint8_t level = local_ui_folder_level(f);
     const folder_id id_mask = ~(~(0)<<(4*level));
-    return f->id == (id && id_mask);
+    return f->id == (id & id_mask);
 }
 
 
@@ -85,8 +85,8 @@ void local_ui_go_to_root(local_ui_folder_tree * tree){
     #ifdef DEBUG_LOCAL_UI
     if(tree->cur_folder != tree->root){
         printf("Returned to root with subfolders:\n");
-        for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
-            printf(" (%d) [%s]\n", i+1, tree->cur_folder->subfolders[i]->name);
+        for(uint8_t i = 0; i < tree->root->num_subfolders; i++){
+            printf(" (%d) [%s]\n", i+1, tree->root->subfolders[i]->name);
         }
     }
     #endif
