@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include "pinout.h"
 
 #include "i2c_bus.h"
@@ -136,11 +138,16 @@ static bool update_machine_setting(folder_id id, uint8_t val){
  */
 static bool save_load_machine_presets(folder_id id, uint8_t val){
     if (val > 2) return true;
+    const uint8_t profile_id = folder_to_machine_setting(id);
     if(val == 0){
-        machine_settings_save_profile(folder_to_machine_setting(id));
+        machine_settings_save_profile(profile_id);
+        printf("Saved settings to profile %d\n", profile_id);
     } else if(val == 1){
-        machine_settings_load_profile(folder_to_machine_setting(id));
+        machine_settings_load_profile(profile_id);
+        printf("Loaded settings from profile %d\n", profile_id);
+        machine_settings_print();
     }
+    return false;
 }
 
 /**
@@ -233,7 +240,7 @@ static void espresso_machine_update_state(){
         _state.switches.ac_switch_changed = 0;
     }
     if(_state.switches.pump_switch != binary_input_read(&pump_switch)){
-        _state.switches.pump_switch_changed = (_state.switches.ac_switch ? -1 : 1);
+        _state.switches.pump_switch_changed = (_state.switches.pump_switch ? -1 : 1);
         _state.switches.pump_switch = binary_input_read(&pump_switch);
     } else {
         _state.switches.pump_switch_changed = 0;
@@ -307,8 +314,9 @@ static void espresso_machine_update_settings(){
                 }
             }
         }
-        // If in action folder, update the value flasher
-        if(local_ui_is_action_folder(settings_modifier.cur_folder)){
+        // If in settings action folder, update the value flasher
+        if(local_ui_is_action_folder(settings_modifier.cur_folder) 
+        && local_ui_id_in_subtree(&folder_settings, settings_modifier.cur_folder->id)){
             _state.settings_viewer_mask = setting_display.out_flags;
         }
     }
