@@ -22,6 +22,7 @@ static const machine_setting _setting_min [MS_COUNT] = {
     0,  // MACHINE_SETTING_TEMP_HOT_DC
     0,  // MACHINE_SETTING_TEMP_STEAM_DC
     60, // MACHINE_SETTING_PWR_PREINF_PER
+    60,  // MACHINE_SETTING_PWR_BREW_PER
     60  // MACHINE_SETTING_PWR_BREW_PER
 };
 
@@ -36,7 +37,8 @@ static const machine_setting _setting_default [MS_COUNT] = {
     1000, // MACHINE_SETTING_TEMP_HOT_DC
     1450, // MACHINE_SETTING_TEMP_STEAM_DC
     80,   // MACHINE_SETTING_PWR_PREINF_I8
-    127   // MACHINE_SETTING_PWR_BREW_I8
+    127,   // MACHINE_SETTING_PWR_BREW_I8
+    100  // MACHINE_SETTING_PWR_HOT_I8
 };
 
 static const machine_setting _setting_max [MS_COUNT] = {
@@ -50,7 +52,8 @@ static const machine_setting _setting_max [MS_COUNT] = {
     1450, // MACHINE_SETTING_TEMP_HOT_DC
     1450, // MACHINE_SETTING_TEMP_STEAM_DC
     127,  // MACHINE_SETTING_PWR_PREINF_I8
-    127   // MACHINE_SETTING_PWR_BREW_I8
+    127,   // MACHINE_SETTING_PWR_BREW_I8
+    127  // MACHINE_SETTING_PWR_HOT_I8
 };
 
 static mb85_fram * _mem = NULL;
@@ -145,8 +148,9 @@ int machine_settings_print(){
         "Brew temp          : %0.2fC\n"
         "Hot temp           : %0.2fC\n"
         "Steam temp         : %0.2fC\n"
-        "Preinfuse power    : %d\%\n"
-        "Brew power         : %d\%\n",
+        "Preinfuse power    : %d/127\n"
+        "Brew power         : %d/127\n"
+        "Hot power          : %d/127\n\n",
         _settings[0]/10.,
         _settings[1]/10.,
         _settings[2],
@@ -157,5 +161,6 @@ int machine_settings_print(){
         _settings[7]/10.,
         _settings[8]/10.,
         _settings[9],
-        _settings[10]);
+        _settings[10],
+        _settings[11]);
 }
