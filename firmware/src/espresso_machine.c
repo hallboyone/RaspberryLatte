@@ -44,7 +44,7 @@ static nau7802             scale;
 static discrete_derivative scale_flowrate;
 static mb85_fram           mem;
 
-static machine_settings*   settings;
+static const machine_settings*   settings;
 //static value_flasher       setting_display;
 
 /** Autobrew and control objects */
@@ -315,9 +315,6 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
-
-    // Setup local UI
-    espresso_machine_setup_local_ui();
 
     espresso_machine_update_state();
 

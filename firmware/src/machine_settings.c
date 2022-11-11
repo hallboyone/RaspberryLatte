@@ -68,11 +68,27 @@ static inline reg_addr _machine_settings_id_to_addr(uint8_t id){
     return MACHINE_SETTINGS_START_ADDR + (1+id)*MACHINE_SETTINGS_MEMORY_SIZE;
 }
 
+/**
+ * \brief Restores settings to default state if any invalid values are found
+ * 
+ * \return true Invalid values found.
+ * \return false No invalid values found.
+ */
+static bool _machine_settings_verify(){
+    for(uint8_t p_id = 0; p_id < NUM_SETTINGS; p_id++){
+        if(_ms[p_id] < _ms_min[p_id] || _ms[p_id] > _ms_max[p_id]){
+            memcpy(_ms, _ms_std, MACHINE_SETTINGS_MEMORY_SIZE);
+            return true;
+        }
+    }
+    return false;
+}
+
 static int _machine_settings_save_profile(uint8_t profile_id){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     // Break link with profile buffer and connect to profile save address
     mb85_fram_unlink_var(_mem, &_ms);
-    mb85_fram_link_var(_mem, &_ms, machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
+    mb85_fram_link_var(_mem, &_ms, _machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
 
     // Break link with save address and connect with profile buffer
     mb85_fram_unlink_var(_mem, &_ms);
@@ -84,10 +100,10 @@ static int _machine_settings_load_profile(uint8_t profile_id){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     // Break link with profile buffer and connect to profile load address
     mb85_fram_unlink_var(_mem, &_ms);
-    mb85_fram_link_var(_mem, &_ms, machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM);
+    mb85_fram_link_var(_mem, &_ms, _machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM);
 
     // Verify that loaded address is valid. If it wasn't, save back into profile.
-    if(machine_settings_verify()) mb85_fram_save(_mem, &_ms);
+    if(_machine_settings_verify()) mb85_fram_save(_mem, &_ms);
 
     // Break link with load address and connect with profile buffer
     mb85_fram_unlink_var(_mem, &_ms);
@@ -172,22 +188,6 @@ static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
     }
 
     machine_settings_print();
-    return false;
-}
-
-/**
- * \brief Restores settings to default state if any invalid values are found
- * 
- * \return true Invalid values found.
- * \return false No invalid values found.
- */
-static bool _machine_settings_verify(){
-    for(uint8_t p_id = 0; p_id < NUM_SETTINGS; p_id++){
-        if(_ms[p_id] < _ms_min[p_id] || _ms[p_id] > _ms_max[p_id]){
-            memcpy(_ms, _ms_std, MACHINE_SETTINGS_MEMORY_SIZE);
-            return true;
-        }
-    }
     return false;
 }
 
