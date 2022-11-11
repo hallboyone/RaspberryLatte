@@ -5,77 +5,63 @@
 #include "mb85_fram.h"
 
 typedef int16_t machine_setting;
-typedef const machine_setting* machine_settings;
+typedef machine_setting* temp_dC;     // Temperature value. Divide by 10 to get C
+typedef machine_setting* duration_ds; // Duration length. Divide by 10 to get seconds
+typedef machine_setting* duration_s;  // Duration length in seconds
+typedef machine_setting* power_per;   // Power level as percentage
+typedef machine_setting* weight_dg;   // Weight value. Divide by 10 to get g
 
-/** \brief Enumerated setting IDs. Used to read and set the various parameters */
-typedef enum {
-    MS_TIME_PREINF_ON_DS = 0, /**< The duration of the preinfuse on time in s/10 */
-    MS_TIME_PREINF_OFF_DS,    /**< The duration of the preinfuse off time in s/10 */
-    MS_TIME_TIMEOUT_S,        /**< The maximum duration of the autobrew routine in s */
-    MS_TIME_RAMP_DS,          /**< The duration of the power ramp in s/10 */
-    MS_WEIGHT_DOSE_DG,        /**< The weight of the grounds used in g/10 */
-    MS_WEIGHT_YIELD_DG,       /**< The weight of espresso output in g/10 */
-    MS_TEMP_BREW_DC,          /**< The tempurature for brewing in C/10 */
-    MS_TEMP_HOT_DC,           /**< The tempurature for hot water in C/10 */
-    MS_TEMP_STEAM_DC,         /**< The tempurature for steam in C/10 */
-    MS_PWR_PREINF_I8,         /**< The preinfuse power in [0,127] */
-    MS_PWR_BREW_I8,           /**< The brew power in [0,127] */
-    MS_PWR_HOT_I8,            /**< The hot water power in [0,127] */
-    MS_COUNT                  /**< The last element in the enum. Used for counting. */
-} machine_setting_id;
+typedef struct {
+    temp_dC temp;
+} machine_settings_steam;
 
-/** \brief Initalize the settings and attach to memory device. 
+typedef struct {
+    temp_dC   temp;
+    power_per power;
+} machine_settings_hot;
+
+typedef struct {
+    temp_dC   temp;
+    power_per power;
+    weight_dg dose;
+    weight_dg yield;
+} machine_settings_brew;
+
+typedef struct {
+    duration_ds preinf_on_time;   /**< Length of time to soak puck during pre-infuse */
+    duration_ds preinf_off_time;  /**< Length of time to let puck soak during pre-infuse */
+    power_per   preinf_power;     /**< The power of the pre-infuse routine */
+    duration_ds preinf_ramp_time; /**< The time, in ds of the linear ramp to target power*/
+    duration_s  timeout;          /**< The length of time to attempt to reach yield*/
+} machine_settings_auto;
+
+typedef struct {
+    machine_settings_auto  autobrew;
+    machine_settings_brew  brew;
+    machine_settings_hot   hot;
+    machine_settings_steam steam;
+    uint8_t ui_mask;
+} machine_settings;
+
+// /** Pointer to internal settings field. Allows access to current settings 
+//  * but prohibits external changes. */
+// const machine_settings * ms;
+
+/** \brief Initialize the settings and attach to memory device. 
  * \param mem A pointer to an initalized mb85_fram structure.
  * \returns A const pointer to the global settings structure or NULL on error. 
 */
-machine_settings machine_settings_setup(mb85_fram * mem);
-
-/** \brief Get const pointer to internal settings structure. 
- * \returns Pointer to internal settings structure or NULL if not setup.
-*/
-machine_settings machine_settings_aquire();
+const machine_settings * machine_settings_setup(mb85_fram * mem);
 
 /**
- * \brief Save the current internal settings structure as the indicated ID.
+ * \brief Navigates the internal setting's tree and updates values accordingly
  * 
- * \param profile A value from 0 to 8 indicating the profile to save to.
- * 
- * \returns PICO_ERROR_NONE if successfull. Else error code. 
-*/
-int machine_settings_save_profile(uint8_t profile);
-
-/**
- * \brief Load the idicated profile int the internal settings structure.
- * 
- * If any value in the profile is unsafe, they will all be set to default values.
- * 
- * \param profile A value from 0 to 8 indicating the profile to load.
- * 
- * \returns PICO_ERROR_NONE if successfull. Else error code. 
-*/
-int machine_settings_load_profile(uint8_t profile);
-
-/**
- * \brief Sets the parameter matching p_id to val. If val is out of range,
- * it is clipped to be within the parameter's bounds.
- * 
- * \param p_id ID of parameter that should be updated. 
- * \param val New value of the parameter in the correct units.
- * 
- * \returns PICO_ERROR_INVALID_ARG if p_id is out of range. Else PICO_ERROR_NONE.
-*/
-int machine_settings_set(machine_setting_id p_id, machine_setting val);
-
-/**
- * \brief Increments the parameter matching p_id by delta. If sum is out of range,
- * it is clipped to be within the parameter's bounds.
- * 
- * \param p_id ID of parameter that should be updated. 
- * \param delta Amount to increment the parameter in the correct units.
- * 
- * \returns PICO_ERROR_INVALID_ARG if p_id is out of range. Else PICO_ERROR_NONE.
-*/
-int machine_settings_increment(machine_setting_id p_id, machine_setting delta);
+ * \param reset Flag indicating if the internal UI should be reset.
+ * \param select Flag indicating if select condition is met
+ * \param val Value of selector
+ * \return int 
+ */
+int machine_settings_update(bool reset, bool select, uint8_t val);
 
 int machine_settings_print();
 #endif

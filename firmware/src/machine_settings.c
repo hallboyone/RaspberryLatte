@@ -1,140 +1,295 @@
 #include "machine_settings.h"
+#include "local_ui.h"
+#include "value_flasher.h"
 #include <stdio.h>
 #include <string.h>
 
+/** \brief Enumerated list naming the indicies of the settings array. */
+typedef enum {TEMP_BREW = 0,  TEMP_HOT,        TEMP_STEAM,      WEIGHT_DOSE, WEIGHT_YIELD,
+              PREINF_ON_TIME, PREINF_OFF_TIME, PREINF_ON_POWER, RAMP_TIME,   TIMEOUT,
+              POWER_BREW,     POWER_HOT,       NUM_SETTINGS} setting_id;
+
+/** \brief Starting address in mb85 FRAM chip where setting data is stored */
 static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
-static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = MS_COUNT*sizeof(machine_setting);
-
-typedef struct{
-    machine_setting min;
-    machine_setting nomn;
-    machine_setting max;
-} machine_setting_limits;
-
-static const machine_setting _setting_min [MS_COUNT] = {
-    0,  // MACHINE_SETTING_TIME_PREINF_ON_DS
-    0,  // MACHINE_SETTING_TIME_PRE_OFF_DS
-    20, // MACHINE_SETTING_TIME_TIMEOUT_S
-    0,  // MACHINE_SETTING_TIME_RAMP_DS
-    0,  // MACHINE_SETTING_WEIGHT_DOSE_DG
-    0,  // MACHINE_SETTING_WEIGHT_YIELD_DG
-    0,  // MACHINE_SETTING_TEMP_BREW_DC
-    0,  // MACHINE_SETTING_TEMP_HOT_DC
-    0,  // MACHINE_SETTING_TEMP_STEAM_DC
-    60, // MACHINE_SETTING_PWR_PREINF_PER
-    60,  // MACHINE_SETTING_PWR_BREW_PER
-    60  // MACHINE_SETTING_PWR_BREW_PER
-};
-
-static const machine_setting _setting_default [MS_COUNT] = {
-    40,   // MACHINE_SETTING_TIME_PREINF_ON_DS
-    40,   // MACHINE_SETTING_TIME_PRE_OFF_DS
-    60,   // MACHINE_SETTING_TIME_TIMEOUT_S
-    10,   // MACHINE_SETTING_TIME_RAMP_DS
-    150,  // MACHINE_SETTING_WEIGHT_DOSE_DG
-    300,  // MACHINE_SETTING_WEIGHT_YIELD_DG
-    900,  // MACHINE_SETTING_TEMP_BREW_DC
-    1000, // MACHINE_SETTING_TEMP_HOT_DC
-    1450, // MACHINE_SETTING_TEMP_STEAM_DC
-    80,   // MACHINE_SETTING_PWR_PREINF_I8
-    127,   // MACHINE_SETTING_PWR_BREW_I8
-    100  // MACHINE_SETTING_PWR_HOT_I8
-};
-
-static const machine_setting _setting_max [MS_COUNT] = {
-    600,  // MACHINE_SETTING_TIME_PREINF_ON_DS
-    600,  // MACHINE_SETTING_TIME_PRE_OFF_DS
-    180,  // MACHINE_SETTING_TIME_TIMEOUT_S
-    600,  // MACHINE_SETTING_TIME_RAMP_DS
-    300,  // MACHINE_SETTING_WEIGHT_DOSE_DG
-    600,  // MACHINE_SETTING_WEIGHT_YIELD_DG
-    1450, // MACHINE_SETTING_TEMP_BREW_DC
-    1450, // MACHINE_SETTING_TEMP_HOT_DC
-    1450, // MACHINE_SETTING_TEMP_STEAM_DC
-    127,  // MACHINE_SETTING_PWR_PREINF_I8
-    127,   // MACHINE_SETTING_PWR_BREW_I8
-    127  // MACHINE_SETTING_PWR_HOT_I8
-};
+/** \brief The size, in bytes, of a single settings profile */
+static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = NUM_SETTINGS * sizeof(machine_setting);
 
 static mb85_fram * _mem = NULL;
-static machine_setting _settings [MS_COUNT];
+static value_flasher _setting_flasher;
 
-bool machine_settings_verify(){
-    for(uint8_t p_id = 0; p_id < MS_COUNT; p_id++){
-        if(_settings[p_id] < _setting_min[p_id] || _settings[p_id] > _setting_max[p_id]){
-            memcpy(_settings, _setting_default, MACHINE_SETTINGS_MEMORY_SIZE);
+static machine_setting _ms [NUM_SETTINGS];
+static machine_settings _ms_struct;
+static const machine_setting _ms_min [NUM_SETTINGS] = {   0,    0,    0,   0,    0,   0,   0,   0,   0,   0,   0,   0};
+static const machine_setting _ms_max [NUM_SETTINGS] = {1450, 1450, 1450, 500, 1000, 600, 600, 100, 600, 180, 100, 100};
+static const machine_setting _ms_std [NUM_SETTINGS] = { 900, 1000, 1450, 150,  300,  40,  40,  75,  10,  60, 100,  75};
+
+/** Local UI folder objects for updating machine settings */
+static local_ui_folder_tree settings_modifier;
+static local_ui_folder folder_root;
+static local_ui_folder folder_settings;
+static local_ui_folder folder_settings_temp;
+static local_ui_folder folder_settings_temp_brew;
+static local_ui_folder folder_settings_temp_hot;
+static local_ui_folder folder_settings_temp_steam;
+static local_ui_folder folder_settings_weight;
+static local_ui_folder folder_settings_weight_yield;
+static local_ui_folder folder_settings_weight_dose;
+static local_ui_folder folder_settings_more;
+static local_ui_folder folder_settings_more_power;
+static local_ui_folder folder_settings_more_power_brew;
+static local_ui_folder folder_settings_more_power_hot;
+static local_ui_folder folder_settings_more_preinfuse;
+static local_ui_folder folder_settings_more_preinfuse_on_time;
+static local_ui_folder folder_settings_more_preinfuse_on_power;
+static local_ui_folder folder_settings_more_preinfuse_off_time;
+static local_ui_folder folder_settings_more_misc;
+static local_ui_folder folder_settings_more_misc_timeout;
+static local_ui_folder folder_settings_more_misc_ramp_time;
+static local_ui_folder folder_presets;
+static local_ui_folder folder_presets_profile_a;
+static local_ui_folder folder_presets_profile_a_0;
+static local_ui_folder folder_presets_profile_a_1;
+static local_ui_folder folder_presets_profile_a_2;
+static local_ui_folder folder_presets_profile_b;
+static local_ui_folder folder_presets_profile_b_0;
+static local_ui_folder folder_presets_profile_b_1;
+static local_ui_folder folder_presets_profile_b_2;
+static local_ui_folder folder_presets_profile_c;
+static local_ui_folder folder_presets_profile_c_0;
+static local_ui_folder folder_presets_profile_c_1;
+static local_ui_folder folder_presets_profile_c_2;
+
+/**
+ * \brief Returns the starting address of the given settings profile
+ * \param id Profile number
+ * \return Started memory address where profile is stored 
+ */
+static inline reg_addr _machine_settings_id_to_addr(uint8_t id){
+    return MACHINE_SETTINGS_START_ADDR + (1+id)*MACHINE_SETTINGS_MEMORY_SIZE;
+}
+
+static int _machine_settings_save_profile(uint8_t profile_id){
+    if(_mem == NULL) return PICO_ERROR_GENERIC;
+    // Break link with profile buffer and connect to profile save address
+    mb85_fram_unlink_var(_mem, &_ms);
+    mb85_fram_link_var(_mem, &_ms, machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
+
+    // Break link with save address and connect with profile buffer
+    mb85_fram_unlink_var(_mem, &_ms);
+    mb85_fram_link_var(_mem, &_ms, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
+    return PICO_ERROR_NONE;
+}
+
+static int _machine_settings_load_profile(uint8_t profile_id){
+    if(_mem == NULL) return PICO_ERROR_GENERIC;
+    // Break link with profile buffer and connect to profile load address
+    mb85_fram_unlink_var(_mem, &_ms);
+    mb85_fram_link_var(_mem, &_ms, machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM);
+
+    // Verify that loaded address is valid. If it wasn't, save back into profile.
+    if(machine_settings_verify()) mb85_fram_save(_mem, &_ms);
+
+    // Break link with load address and connect with profile buffer
+    mb85_fram_unlink_var(_mem, &_ms);
+    mb85_fram_link_var(_mem, &_ms, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
+    return PICO_ERROR_NONE;
+}
+
+/**
+ * \brief Convert a folder ID to the correct setting or profile ID
+ * 
+ * \param id Folder ID
+ * \return int8_t the folder or profile ID or -1 if none found.
+ */
+static int8_t _machine_settings_folder_to_setting(folder_id id){
+    if (local_ui_id_in_subtree(&folder_settings, id)){
+        if (local_ui_id_in_subtree(&folder_settings_temp, id)){
+            if (id == folder_settings_temp_brew.id)                        return TEMP_BREW;
+            else if (id == folder_settings_temp_hot.id)                    return TEMP_HOT;
+            else if (id == folder_settings_temp_steam.id)                  return TEMP_STEAM;
+        } else if (local_ui_id_in_subtree(&folder_settings_weight, id)){
+            if (id == folder_settings_weight_dose.id)                      return WEIGHT_DOSE;
+            else if (id == folder_settings_weight_yield.id)                return WEIGHT_YIELD;
+        } else if (local_ui_id_in_subtree(&folder_settings_more, id)){
+            if (local_ui_id_in_subtree(&folder_settings_more_power, id)){
+                if (id == folder_settings_more_power_brew.id)              return POWER_BREW;
+                else if (id == folder_settings_more_power_hot.id)          return POWER_HOT;
+            } else if (local_ui_id_in_subtree(&folder_settings_more_preinfuse, id)){
+                // Settings/more/preinfuse
+                if (id == folder_settings_more_preinfuse_on_time.id)       return PREINF_ON_TIME;
+                else if (id == folder_settings_more_preinfuse_off_time.id) return PREINF_OFF_TIME;
+                else if (id == folder_settings_more_preinfuse_on_power.id) return PREINF_ON_POWER;
+            } else if (local_ui_id_in_subtree(&folder_settings_more_misc, id)){
+                // Settings/more/misc
+                if (id == folder_settings_more_misc_timeout.id)            return TIMEOUT;
+                else if (id == folder_settings_more_misc_ramp_time.id)     return RAMP_TIME;
+            }
+        }
+    } else if (local_ui_id_in_subtree(&folder_presets, id)){
+        if (local_ui_id_in_subtree(&folder_presets_profile_a, id)){
+            if (id == folder_presets_profile_a_0.id)      return 0;
+            else if (id == folder_presets_profile_a_1.id) return 1;
+            else if (id == folder_presets_profile_a_2.id) return 2;
+        } else if (local_ui_id_in_subtree(&folder_presets_profile_b, id)){
+            // Presets 4-6
+            if (id == folder_presets_profile_b_0.id)      return 3;
+            else if (id == folder_presets_profile_b_1.id) return 4;
+            else if (id == folder_presets_profile_b_2.id) return 5;
+        } else if (local_ui_id_in_subtree(&folder_presets_profile_c, id)){
+            // Presets 7-9
+            if (id == folder_presets_profile_c_0.id)      return 6;
+            else if (id == folder_presets_profile_c_1.id) return 7;
+            else if (id == folder_presets_profile_c_2.id) return 8;
+        }
+    }
+    return -1;
+}
+
+/**
+ * \brief Callback function used by setting action folders. Increments corresponding
+ * setting or calls preset load/save function
+ * 
+ * \param id ID of calling folder
+ * \param val Value of increment index. 0 = -10, 1 = +1, and 2 = +10
+ * \returns True if value was greater than 2. False otherwise
+ */
+static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
+    if (val > 2) return true;
+    if (local_ui_id_in_subtree(&folder_settings, id)){
+        // Settings
+        const int8_t deltas [] = {-10, 1, 10};
+        const setting_id ms_id = _machine_settings_folder_to_setting(id);
+        if (ms_id == -1) return true;
+        _ms[ms_id] += deltas[val];
+        if (_ms[ms_id] < _ms_min[ms_id]) _ms[ms_id] = _ms_min[ms_id];
+        else if (_ms[ms_id] > _ms_max[ms_id]) _ms[ms_id] = _ms_max[ms_id];
+    } else if (local_ui_id_in_subtree(&folder_presets, id)){
+        // Presets
+        const int8_t profile_id = _machine_settings_folder_to_setting(id);
+        if (profile_id == -1) return true;
+        if      (val == 0) _machine_settings_save_profile(profile_id);
+        else if (val == 1) _machine_settings_load_profile(profile_id);
+    }
+
+    machine_settings_print();
+    return false;
+}
+
+/**
+ * \brief Restores settings to default state if any invalid values are found
+ * 
+ * \return true Invalid values found.
+ * \return false No invalid values found.
+ */
+static bool _machine_settings_verify(){
+    for(uint8_t p_id = 0; p_id < NUM_SETTINGS; p_id++){
+        if(_ms[p_id] < _ms_min[p_id] || _ms[p_id] > _ms_max[p_id]){
+            memcpy(_ms, _ms_std, MACHINE_SETTINGS_MEMORY_SIZE);
             return true;
         }
     }
     return false;
 }
 
-static inline reg_addr machine_settings_id_to_addr(uint8_t id){
-    return MACHINE_SETTINGS_START_ADDR + (1+id)*MACHINE_SETTINGS_MEMORY_SIZE;
+/** \brief Link the internal settings array with the externally accessible settings struct */
+static void _machine_settings_link(){
+    _ms_struct.autobrew.preinf_off_time  = &(_ms[PREINF_OFF_TIME]);
+    _ms_struct.autobrew.preinf_on_time   = &(_ms[PREINF_ON_TIME]);
+    _ms_struct.autobrew.preinf_power     = &(_ms[PREINF_ON_POWER]);
+    _ms_struct.autobrew.timeout          = &(_ms[TIMEOUT]);
+    _ms_struct.autobrew.preinf_ramp_time = &(_ms[RAMP_TIME]);
+    _ms_struct.brew.temp                 = &(_ms[TEMP_BREW]);
+    _ms_struct.hot.temp                  = &(_ms[TEMP_HOT]);
+    _ms_struct.steam.temp                = &(_ms[TEMP_STEAM]);
+    _ms_struct.brew.power                = &(_ms[POWER_BREW]);
+    _ms_struct.hot.power                 = &(_ms[POWER_HOT]);
+    _ms_struct.brew.dose                 = &(_ms[WEIGHT_DOSE]);
+    _ms_struct.brew.yield                = &(_ms[WEIGHT_YIELD]);
 }
 
-machine_settings machine_settings_setup(mb85_fram * mem){
+/** \brief Setup the local UI file structure. */
+static void _machine_settings_setup_local_ui(){
+    local_ui_folder_tree_init(&settings_modifier, &folder_root, "RaspberryLatte");
+    local_ui_add_subfolder(&folder_root,                    &folder_settings,                         "Settings",     NULL);
+    local_ui_add_subfolder(&folder_settings,                &folder_settings_temp,                    "Temperatures", NULL);
+    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_brew,               "Brew",         &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_hot,                "Hot",          &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_steam,              "Steam",        &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings,                &folder_settings_weight,                  "Weights",      NULL);
+    local_ui_add_subfolder(&folder_settings_weight,         &folder_settings_weight_dose,             "Dose",         &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_weight,         &folder_settings_weight_yield,            "Yield",        &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings,                &folder_settings_more,                    "More",         NULL);
+    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_power,              "Power",        NULL);
+    local_ui_add_subfolder(&folder_settings_more_power,     &folder_settings_more_power_brew,         "Brew",         &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_more_power,     &folder_settings_more_power_hot,          "Hot",          &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_preinfuse,          "Preinfuse",    NULL);
+    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_on_time,  "On Time",      &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_on_power, "On Power",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_off_time, "Off Time",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_misc,               "Misc",         NULL);
+    local_ui_add_subfolder(&folder_settings_more_misc,      &folder_settings_more_misc_timeout,       "Timeout",      &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_settings_more_misc,      &folder_settings_more_misc_ramp_time,     "Ramp Time",    &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_root,                    &folder_presets,                          "Presets",      NULL);
+    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_a,                "Presets 1-3",  NULL);
+    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_0,              "Preset 1",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_1,              "Preset 2",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_2,              "Preset 3",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_b,                "Presets 4-6",  NULL);
+    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_0,              "Preset 4",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_1,              "Preset 5",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_2,              "Preset 6",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_c,                "Presets 7-9",  NULL);
+    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_0,              "Preset 7",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_1,              "Preset 8",     &_machine_settings_folder_callback);
+    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_2,              "Preset 9",     &_machine_settings_folder_callback);
+}
+
+const machine_settings * machine_settings_setup(mb85_fram * mem){
     if(_mem == NULL){
         _mem = mem;
-        if(mb85_fram_link_var(_mem, &_settings, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM)){
+        if(mb85_fram_link_var(_mem, &_ms, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM)){
             return NULL;
         }
-        if(machine_settings_verify()){
-            mb85_fram_save(_mem, &_settings);
+        if(_machine_settings_verify()){
+            // If settings had to be reset to defaults, save new values.
+            mb85_fram_save(_mem, &_ms);
+        }
+        _machine_settings_link();
+        _machine_settings_setup_local_ui();
+    }
+    return &_ms_struct;
+}
+
+int machine_settings_update(bool reset, bool select, uint8_t val){
+    if (reset){
+        local_ui_go_to_root(&settings_modifier);
+        _ms_struct.ui_mask = 0;
+    } else if (select){
+        if (val == 3){
+            // Return to root
+            local_ui_go_to_root(&settings_modifier);
+            _ms_struct.ui_mask = 0;
+        } else {
+            local_ui_enter_subfolder(&settings_modifier, 2 - val);
+            
+            const folder_id id = settings_modifier.cur_folder->id;
+            if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
+                local_ui_id_in_subtree(&folder_settings, id)){
+                // If entered action settings folder, start value flasher
+                value_flasher_setup(&_setting_flasher, _ms[_machine_settings_folder_to_setting(id)], 750);
+            } else {
+                // else in nav folder. Display id.
+                _ms_struct.ui_mask = 3 - val;
+            }
         }
     }
-    return _settings;
-}
-
-machine_settings machine_settings_aquire(){
-    if(_mem == NULL) return NULL;
-    else return _settings;
-}
-
-int machine_settings_save_profile(uint8_t profile_id){
-    if(_mem == NULL) return PICO_ERROR_GENERIC;
-    // Break link with profile buffer and connect to profile save address
-    mb85_fram_unlink_var(_mem, &_settings);
-    mb85_fram_link_var(_mem, &_settings, machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
-
-    // Break link with save address and connect with profile buffer
-    mb85_fram_unlink_var(_mem, &_settings);
-    mb85_fram_link_var(_mem, &_settings, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
-    return PICO_ERROR_NONE;
-}
-
-int machine_settings_load_profile(uint8_t profile_id){
-    if(_mem == NULL) return PICO_ERROR_GENERIC;
-    // Break link with profile buffer and connect to profile load address
-    mb85_fram_unlink_var(_mem, &_settings);
-    mb85_fram_link_var(_mem, &_settings, machine_settings_id_to_addr(profile_id), MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM);
-
-    // Verify that loaded address is valid. If it wasn't, save back into profile.
-    if(machine_settings_verify()) mb85_fram_save(_mem, &_settings);
-
-    // Break link with load address and connect with profile buffer
-    mb85_fram_unlink_var(_mem, &_settings);
-    mb85_fram_link_var(_mem, &_settings, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_VAR);
-    return PICO_ERROR_NONE;
-}
-
-int machine_settings_set(machine_setting_id p_id, machine_setting val){
-    if(p_id >= MS_COUNT) return PICO_ERROR_INVALID_ARG;
-    
-    if(val < _setting_min[p_id]){
-        val = _setting_min[p_id];
-    } else if (val > _setting_max[p_id]){
-        val = _setting_max[p_id];
+    // If in settings action folder, update the value flasher
+    if(local_ui_is_action_folder(settings_modifier.cur_folder) 
+       && local_ui_id_in_subtree(&folder_settings, settings_modifier.cur_folder->id)){
+        _ms_struct.ui_mask = _setting_flasher.out_flags;
     }
-    _settings[p_id] = val;
-
-    mb85_fram_save(_mem, &_settings);
-    return PICO_ERROR_NONE;
 }
 
-int machine_settings_increment(machine_setting_id p_id, machine_setting delta){
-    return machine_settings_set( p_id, _settings[p_id] + delta);
-}
 
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
@@ -148,19 +303,19 @@ int machine_settings_print(){
         "Brew temp          : %0.2fC\n"
         "Hot temp           : %0.2fC\n"
         "Steam temp         : %0.2fC\n"
-        "Preinfuse power    : %d/127\n"
-        "Brew power         : %d/127\n"
-        "Hot power          : %d/127\n\n",
-        _settings[0]/10.,
-        _settings[1]/10.,
-        _settings[2],
-        _settings[3]/10.,
-        _settings[4]/10.,
-        _settings[5]/10.,
-        _settings[6]/10.,
-        _settings[7]/10.,
-        _settings[8]/10.,
-        _settings[9],
-        _settings[10],
-        _settings[11]);
+        "Preinfuse power    : %d\%\n"
+        "Brew power         : %d\%\n"
+        "Hot power          : %d\%\n\n",
+        *_ms_struct.autobrew.preinf_on_time/10.,
+        *_ms_struct.autobrew.preinf_off_time/10.,
+        *_ms_struct.autobrew.timeout,
+        *_ms_struct.autobrew.preinf_ramp_time/10.,
+        *_ms_struct.brew.dose/10.,
+        *_ms_struct.brew.yield/10.,
+        *_ms_struct.brew.temp/10.,
+        *_ms_struct.hot.temp/10.,
+        *_ms_struct.steam.temp/10.,
+        *_ms_struct.autobrew.preinf_power,
+        *_ms_struct.brew.power,
+        *_ms_struct.hot.power);
 }

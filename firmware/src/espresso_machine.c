@@ -1,3 +1,5 @@
+#include "espresso_machine.h"
+
 #include <stdio.h>
 
 #include "pinout.h"
@@ -16,11 +18,14 @@
 #include "pid.h"
 #include "autobrew.h"
 
-#include "espresso_machine.h"
 #include "machine_settings.h"
-#include "local_ui.h"
-#include "value_flasher.h"
-#include "brew_parameters.h"
+
+const float PID_GAIN_P = 0.05;
+const float PID_GAIN_I = 0.00175;
+const float PID_GAIN_D = 0.0005;
+const float PID_GAIN_F = 0.00005;
+
+const float SCALE_CONVERSION_MG = -0.152710615479;
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -39,116 +44,13 @@ static nau7802             scale;
 static discrete_derivative scale_flowrate;
 static mb85_fram           mem;
 
-static machine_settings    settings;
-static value_flasher       setting_display;
+static machine_settings*   settings;
+//static value_flasher       setting_display;
 
 /** Autobrew and control objects */
 static pid_ctrl         heater_pid;
 static autobrew_leg     autobrew_legs [6];
 static autobrew_routine autobrew_plan;
-
-/** Local UI folder objects for updating machine settings */
-static local_ui_folder_tree settings_modifier;
-static local_ui_folder folder_root;
-static local_ui_folder folder_settings;
-static local_ui_folder folder_settings_temp;
-static local_ui_folder folder_settings_temp_brew;
-static local_ui_folder folder_settings_temp_hot;
-static local_ui_folder folder_settings_temp_steam;
-static local_ui_folder folder_settings_weight;
-static local_ui_folder folder_settings_weight_yield;
-static local_ui_folder folder_settings_weight_dose;
-static local_ui_folder folder_settings_more;
-static local_ui_folder folder_settings_more_power;
-static local_ui_folder folder_settings_more_power_brew;
-static local_ui_folder folder_settings_more_power_hot;
-static local_ui_folder folder_settings_more_preinfuse;
-static local_ui_folder folder_settings_more_preinfuse_on_time;
-static local_ui_folder folder_settings_more_preinfuse_on_power;
-static local_ui_folder folder_settings_more_preinfuse_off_time;
-static local_ui_folder folder_settings_more_misc;
-static local_ui_folder folder_settings_more_misc_timeout;
-static local_ui_folder folder_settings_more_misc_ramp_time;
-static local_ui_folder folder_presets;
-static local_ui_folder folder_presets_profile_a;
-static local_ui_folder folder_presets_profile_a_0;
-static local_ui_folder folder_presets_profile_a_1;
-static local_ui_folder folder_presets_profile_a_2;
-static local_ui_folder folder_presets_profile_b;
-static local_ui_folder folder_presets_profile_b_0;
-static local_ui_folder folder_presets_profile_b_1;
-static local_ui_folder folder_presets_profile_b_2;
-static local_ui_folder folder_presets_profile_c;
-static local_ui_folder folder_presets_profile_c_0;
-static local_ui_folder folder_presets_profile_c_1;
-static local_ui_folder folder_presets_profile_c_2;
-
-/**
- * \brief Convert from folder ID to either setting ID or profile ID
- * 
- * \param id ID of folder to map to setting or profile
- * \return ID of setting or profile mapped to folder 
- */
-static machine_setting_id folder_to_machine_setting(folder_id id){
-         if(id == folder_settings_temp_brew.id)               return MS_TEMP_BREW_DC;
-    else if(id == folder_settings_temp_hot.id)                return MS_TEMP_HOT_DC;
-    else if(id == folder_settings_temp_steam.id)              return MS_TEMP_STEAM_DC;
-    else if(id == folder_settings_weight_dose.id)             return MS_WEIGHT_DOSE_DG;
-    else if(id == folder_settings_weight_yield.id)            return MS_WEIGHT_YIELD_DG;
-    else if(id == folder_settings_more_power_brew.id)         return MS_PWR_BREW_I8;
-    else if(id == folder_settings_more_power_hot.id)          return MS_PWR_HOT_I8;
-    else if(id == folder_settings_more_preinfuse_on_time.id)  return MS_TIME_PREINF_ON_DS;
-    else if(id == folder_settings_more_preinfuse_on_power.id) return MS_PWR_PREINF_I8;
-    else if(id == folder_settings_more_preinfuse_off_time.id) return MS_TIME_PREINF_OFF_DS;
-    else if(id == folder_settings_more_misc_timeout.id)       return MS_TIME_TIMEOUT_S;
-    else if(id == folder_settings_more_misc_ramp_time.id)     return MS_TIME_RAMP_DS;
-    else if(id == folder_presets_profile_a_0.id)              return 0;
-    else if(id == folder_presets_profile_a_1.id)              return 1;
-    else if(id == folder_presets_profile_a_2.id)              return 2;
-    else if(id == folder_presets_profile_b_0.id)              return 3;
-    else if(id == folder_presets_profile_b_1.id)              return 4;
-    else if(id == folder_presets_profile_b_2.id)              return 5;
-    else if(id == folder_presets_profile_c_0.id)              return 6;
-    else if(id == folder_presets_profile_c_1.id)              return 7;
-    else if(id == folder_presets_profile_c_2.id)              return 8;
-}
-
-/**
- * \brief Callback function used by setting action folders. Increments corresponding
- * setting.
- * 
- * \param id ID of calling folder
- * \param val Value of increment index. 0 = -10, 1 = +1, and 2 = +10
- * \returns True if value was greater than 2. False otherwise
- */
-static bool update_machine_setting(folder_id id, uint8_t val){
-    if (val > 2) return true;
-    const machine_setting deltas [] = {-10, 1, 10};
-    machine_settings_increment(folder_to_machine_setting(id), deltas[val]);
-    machine_settings_print();
-    return false;
-}
-
-/**
- * \brief Callback function used by profile action folders. Saves or loads the corresponding profile.
- * 
- * \param id ID of calling folder
- * \param val 0 to save. 1 to load. 2 no effect. >2 return to root
- * \returns True if value was greater than 2. False otherwise
- */
-static bool save_load_machine_presets(folder_id id, uint8_t val){
-    if (val > 2) return true;
-    const uint8_t profile_id = folder_to_machine_setting(id);
-    if(val == 0){
-        machine_settings_save_profile(profile_id);
-        printf("Saved settings to profile %d\n", profile_id);
-    } else if(val == 1){
-        machine_settings_load_profile(profile_id);
-        printf("Loaded settings from profile %d\n", profile_id);
-        machine_settings_print();
-    }
-    return false;
-}
 
 /**
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
@@ -177,7 +79,7 @@ static void apply_boiler_input(float u){
  * \brief Returns true if scale is greater than or equal to the current output. 
  */
 static bool scale_at_output(){
-    return nau7802_at_val_mg(&scale, settings[MS_WEIGHT_YIELD_DG]*100);
+    return nau7802_at_val_mg(&scale, *settings->brew.yield*100);
 }
 
 /**
@@ -193,31 +95,31 @@ static int zero_scale(){
 static void espresso_machine_autobrew_setup(){
     uint32_t preinf_ramp_dur;
     uint32_t preinf_on_dur;
-    uint8_t preinf_pwr = settings[MS_PWR_PREINF_I8];
-    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_PREINF_ON_DS]){
+    uint8_t preinf_pwr = *settings->autobrew.preinf_power;
+    if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.preinf_on_time){
         // Ramp and then run for remaining time
-        preinf_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
-        preinf_on_dur = (settings[MS_TIME_PREINF_ON_DS]-settings[MS_TIME_RAMP_DS])*100000UL;
+        preinf_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
+        preinf_on_dur = (*settings->autobrew.preinf_on_time-(*settings->autobrew.preinf_ramp_time))*100000UL;
     } else {
         // Ramp for the full time
-        preinf_ramp_dur = settings[MS_TIME_PREINF_ON_DS]*100000UL;
+        preinf_ramp_dur = *settings->autobrew.preinf_on_time*100000UL;
         preinf_on_dur = 0;
     }
 
     uint32_t brew_ramp_dur;
     uint32_t brew_on_dur;
-    uint8_t brew_pwr = settings[MS_PWR_BREW_I8];
-    if(settings[MS_TIME_RAMP_DS] <= settings[MS_TIME_TIMEOUT_S]){
+    uint8_t brew_pwr = *settings->brew.power;
+    if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.timeout){
         // Ramp and then run for remaining time
-        brew_ramp_dur = settings[MS_TIME_RAMP_DS]*100000UL;
-        brew_on_dur = (settings[MS_TIME_TIMEOUT_S]*10-settings[MS_TIME_RAMP_DS])*100000UL;
+        brew_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
+        brew_on_dur = (*settings->autobrew.timeout*10-(*settings->autobrew.preinf_ramp_time))*100000UL;
     } else {
         // Ramp for the full time
-        brew_ramp_dur = settings[MS_TIME_TIMEOUT_S]*1000000UL;
+        brew_ramp_dur = *settings->autobrew.timeout*1000000UL;
         brew_on_dur = 0;
     }
 
-    uint32_t preinf_off_time = settings[MS_TIME_PREINF_OFF_DS]*100000UL;
+    uint32_t preinf_off_time = *settings->autobrew.preinf_off_time*100000UL;
 
     autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
     autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur, NULL);
@@ -236,6 +138,8 @@ static void espresso_machine_update_state(){
     if(_state.switches.ac_switch != phasecontrol_is_ac_hot(&pump)){
         _state.switches.ac_switch_changed = (_state.switches.ac_switch ? -1 : 1);
         _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
+        // Rebuild autobrew routine to account for setting changes
+        espresso_machine_autobrew_setup();
     } else {
         _state.switches.ac_switch_changed = 0;
     }
@@ -267,11 +171,11 @@ static void espresso_machine_update_state(){
     // Update setpoints
     if(_state.switches.ac_switch){
         if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*settings[MS_TEMP_STEAM_DC];
+            _state.boiler.setpoint = 1.6*(*settings->steam.temp);
         } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = 1.6*settings[MS_TEMP_HOT_DC];
+            _state.boiler.setpoint = 1.6*(*settings->hot.temp);
         } else {
-            _state.boiler.setpoint = 1.6*settings[MS_TEMP_BREW_DC];
+            _state.boiler.setpoint = 1.6*(*settings->brew.temp);
         }
     } else {
         _state.boiler.setpoint = 0;
@@ -284,42 +188,9 @@ static void espresso_machine_update_state(){
  * the setting tree to root.
  */
 static void espresso_machine_update_settings(){
-    if (_state.switches.ac_switch_changed == 1){
-        // AC switched on
-        _state.settings_viewer_mask = 0;
-        local_ui_go_to_root(&settings_modifier);
-
-        // Rebuild autobrew routine to account for setting changes
-        espresso_machine_autobrew_setup();
-    } else if (!_state.switches.ac_switch){
-        // AC off
-        if(_state.switches.pump_switch_changed){
-            if(_state.switches.mode_dial == 3){
-                local_ui_go_to_root(&settings_modifier);
-                _state.settings_viewer_mask = 0;
-            } else {
-                local_ui_enter_subfolder(&settings_modifier, 2 - _state.switches.mode_dial);
-                
-                const folder_id id = settings_modifier.cur_folder->id;
-                if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
-                   local_ui_id_in_subtree(&folder_settings, id)){
-                    // If entered action settings folder, start value flasher
-                    value_flasher_setup(
-                        &setting_display,
-                        settings[folder_to_machine_setting(id)], 
-                        750);
-                } else {
-                    // else in nav folder. Display id.
-                    _state.settings_viewer_mask = 3 - _state.switches.mode_dial;
-                }
-            }
-        }
-        // If in settings action folder, update the value flasher
-        if(local_ui_is_action_folder(settings_modifier.cur_folder) 
-        && local_ui_id_in_subtree(&folder_settings, settings_modifier.cur_folder->id)){
-            _state.settings_viewer_mask = setting_display.out_flags;
-        }
-    }
+    bool reset_settings_ui = (_state.switches.ac_switch_changed == 1);
+    bool select_settings_ui = !_state.switches.ac_switch && _state.switches.pump_switch_changed;
+    machine_settings_update(reset_settings_ui, select_settings_ui, _state.switches.mode_dial);
 }
 
 static void espresso_machine_update_pump(){
@@ -341,7 +212,7 @@ static void espresso_machine_update_pump(){
                 break;
             case MODE_HOT:
                 heater_pid.K.f = 0;
-                phasecontrol_set_duty_cycle(&pump, settings[MS_PWR_HOT_I8]);
+                phasecontrol_set_duty_cycle(&pump, *settings->hot.power);
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_MANUAL:
@@ -387,49 +258,10 @@ static void espresso_machine_update_leds(){
             &leds, 2, 
             _state.switches.ac_switch 
             && !_state.switches.pump_switch 
-            && nau7802_at_val_mg(&scale, settings[MS_WEIGHT_DOSE_DG]*100));
+            && nau7802_at_val_mg(&scale, *settings->brew.dose *100));
     } else {
-        binary_output_mask(&leds, _state.settings_viewer_mask);
+        binary_output_mask(&leds, settings->ui_mask);
     }
-}
-
-/** 
- * \brief Setup the local UI file structure.
-*/
-static void espresso_machine_setup_local_ui(){
-    local_ui_folder_tree_init(&settings_modifier, &folder_root, "RaspberryLatte");
-    local_ui_add_subfolder(&folder_root,                    &folder_settings,                         "Settings",     NULL);
-    local_ui_add_subfolder(&folder_settings,                &folder_settings_temp,                    "Temperatures", NULL);
-    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_brew,               "Brew",         &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_hot,                "Hot",          &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_temp,           &folder_settings_temp_steam,              "Steam",        &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings,                &folder_settings_weight,                  "Weights",      NULL);
-    local_ui_add_subfolder(&folder_settings_weight,         &folder_settings_weight_dose,             "Dose",         &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_weight,         &folder_settings_weight_yield,            "Yield",        &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings,                &folder_settings_more,                    "More",         NULL);
-    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_power,              "Power",        NULL);
-    local_ui_add_subfolder(&folder_settings_more_power,     &folder_settings_more_power_brew,         "Brew",         &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_more_power,     &folder_settings_more_power_hot,          "Hot",          &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_preinfuse,          "Preinfuse",    NULL);
-    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_on_time,  "On Time",      &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_on_power, "On Power",     &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_more_preinfuse, &folder_settings_more_preinfuse_off_time, "Off Time",     &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_more,           &folder_settings_more_misc,               "Misc",         NULL);
-    local_ui_add_subfolder(&folder_settings_more_misc,      &folder_settings_more_misc_timeout,       "Timeout",      &update_machine_setting);
-    local_ui_add_subfolder(&folder_settings_more_misc,      &folder_settings_more_misc_ramp_time,     "Ramp Time",    &update_machine_setting);
-    local_ui_add_subfolder(&folder_root,                    &folder_presets,                          "Presets",      NULL);
-    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_a,                "Presets 1-3",  NULL);
-    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_0,              "Preset 1",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_1,              "Preset 2",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets_profile_a,       &folder_presets_profile_a_2,              "Preset 3",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_b,                "Presets 4-6",  NULL);
-    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_0,              "Preset 4",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_1,              "Preset 5",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets_profile_b,       &folder_presets_profile_b_2,              "Preset 6",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets,                 &folder_presets_profile_c,                "Presets 7-9",  NULL);
-    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_0,              "Preset 7",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_1,              "Preset 8",     &save_load_machine_presets);
-    local_ui_add_subfolder(&folder_presets_profile_c,       &folder_presets_profile_c_2,              "Preset 9",     &save_load_machine_presets);
 }
 
 int espresso_machine_setup(espresso_machine_viewer * state_viewer){
