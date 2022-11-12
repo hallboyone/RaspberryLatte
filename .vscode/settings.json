@@ -41,7 +41,10 @@
         "value_flasher.h": "c"
     },
     "cSpell.words": [
+        "autobrew",
         "fram",
-        "PICO"
+        "PICO",
+        "PREINF",
+        "preinfuse"
     ],
 }
