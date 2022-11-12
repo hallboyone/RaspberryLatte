@@ -45,6 +45,7 @@
         "fram",
         "PICO",
         "PREINF",
-        "preinfuse"
+        "preinfuse",
+        "subfolders"
     ],
 }

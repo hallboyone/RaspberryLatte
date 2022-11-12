@@ -5,7 +5,7 @@
 /** \brief Unique, structured ID of folder. Assigned when added to tree. */
 typedef uint32_t folder_id;
 
-/** \brief Action function asigned to folder. If true is returned, tree returns to root. */
+/** \brief Action function assigned to folder. If true is returned, tree returns to root. */
 typedef bool (*folder_action)(folder_id, uint8_t);
 
 /** \brief A single folder. The folder structure is basically a linked
@@ -26,16 +26,6 @@ typedef struct local_ui_folder_tree_{
     local_ui_folder * root;       /**< Pointer to the root of the tree */
     local_ui_folder * cur_folder; /**< Pointer to the tree's active folder*/
 } local_ui_folder_tree;
-
-/**
- * \brief Checks if an ID belongs to a tree rooted at f.
- * 
- * \param f Folder at subtree root.
- * \param id ID to look for in subtree.
- * 
- * \returns True if f subtree would contain ID. False else.
- */
-bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id);
 
 /**
  * \brief Sets up a directory tree.
@@ -73,5 +63,22 @@ void local_ui_go_to_root(local_ui_folder_tree * tree);
  */
 void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx);
 
+/**
+ * \brief Indicates if passed in folder is an action folder
+ * 
+ * \param folder Pointer to folder to examine
+ * \return true if folder action is not NULL. Else false. 
+ */
 bool local_ui_is_action_folder(local_ui_folder * folder);
+
+/**
+ * \brief Checks if an ID belongs to a tree rooted at f.
+ * 
+ * \param f Folder at subtree root.
+ * \param id ID to look for in subtree.
+ * 
+ * \returns True if f subtree would contain ID. False else.
+ */
+bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id);
+
 #endif

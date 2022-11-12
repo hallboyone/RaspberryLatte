@@ -5,7 +5,7 @@
 
 #define DEBUG_LOCAL_UI
 
-uint8_t local_ui_id_splitter(const uint32_t id, const uint8_t level){
+static uint8_t _local_ui_id_splitter(const uint32_t id, const uint8_t level){
     if(level >= 8) return 0;
     return (id & (0xF<<(4*level)))>>(4*level);
 }
@@ -16,9 +16,9 @@ uint8_t local_ui_id_splitter(const uint32_t id, const uint8_t level){
  * Each level of folders are identified by the bits in their IDs from level*4 to level*4+3. To determine
  * the level of a folder, this function looks for the first group of bits that are all zero.
  */
-uint8_t local_ui_folder_level(local_ui_folder * f){
+static uint8_t _local_ui_folder_level(local_ui_folder * f){
     uint8_t level = 0;
-    while(local_ui_id_splitter(f->id, level)){
+    while(_local_ui_id_splitter(f->id, level)){
         level += 1;
     }
     return level;
@@ -39,16 +39,9 @@ static void _local_ui_init_folder_name(local_ui_folder * f, const char * name){
 */
 static void _local_ui_init_subfolder_id(local_ui_folder * parent, local_ui_folder * child){
     const uint32_t child_level_id = parent->num_subfolders;
-    const uint32_t parent_level = local_ui_folder_level(parent);
+    const uint32_t parent_level = _local_ui_folder_level(parent);
     child->id = (parent->id | child_level_id<<(4*parent_level));
 }
-
-bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
-    const uint8_t level = local_ui_folder_level(f);
-    const folder_id id_mask = ~(~(0)<<(4*level));
-    return f->id == (id & id_mask);
-}
-
 
 void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * root, const char * root_name){
     tree->root = root;
@@ -120,4 +113,10 @@ void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx
 
 bool local_ui_is_action_folder(local_ui_folder * folder){
     return folder->action != NULL;
+}
+
+bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
+    const uint8_t level = _local_ui_folder_level(f);
+    const folder_id id_mask = ~(~(0)<<(4*level));
+    return f->id == (id & id_mask);
 }
