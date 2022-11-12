@@ -42,10 +42,19 @@
     },
     "cSpell.words": [
         "autobrew",
+        "datapoint",
+        "feedforward",
+        "flowrate",
         "fram",
+        "gpio",
+        "leds",
+        "phasecontrol",
         "PICO",
         "PREINF",
         "preinfuse",
-        "subfolders"
+        "setpoint",
+        "setpoints",
+        "subfolders",
+        "ZEROCROSS"
     ],
 }
