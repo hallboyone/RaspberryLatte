@@ -271,11 +271,13 @@ const machine_settings * machine_settings_acquire(){
 int machine_settings_update(bool reset, bool select, uint8_t val){
     if (reset){
         local_ui_go_to_root(&settings_modifier);
+        value_flasher_end(&_setting_flasher);
         _ms_struct.ui_mask = 0;
     } else if (select){
         if (val == 3){
             // Return to root
             local_ui_go_to_root(&settings_modifier);
+            value_flasher_end(&_setting_flasher);
             _ms_struct.ui_mask = 0;
         } else {
             local_ui_enter_subfolder(&settings_modifier, 2 - val);
@@ -284,17 +286,13 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
             if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
                 local_ui_id_in_subtree(&folder_settings, id)){
                 // If entered action settings folder, start value flasher
-                value_flasher_setup(&_setting_flasher, _ms[_machine_settings_folder_to_setting(id)], 750);
+                value_flasher_setup(&_setting_flasher, _ms[_machine_settings_folder_to_setting(id)], 750, &_ms_struct.ui_mask);
             } else {
                 // else in nav folder. Display id.
+                value_flasher_end(&_setting_flasher);
                 _ms_struct.ui_mask = 3 - val;
             }
         }
-    }
-    // If in settings action folder, update the value flasher
-    if(local_ui_is_action_folder(settings_modifier.cur_folder) 
-       && local_ui_id_in_subtree(&folder_settings, settings_modifier.cur_folder->id)){
-        _ms_struct.ui_mask = _setting_flasher.out_flags;
     }
 }
 
