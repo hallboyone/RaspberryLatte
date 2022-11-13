@@ -6,7 +6,7 @@ A full stack suite to add smarts to a single boiler espresso machine using a Ras
   - Pressure and/or flow control
   - Output scale
   - Preinfusion and auto brew routines
-  - Coffee profiles *[Planned]*
+  - Coffee profiles
   - Scheduled heating *[Planned]*
   - Realtime state viewer (mobile UI) *[Planned]*
   - Machine statistic tracking *[Planned]*
@@ -36,7 +36,7 @@ While ssh is fun, a mobile application would be significantly more convenient. T
 - [X] Finish Software Level
 - [x] Combine Firmware and Software levels to run together on the Pi pico W (eliminates the Pi 0w)
 - [x] Add carrier board design to repository
-- [ ] Add UI based on onboard switches and LEDs
+- [x] Add UI based on onboard switches and LEDs
 - [ ] Add wiring diagram
 - [ ] Add BOM for hardware
 - [ ] Implement network level
