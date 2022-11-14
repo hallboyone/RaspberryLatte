@@ -1,3 +1,13 @@
+/**
+ * \ingroup mb85_fram
+ * @{
+ * 
+ * \file mb85_fram.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief MB85 FRAM source
+ * \version 0.1
+ * \date 2022-11-14
+ */
 #include "mb85_fram.h"
 #include <string.h>
 #include <stdlib.h>
@@ -155,3 +165,4 @@ int mb85_fram_save(mb85_fram * dev, void * var){
     if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
     return mb85_fram_i2c_write(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
 }
+/** @} */

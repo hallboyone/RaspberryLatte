@@ -1,15 +1,44 @@
+
+/** @defgroup mb85_fram MB85 FRAM Library
+ * 
+ * \brief Driver for the MB85 series of FRAM ICs.
+ * 
+ * The MB85 series of FRAM ICs provide fast, non-volatile memory
+ * in a variety of sizes. This library abstracts the process of saving variable remotely
+ * on the IC over a I2C bus. Once the device has been setup using ::mb85_fram_setup, local 
+ * memory locations can linked with ::mb85_fram_link_var. The local variable can be used
+ * as normal in your program and its value synced with the remote value on the FRAM IC
+ * with ::mb85_fram_load and ::mb85_fram_save. 
+ * 
+ * @{
+ * 
+ * \file mb85_fram.h
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief MB85 FRAM header
+ * \version 0.1
+ * \date 2022-11-14
+ */
+
 #ifndef MB85_FRAM_H
 #define MB85_FRAM_H
 
 #include "pico/stdlib.h"
 #include "i2c_bus.h"
 
-typedef enum {MB85_FRAM_INIT_FROM_VAR = 0, MB85_FRAM_INIT_FROM_FRAM = 1} mb85_fram_init_dir;
+/** \brief Indicate how the values should be initalized when linking remote var. */
+typedef enum {
+    MB85_FRAM_INIT_FROM_VAR = 0, /**< Set the FRAM var to the local var when linking */
+    MB85_FRAM_INIT_FROM_FRAM = 1 /**< Set the local var to the FRAM var when linking */
+    } mb85_fram_init_dir;
+
+/** \brief Struct used internally to manage links with remote vars. */
 typedef struct {
     uint8_t * local_addr;  /**< Pointer to local memory address holding local copy*/
     reg_addr remote_addr;  /**< Starting address of variable copy */
     uint16_t num_bytes;    /**< Number of bytes in memory object */
 } mb85_fram_remote_var;
+
+/** \brief Struct representing a single FRAM IC. */
 typedef struct {
     i2c_inst_t * bus;            /**< I2C bus the chip is attached to */
     dev_addr addr;               /**< Value of address pins on MB85 device */
@@ -18,8 +47,9 @@ typedef struct {
     uint16_t var_buf_len;        /**< Size of vars buffer */
 } mb85_fram;
 
-/** \brief Verifies and configures a MB85 device struct. Once configured, the struct can
- * be used to link local variables with remote variables stored in FRAM.
+/** \brief Verifies and configures a MB85 device struct. 
+ * 
+ * Once configured, the struct can be used to link local variables with remote variables stored in FRAM.
  * 
  * \param dev MB85 device struct that will be set up. 
  * \param nau7802_i2c Pointer to desired I2C instance. Should be initalized with i2c_bus_setup.
@@ -89,5 +119,5 @@ int mb85_fram_load(mb85_fram * dev, void * var);
  * \returns PICO_ERROR_NONE on success. PICO_ERROR_INVALID_ARG if no link found. I2C Bus error is problem writing over I2C.  
 */
 int mb85_fram_save(mb85_fram * dev, void * var);
-
 #endif
+/** @} */

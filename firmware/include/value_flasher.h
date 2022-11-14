@@ -1,9 +1,4 @@
-/**
- * \file value_flasher.h
- * \author Richard Hall (hallboyone@icloud.com)
- * \brief Displays an integer value up to 999 by flashing bits in a bitfield.
- * \version 0.1
- * \date 2022-11-12 
+/** @defgroup value_flasher Value Flasher Library
  * 
  * The value_flasher object will point at an external bitfield with bits 0 representing the
  * ones place, bit 1 the tens, and bit 2 the hundreds. Once setup, the hundreds bit will
@@ -11,7 +6,21 @@
  * hundred's place. This continues with the tens and ones bits and then the process will
  * repeat. These bits can be displayed with the binary_output library, for example, to blink
  * 3 LEDs to output the value.
+ * 
+ * @{
+ * 
+ * \file value_flasher.h
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Value Flasher header
+ * \version 0.1
+ * \date 2022-11-12 
+ * 
+ * \example  examples/value_flasher_ex.c
+ * Display the value 132 using print statements and a value_flasher object. The output should repeat
+ * the pattern\n
+ * % ooo\n% xoo\n% ooo\n% oxo\n% ooo\n% oxo\n% ooo\n% oxo\n% ooo\n% oox\n% ooo\n% oox\n% ooo\n
  */
+
 #ifndef VALUE_FLASHER_H
 #define VALUE_FLASHER_H
 
@@ -52,3 +61,4 @@ void value_flasher_update(value_flasher * vf, uint16_t value);
  */
 void value_flasher_end(value_flasher * vf);
 #endif
+/** @} */

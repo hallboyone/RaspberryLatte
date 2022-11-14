@@ -7,8 +7,6 @@
  * 
  * Machine is assumed to have a power and pump switch, a mode dial, an output scale,
  * and other features.
- * 
- * \todo Add ability to customize machine configuration.
  */
 
 #ifndef ESPRESSO_MACHINE_H

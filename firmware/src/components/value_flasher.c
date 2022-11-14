@@ -1,3 +1,13 @@
+/** @ingroup value_flasher
+ * @{
+ * 
+ * \file value_flasher.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Value Flasher source
+ * \version 0.1
+ * \date 2022-11-12 
+ */
+
 #include "value_flasher.h"
 
 /**
@@ -54,3 +64,4 @@ void value_flasher_end(value_flasher * vf){
     // By changing the alarm_id, the next trigger will simply end the alarm.
     vf->_alarm_id--;
 }
+/** @} */
