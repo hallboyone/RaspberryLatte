@@ -1,8 +1,10 @@
 #include "machine_settings.h"
-#include "local_ui.h"
-#include "value_flasher.h"
+
 #include <stdio.h>
 #include <string.h>
+
+#include "local_ui.h"
+#include "value_flasher.h"
 
 /** \brief Enumerated list naming the indicies of the settings array. */
 typedef enum {TEMP_BREW = 0,  TEMP_HOT,        TEMP_STEAM,      WEIGHT_DOSE, WEIGHT_YIELD,
@@ -14,50 +16,56 @@ static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
 /** \brief The size, in bytes, of a single settings profile */
 static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = NUM_SETTINGS * sizeof(machine_setting);
 
-static mb85_fram * _mem = NULL; /**< Pointer to FRAM memory IC object where settings are stored */
+/** \brief Pointer to FRAM memory IC object where settings are stored */
+static mb85_fram * _mem = NULL;
+/** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
 
+/** \brief Internal settings array holding the master settings */
 static machine_setting _ms [NUM_SETTINGS];
+/** \brief Internal settings structure with fields pointing at \p _ms array */
 static machine_settings _ms_struct;
+/** \brief Minimum settings array */
 static const machine_setting _ms_min [NUM_SETTINGS] = {   0,    0,    0,   0,    0,   0,   0,   0,   0,   0,   0,   0};
+/** \brief Maximum settings array */
 static const machine_setting _ms_max [NUM_SETTINGS] = {1450, 1450, 1450, 500, 1000, 600, 600, 100, 600, 180, 100, 100};
+/** \brief Default settings array */
 static const machine_setting _ms_std [NUM_SETTINGS] = { 900, 1000, 1450, 150,  300,  40,  40,  75,  10,  60, 100,  75};
 
-/** Local UI folder objects for updating machine settings */
-static local_ui_folder_tree settings_modifier;
-static local_ui_folder folder_root;
-static local_ui_folder folder_settings;
-static local_ui_folder folder_settings_temp;
-static local_ui_folder folder_settings_temp_brew;
-static local_ui_folder folder_settings_temp_hot;
-static local_ui_folder folder_settings_temp_steam;
-static local_ui_folder folder_settings_weight;
-static local_ui_folder folder_settings_weight_yield;
-static local_ui_folder folder_settings_weight_dose;
-static local_ui_folder folder_settings_more;
-static local_ui_folder folder_settings_more_power;
-static local_ui_folder folder_settings_more_power_brew;
-static local_ui_folder folder_settings_more_power_hot;
-static local_ui_folder folder_settings_more_preinfuse;
-static local_ui_folder folder_settings_more_preinfuse_on_time;
-static local_ui_folder folder_settings_more_preinfuse_on_power;
-static local_ui_folder folder_settings_more_preinfuse_off_time;
-static local_ui_folder folder_settings_more_misc;
-static local_ui_folder folder_settings_more_misc_timeout;
-static local_ui_folder folder_settings_more_misc_ramp_time;
-static local_ui_folder folder_presets;
-static local_ui_folder folder_presets_profile_a;
-static local_ui_folder folder_presets_profile_a_0;
-static local_ui_folder folder_presets_profile_a_1;
-static local_ui_folder folder_presets_profile_a_2;
-static local_ui_folder folder_presets_profile_b;
-static local_ui_folder folder_presets_profile_b_0;
-static local_ui_folder folder_presets_profile_b_1;
-static local_ui_folder folder_presets_profile_b_2;
-static local_ui_folder folder_presets_profile_c;
-static local_ui_folder folder_presets_profile_c_0;
-static local_ui_folder folder_presets_profile_c_1;
-static local_ui_folder folder_presets_profile_c_2;
+static local_ui_folder_tree settings_modifier; /**< \brief Local UI folder tree for updating machine settings*/
+static local_ui_folder folder_root; /**< \brief Local UI folder: / */
+static local_ui_folder folder_settings; /**< \brief Local UI folder: /settings/ */
+static local_ui_folder folder_settings_temp; /**< \brief Local UI folder: /settings/temp/ */
+static local_ui_folder folder_settings_temp_brew; /**< \brief Local UI folder: /settings/temp/brew/ */
+static local_ui_folder folder_settings_temp_hot; /**< \brief Local UI folder: /settings/temp/hot/ */
+static local_ui_folder folder_settings_temp_steam; /**< \brief Local UI folder: /settings/temp/steam/ */
+static local_ui_folder folder_settings_weight; /**< \brief Local UI folder: /settings/weight/ */
+static local_ui_folder folder_settings_weight_yield; /**< \brief Local UI folder: /settings/weight/yield/ */
+static local_ui_folder folder_settings_weight_dose; /**< \brief Local UI folder: /settings/weight/dose/ */
+static local_ui_folder folder_settings_more; /**< \brief Local UI folder: /settings/more/ */
+static local_ui_folder folder_settings_more_power; /**< \brief Local UI folder: /settings/more/power/ */
+static local_ui_folder folder_settings_more_power_brew; /**< \brief Local UI folder: /settings/more/power/brew/ */
+static local_ui_folder folder_settings_more_power_hot; /**< \brief Local UI folder: /settings/more/power/hot/ */
+static local_ui_folder folder_settings_more_preinfuse; /**< \brief Local UI folder: /settings/more/preinfuse/ */
+static local_ui_folder folder_settings_more_preinfuse_on_time; /**< \brief Local UI folder: /settings/more/preinfuse/on_time/ */
+static local_ui_folder folder_settings_more_preinfuse_on_power; /**< \brief Local UI folder: /settings/more/preinfuse/on_power/ */
+static local_ui_folder folder_settings_more_preinfuse_off_time; /**< \brief Local UI folder: /settings/more/preinfuse/off_time/ */
+static local_ui_folder folder_settings_more_misc; /**< \brief Local UI folder: /settings/more/misc/ */
+static local_ui_folder folder_settings_more_misc_timeout; /**< \brief Local UI folder: /settings/more/misc/timeout/ */
+static local_ui_folder folder_settings_more_misc_ramp_time; /**< \brief Local UI folder: /settings/more/misc/ramp_time/ */
+static local_ui_folder folder_presets; /**< \brief Local UI folder: /presets/ */
+static local_ui_folder folder_presets_profile_a; /**< \brief Local UI folder: /presets/profile_a/ */
+static local_ui_folder folder_presets_profile_a_0; /**< \brief Local UI folder: /presets/profile_a/0/ */
+static local_ui_folder folder_presets_profile_a_1; /**< \brief Local UI folder: /presets/profile_a/1/ */
+static local_ui_folder folder_presets_profile_a_2; /**< \brief Local UI folder: /presets/profile_a/2/ */
+static local_ui_folder folder_presets_profile_b; /**< \brief Local UI folder: /presets/profile_b/ */
+static local_ui_folder folder_presets_profile_b_0; /**< \brief Local UI folder: /presets/profile_b/0/ */
+static local_ui_folder folder_presets_profile_b_1; /**< \brief Local UI folder: /presets/profile_b/1/ */
+static local_ui_folder folder_presets_profile_b_2; /**< \brief Local UI folder: /presets/profile_b/2/ */
+static local_ui_folder folder_presets_profile_c; /**< \brief Local UI folder: /presets/profile_c/ */
+static local_ui_folder folder_presets_profile_c_0; /**< \brief Local UI folder: /presets/profile_c/0/ */
+static local_ui_folder folder_presets_profile_c_1; /**< \brief Local UI folder: /presets/profile_c/1/ */
+static local_ui_folder folder_presets_profile_c_2; /**< \brief Local UI folder: /presets/profile_c/2/ */
 
 /**
  * \brief Returns the starting address of the given settings profile
@@ -85,6 +93,12 @@ static bool _machine_settings_verify(){
     return false;
 }
 
+/**
+ * \brief Save the current settings array, \p _ms to the MB85 FRAM, \p _mem.
+ * 
+ * \param profile_id The number to save the profile under, 0 <= profile_id <= 8
+ * \return PICO_ERROR_GENERIC if library not setup. Else PICO_ERROR_GENERIC.
+ */
 static int _machine_settings_save_profile(uint8_t profile_id){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     // Break link with profile buffer and connect to profile save address
@@ -97,6 +111,12 @@ static int _machine_settings_save_profile(uint8_t profile_id){
     return PICO_ERROR_NONE;
 }
 
+/**
+ * \brief Load the indicated profile into the settings array, \p _ms from the MB85 FRAM, \p _mem.
+ * 
+ * \param profile_id The profile number to load, 0 <= profile_id <= 8
+ * \return PICO_ERROR_GENERIC if library not setup. Else PICO_ERROR_GENERIC.
+ */
 static int _machine_settings_load_profile(uint8_t profile_id){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     // Break link with profile buffer and connect to profile load address

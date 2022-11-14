@@ -22,7 +22,7 @@ static int mb85_fram_i2c_read(mb85_fram * dev, reg_addr mem_addr, uint16_t len, 
  * \param dev Initalized MB85 device to write to.
  * \param mem_addr Starting memory address to write to.
  * \param len Number of bytes to write.
- * \param dst Pointer to data array of length \p len holding the data to be written.
+ * \param src Pointer to data array of length \p len holding the data to be written.
  * 
  * \returns 0 on success. I2C_BUS error code on failure.
 */

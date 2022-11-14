@@ -42,7 +42,7 @@ void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * ro
  * \param folder Pointer to the folder which the subfolder is added to.
  * \param subfolder Pointer to the subfolder struct.
  * \param subfolder_name Human readable name for the subfolder.
- * \param action Pointer to an action callback. Null if no action.
+ * \param subfolder_action Pointer to an action callback. Null if no action.
  */
 void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolder, const char * subfolder_name, folder_action subfolder_action);
 
