@@ -23,7 +23,7 @@ static int64_t _value_flasher_callback(alarm_id_t id, void *user_data){
     
     if(vf->_alarm_id != id) return 0;
 
-    if (vf->out_flags != 0){
+    if (*(vf->out_flags) != 0){
         *(vf->out_flags) = 0;
     } else {
         if (vf->_cur_val >= 100){
