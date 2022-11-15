@@ -100,7 +100,7 @@ void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx
         tree->cur_folder = tree->cur_folder->subfolders[subfolder_idx];
         #ifdef DEBUG_LOCAL_UI
         if(tree->cur_folder->action != NULL){
-            printf("Entered action folder [%s].\n");
+            printf("Entered action folder [%s].\n", tree->cur_folder->name);
         } else {
             printf("Entered folder with subfolders:\n");
             for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
