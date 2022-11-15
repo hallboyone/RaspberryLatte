@@ -90,12 +90,22 @@ static int zero_scale(){
 }
 
 /**
+ * \brief Convert percent power to value between 60 and 127 or 0 if percent is 0.
+ * 
+ * \param percent An integer percentage between 0 and 100
+ * \return 0 if percent is 0. Else a value between 60 and 127
+*/
+static inline uint8_t convert_pump_power(uint8_t percent){
+    return (percent==0) ? 0 : 0.6 * percent + 67;
+}
+
+/**
  * \brief Setup the autobrew routine using the latest machine settings.
  */
 static void espresso_machine_autobrew_setup(){
     uint32_t preinf_ramp_dur;
     uint32_t preinf_on_dur;
-    uint8_t preinf_pwr = *settings->autobrew.preinf_power;
+    uint8_t preinf_pwr = convert_pump_power(*settings->autobrew.preinf_power);
     if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.preinf_on_time){
         // Ramp and then run for remaining time
         preinf_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
@@ -108,7 +118,7 @@ static void espresso_machine_autobrew_setup(){
 
     uint32_t brew_ramp_dur;
     uint32_t brew_on_dur;
-    uint8_t brew_pwr = *settings->brew.power;
+    uint8_t brew_pwr = convert_pump_power(*settings->brew.power);
     if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.timeout){
         // Ramp and then run for remaining time
         brew_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
@@ -212,12 +222,12 @@ static void espresso_machine_update_pump(){
                 break;
             case MODE_HOT:
                 heater_pid.K.f = 0;
-                phasecontrol_set_duty_cycle(&pump, *settings->hot.power);
+                phasecontrol_set_duty_cycle(&pump, convert_pump_power(*settings->hot.power));
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_MANUAL:
                 heater_pid.K.f = 0;
-                phasecontrol_set_duty_cycle(&pump, 127);
+                phasecontrol_set_duty_cycle(&pump, convert_pump_power(*settings->brew.power));
                 binary_output_put(&solenoid, 0, 1);
                 break;
             case MODE_AUTO:
