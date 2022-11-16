@@ -1,5 +1,7 @@
 /** @defgroup value_flasher Value Flasher Library
  * 
+ * \brief Library for displaying integer values from 0 to 999 using flashes in a bitfield.
+ * 
  * The value_flasher object will point at an external bitfield with bits 0 representing the
  * ones place, bit 1 the tens, and bit 2 the hundreds. Once setup, the hundreds bit will
  * blink i_100 times at a user set frequency where i_100 is the number in the value's 

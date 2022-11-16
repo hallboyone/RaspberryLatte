@@ -1,5 +1,7 @@
 /** @defgroup machine_settings Machine Settings Library
  * 
+ *  \brief Library managing the settings of a single boiler espresso machine.
+ * 
  *  The machine_settings functionality can be divided into three groups. First, the settings
  *  must be accessible by external programs. This is accomplished with const machine_settings 
  *  pointers that are passed out after calling ::machine_settings_setup or ::machine_settings_acquire.

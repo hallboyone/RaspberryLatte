@@ -1,7 +1,18 @@
+/**
+ * \ingroup local_ui
+ * 
+ * \file local_ui.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Local UI source
+ * \version 0.1
+ * \date 2022-11-15
+*/
+
+#include "local_ui.h"
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "local_ui.h"
 
 #define DEBUG_LOCAL_UI
 
