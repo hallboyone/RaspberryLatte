@@ -36,7 +36,7 @@ typedef bool (*folder_action)(folder_id, uint8_t);
  * list with some extra functionality. Therefore, the folder can be thought
  * of as a node in a linked list.
 */
-typedef struct {
+typedef struct local_ui_folder_ {
     uint32_t id;                            /**< A unique ID assigned to a folder */
     char * name;                            /**< The folder's name as a null-terminated string*/
     folder_action action;                   /**< An optional folder action callback*/
