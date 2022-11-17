@@ -16,7 +16,15 @@
 
 #define DEBUG_LOCAL_UI
 
-static uint8_t _local_ui_id_splitter(const uint32_t id, const uint8_t level){
+/**
+ * \brief Returns the portion of the ID at the indicated level.
+ * 
+ * \param id A \ref folder_id to split
+ * \param level The level of \p id to return
+ * 
+ * \return Bits of \p id ranging from (\p level*4) to (\p level*4+3)
+*/
+static uint8_t _local_ui_id_splitter(const folder_id id, const uint8_t level){
     if(level >= 8) return 0;
     return (id & (0xF<<(4*level)))>>(4*level);
 }

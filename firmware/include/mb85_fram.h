@@ -4,10 +4,10 @@
  * \brief Driver for the MB85 series of FRAM ICs.
  * 
  * The MB85 series of FRAM ICs provide fast, non-volatile memory
- * in a variety of sizes. This library abstracts the process of saving variable remotely
- * on the IC over a I2C bus. Once the device has been setup using ::mb85_fram_setup, local 
+ * in a variety of sizes. This library abstracts the process of saving variables remotely
+ * on the FRAM over an I2C bus. Once the device has been setup using ::mb85_fram_setup, local 
  * memory locations can linked with ::mb85_fram_link_var. The local variable can be used
- * as normal in your program and its value synced with the remote value on the FRAM IC
+ * as normal in your program, and its value synced with the remote value on the FRAM IC
  * with ::mb85_fram_load and ::mb85_fram_save. 
  * 
  * @{
