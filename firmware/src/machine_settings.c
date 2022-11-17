@@ -212,6 +212,8 @@ static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
         _ms[ms_id] += deltas[val];
         if (_ms[ms_id] < _ms_min[ms_id]) _ms[ms_id] = _ms_min[ms_id];
         else if (_ms[ms_id] > _ms_max[ms_id]) _ms[ms_id] = _ms_max[ms_id];
+        
+        mb85_fram_save(_mem, _ms);
     } else if (local_ui_id_in_subtree(&folder_presets, id)){
         // Presets
         const int8_t profile_id = _machine_settings_folder_to_setting(id);
