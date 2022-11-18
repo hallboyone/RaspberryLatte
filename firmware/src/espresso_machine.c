@@ -106,6 +106,7 @@ static void espresso_machine_autobrew_setup(){
     uint32_t preinf_ramp_dur;
     uint32_t preinf_on_dur;
     uint8_t preinf_pwr = convert_pump_power(*settings->autobrew.preinf_power);
+    uint8_t preinf_pwr_start = (preinf_pwr == 0) ? 0 : 60;
     if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.preinf_on_time){
         // Ramp and then run for remaining time
         preinf_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
@@ -132,12 +133,14 @@ static void espresso_machine_autobrew_setup(){
     uint32_t preinf_off_time = *settings->autobrew.preinf_off_time*100000UL;
 
     autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), 60,         preinf_pwr, preinf_ramp_dur, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr, preinf_pwr, preinf_on_dur,   NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,          0,          preinf_off_time, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,         brew_pwr,   brew_ramp_dur,   &scale_at_output);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,   brew_pwr,   brew_on_dur,     &scale_at_output);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), preinf_pwr_start, preinf_pwr, preinf_ramp_dur, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr,       preinf_pwr, preinf_on_dur,   NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,                0,          preinf_off_time, NULL);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,               brew_pwr,   brew_ramp_dur,   &scale_at_output);
+    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,         brew_pwr,   brew_on_dur,     &scale_at_output);
     autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
+
+    printf("pre - %d, brew - %d\n", preinf_pwr, brew_pwr);
 }
 
 /**
