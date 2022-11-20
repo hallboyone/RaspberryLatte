@@ -12,7 +12,7 @@ A full stack suite to add smarts to a single boiler espresso machine using a Ras
   - Machine statistic tracking *[Planned]*
   - Shot diagnosis and logging  *[Planned]*
 - **Low Cost:** The cost should be minimized. The base hardware should be less than $100.
-- **Discrete Appearance:** External parts, which would typically be 3D printed, should be minimized. Furthermore, the design should not require any external displays. In other words, the finished product should be discrete and not *look* like a DIY IoT device. 
+- **Discreet Appearance:** External parts, which would typically be 3D printed, should be minimized. Furthermore, the design should not require any external displays. In other words, the finished product should be discreet and not *look* like a DIY IoT device. 
 
 
 ## Description
