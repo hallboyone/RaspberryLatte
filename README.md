@@ -1,4 +1,4 @@
-# RaspberryLatte
+# <img src="https://github.com/hallboyone/RaspberryLatte/blob/development/docs/Assets/logo.png" height="120"> RaspberryLatte 
 
 A full stack suite to add smarts to a single boiler espresso machine using a Raspberry Pi Pico as the brains. The project was started with the following goals in mind:
 - **Feature Rich:** Going beyond the standard PID tempurature control, RaspberryLatte should provide advanced features that make pulling the perfect shot easier. These include
