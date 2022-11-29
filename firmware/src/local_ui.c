@@ -16,7 +16,6 @@
 
 #define DEBUG_LOCAL_UI
 
-static uint16_t _folder_count = 0;
 /**
  * \brief Returns the portion of the ID at the indicated level.
  * 
@@ -72,8 +71,7 @@ void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * ro
     root->action = NULL;
     root->subfolders = NULL;
     root->_subfolder_buf_size = 0;
-    root->num = _folder_count;
-    _folder_count += 1;
+    root->rel_id = 0;
 }
 
 void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolder, const char * subfolder_name, folder_action subfolder_action){
@@ -94,8 +92,7 @@ void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolde
     subfolder->num_subfolders = 0;
     subfolder->subfolders = NULL;
     subfolder->_subfolder_buf_size = 0;
-    subfolder->num = _folder_count;
-    _folder_count += 1;
+    subfolder->rel_id = folder->rel_id + folder->num_subfolders;
 }
 
 void local_ui_go_to_root(local_ui_folder_tree * tree){

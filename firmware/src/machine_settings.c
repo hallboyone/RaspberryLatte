@@ -322,7 +322,7 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
             } else {
                 // else in nav folder. Display id.
                 value_flasher_end(&_setting_flasher);
-                _ms_struct.ui_mask = settings_modifier.cur_folder->num;
+                _ms_struct.ui_mask = settings_modifier.cur_folder->rel_id;
             }
         }
     }

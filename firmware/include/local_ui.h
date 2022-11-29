@@ -38,7 +38,7 @@ typedef bool (*folder_action)(folder_id, uint8_t);
 */
 typedef struct local_ui_folder_ {
     uint32_t id;                            /**< A unique ID assigned to a folder */
-    uint16_t num;                           /**< An unstructured ID based on when subfolder was added. */
+    uint16_t rel_id;                        /**< An unstructured ID based on parent rel_id and subfolder index. Between 0 and 8.*/
     char * name;                            /**< The folder's name as a null-terminated string*/
     folder_action action;                   /**< An optional folder action callback*/
     uint8_t num_subfolders;                 /**< The number of subfolders under folder */
