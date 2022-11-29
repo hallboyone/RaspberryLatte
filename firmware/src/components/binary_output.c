@@ -26,7 +26,7 @@ int binary_output_put(binary_output * b, uint8_t idx, bool val){
 
 int binary_output_mask(binary_output * b, uint mask){
     for(int i = 0; i < b->num_pins; i++){
-        gpio_put(b->pins[i], mask & 1);
+        gpio_put(b->pins[b->num_pins-i-1], mask & 1);
         mask >>= 1;
     }
     return 1;

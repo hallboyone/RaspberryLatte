@@ -3,6 +3,9 @@
 #include "espresso_machine.h"
 #include "loop_rate_limiter.h"
 
+#include "machine_settings.h"
+#include "pinout.h"
+
 int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
@@ -21,7 +24,9 @@ int main(){
 
         if(last_msg_time + 1000000 <= time_us_64()){
             last_msg_time += 1000000;
-            printf("T = %0.2f / %0.2f\n", espresso_machine->boiler.temperature/16., espresso_machine->boiler.setpoint/16.);
+            if(espresso_machine->boiler.setpoint){
+                printf("T = %0.2f / %0.2f\n", espresso_machine->boiler.temperature/16., espresso_machine->boiler.setpoint/16.);
+            }
         }
         loop_rate_limiter_us(&last_loop_time_us, 10000);
     }

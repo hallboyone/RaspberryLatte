@@ -8,7 +8,7 @@
  * (.K), sensor, and plant. The sensor is a pointer to a function that takes no parameters and returns a
  * float while the plant is a pointer to a void function that takes a single float parameter.
  * 
- * \example  pid_ex.c
+ * \example  examples/pid_ex.c
  * Once every 100ms, this code will call sensor_read_float(), compute the resulting input u, and 
  * then call plant_apply_float(u).
  */

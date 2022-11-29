@@ -42,7 +42,7 @@ typedef struct {
  */
 typedef struct {
     uint8_t pump_pwr_start;   /**< Starting or constant power */
-    uint8_t pump_pwr_delta;   /**<  Change in power over leg. If constant, set to 0.*/
+    uint8_t pump_pwr_delta;   /**<  Change in power over leg. If constant, set to 0. \bug Should be unsigned*/
     uint32_t timeout_us;      /**<  Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
     autobrew_fun fun;         /**<  Void function to call if FUNCTION_CALL leg*/
     autobrew_trigger trigger; /**<  Function returning bool triggering some action*/

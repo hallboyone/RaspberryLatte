@@ -51,6 +51,7 @@ void phasecontrol_setup(phasecontrol * p, uint8_t zerocross_pin, uint8_t out_pin
 /**
  * \brief Update the duty cycle. If value is out of range (0<=val<=127), it is clipped.
  * 
+ * \param p Pointer to phase control object that will be updated
  * \param duty_cycle New duty cycle value between 0 and 127 inclusive.
  */
 int phasecontrol_set_duty_cycle(phasecontrol * p, uint8_t duty_cycle);
