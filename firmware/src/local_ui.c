@@ -16,6 +16,7 @@
 
 #define DEBUG_LOCAL_UI
 
+static uint16_t _folder_count = 0;
 /**
  * \brief Returns the portion of the ID at the indicated level.
  * 
@@ -71,6 +72,8 @@ void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * ro
     root->action = NULL;
     root->subfolders = NULL;
     root->_subfolder_buf_size = 0;
+    root->num = _folder_count;
+    _folder_count += 1;
 }
 
 void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolder, const char * subfolder_name, folder_action subfolder_action){
@@ -91,6 +94,8 @@ void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolde
     subfolder->num_subfolders = 0;
     subfolder->subfolders = NULL;
     subfolder->_subfolder_buf_size = 0;
+    subfolder->num = _folder_count;
+    _folder_count += 1;
 }
 
 void local_ui_go_to_root(local_ui_folder_tree * tree){
@@ -138,4 +143,12 @@ bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
     const uint8_t level = _local_ui_folder_level(f);
     const folder_id id_mask = ~(~(0)<<(4*level));
     return f->id == (id & id_mask);
+}
+
+uint8_t local_ui_descriptive_id(local_ui_folder * f){
+    uint8_t desc_id = 0;
+    for(uint8_t i = 0; i < _local_ui_folder_level(f); i++){
+        desc_id += _local_ui_id_splitter(f->id, i) + 1;
+    }
+    return desc_id;
 }
