@@ -141,11 +141,3 @@ bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
     const folder_id id_mask = ~(~(0)<<(4*level));
     return f->id == (id & id_mask);
 }
-
-uint8_t local_ui_descriptive_id(local_ui_folder * f){
-    uint8_t desc_id = 0;
-    for(uint8_t i = 0; i < _local_ui_folder_level(f); i++){
-        desc_id += _local_ui_id_splitter(f->id, i) + 1;
-    }
-    return desc_id;
-}
