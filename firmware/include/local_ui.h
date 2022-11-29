@@ -37,19 +37,19 @@ typedef bool (*folder_action)(folder_id, uint8_t);
  * of as a node in a linked list.
 */
 typedef struct local_ui_folder_ {
-    uint32_t id;                            /**< A unique ID assigned to a folder */
-    uint16_t rel_id;                        /**< An unstructured ID based on parent rel_id and subfolder index. Between 0 and 8.*/
-    char * name;                            /**< The folder's name as a null-terminated string*/
-    folder_action action;                   /**< An optional folder action callback*/
-    uint8_t num_subfolders;                 /**< The number of subfolders under folder */
-    struct local_ui_folder_ ** subfolders;  /**< A list of pointers to a folder's subfolders */
-    uint8_t _subfolder_buf_size;            /**< Internal var used to allocate space for subfolder pointers*/
+    uint32_t id;                            /**< \brief A unique ID assigned to a folder */
+    uint16_t rel_id;                        /**< \brief An unstructured ID based on parent rel_id and subfolder index.*/
+    char * name;                            /**< \brief The folder's name as a null-terminated string*/
+    folder_action action;                   /**< \brief An optional folder action callback*/
+    uint8_t num_subfolders;                 /**< \brief The number of subfolders under folder */
+    struct local_ui_folder_ ** subfolders;  /**< \brief A list of pointers to a folder's subfolders */
+    uint8_t _subfolder_buf_size;            /**< \brief Internal var used to allocate space for subfolder pointers*/
 } local_ui_folder;
 
 /** \brief Object representing an entire folder structure. */
 typedef struct {
-    local_ui_folder * root;       /**< Pointer to the root of the tree */
-    local_ui_folder * cur_folder; /**< Pointer to the tree's active folder*/
+    local_ui_folder * root;       /**< \brief Pointer to the root of the tree */
+    local_ui_folder * cur_folder; /**< \brief Pointer to the tree's active folder*/
 } local_ui_folder_tree;
 
 /**
