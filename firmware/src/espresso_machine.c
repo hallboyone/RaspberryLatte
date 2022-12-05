@@ -26,6 +26,7 @@ const float PID_GAIN_D = 0.0005;
 const float PID_GAIN_F = 0.00005;
 
 const float SCALE_CONVERSION_MG = -0.152710615479;
+const float PRESSURE_CONVERSION_BAR = 1.0;
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -302,7 +303,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     pid_init(&heater_pid, 0, 150, 1000);
 
     // Setup the pressure sensor
-    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN);
+    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN, PRESSURE_CONVERSION_BAR);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
