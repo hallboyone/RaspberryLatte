@@ -1,12 +1,22 @@
-#include <stdlib.h>
-#include <string.h>
+/**
+ * \ingroup binary_input
+ * 
+ * \file binary_input.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief GPIO Binary-input Library source
+ * \version 0.2
+ * \date 2022-08-16
+*/
+
+#include "binary_input.h"
 
 #include "pico/time.h"
 
-#include "binary_input.h"
-#include "status_ids.h"
+#include <stdlib.h>
+#include <string.h>
 
-/** \brief The binary input owning the corrisponding GPIO */
+
+/** \brief The binary input owning the corresponding GPIO */
 static binary_input * _binary_inputs [32] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
                                              NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
@@ -15,8 +25,8 @@ static binary_input * _binary_inputs [32] = {NULL, NULL, NULL, NULL, NULL, NULL,
 /** \brief Sets flag that indicates bouncing has ended
  * 
  * When a debounced pin transitions between states, a flag is set that indicates the pin recently
- * changed and an alarm is set that will call this callback to clear the alarm. If that alarm is 
- * not canceled (by another transition, for example), the binary_input has setteled and future read
+ * changed and an alarm is set that will call this callback to clear the flag. If that alarm is 
+ * not canceled (by another transition, for example), the binary_input has settled and future read
  * operations will read the pins state instead of using the recorded ones
  */
 static int64_t _debounce_callback(alarm_id_t id, void * b_in){
@@ -35,7 +45,7 @@ static void _set_debounce_alarm(uint gpio, uint32_t events){
 
 /**
  * \brief If input is not bouncing, iterates through each pin and saves its state 
- * while taking into account pull direction and invertion.
+ * while taking into account pull direction and inversion.
  * 
  * \param b Pointer to binary_input object that will be updated.
  */
@@ -49,7 +59,7 @@ static inline void _binary_input_update_pin_states(binary_input * b){
     }
 }
 
-void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, uint8_t pull_dir, uint debounce_us, bool invert, bool muxed){
+void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, binary_input_pull_dir pull_dir, uint debounce_us, bool invert, bool muxed){
     // Copy data into b.
     b->num_pins    = num_pins;
     b->pins        = (uint8_t*)malloc(sizeof(uint8_t) * num_pins);

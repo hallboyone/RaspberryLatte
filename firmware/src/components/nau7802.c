@@ -1,3 +1,13 @@
+/**
+ * \ingroup nau7802
+ * 
+ * \file nau7802.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief NAU7802 Library source
+ * \version 0.2
+ * \date 2022-08-16
+*/
+
 #include "nau7802.h"
 
 const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
@@ -5,7 +15,7 @@ const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
 #define REG_PU_CTRL  0x0   /**< NAU7802 register address: Power-up control */
 #define REG_CTRL_1   0x01  /**< NAU7802 register address: Configuration 1 */
 #define REG_CTRL_2   0x02  /**< NAU7802 register address: Configuration 2 */
-#define REG_I2C_CTRL 0x11  /**< NAU7802 register address: I2C Configuation*/
+#define REG_I2C_CTRL 0x11  /**< NAU7802 register address: I2C Configuration*/
 #define REG_ADCO_B2  0x12  /**< NAU7802 register address: Conversion result 23-16*/
 #define REG_ADCO_B1  0x13  /**< NAU7802 register address: Conversion result 15-8*/
 #define REG_ADCO_B0  0x14  /**< NAU7802 register address: Conversion result 7-0*/

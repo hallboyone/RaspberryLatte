@@ -1,8 +1,16 @@
+/**
+ * \file binary_output.c
+ * \ingroup binary_output
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Binary Output source
+ * \version 0.1
+ * \date 2022-12-09
+ * 
+ */
+#include "binary_output.h"
+
 #include <stdlib.h>
 #include <string.h>
-
-#include "binary_output.h"
-#include "status_ids.h"
 
 void binary_output_setup(binary_output * b, const uint8_t * pins, const uint8_t num_pins){
     b->num_pins = num_pins;

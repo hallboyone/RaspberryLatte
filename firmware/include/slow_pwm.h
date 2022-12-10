@@ -1,11 +1,17 @@
 /**
- * \file slow_pwm.h
- * \brief Sets up a low frequnecy (~0.5Hz) PWM signal
- * \author Richard Hall (hallboyone@icloud.com)
- *
+ * \defgroup slow_pwm Slow PWM Library
+ * \ingroup utils
+ * \brief Sets up a low frequency (~0.5Hz) PWM signal
+ * 
  * Uses the alarm functions built into the rp2040 SDK. Useful in cases where fast switching
  * would be undesirable such as zerocross SSRs.
+ * 
+ * /{
+ * \file slow_pwm.h
+ * \brief Slow PWM header
+ * \author Richard Hall (hallboyone@icloud.com)
  */
+
 #ifndef SLOW_PWM_H
 #define SLOW_PWM_H
 
@@ -54,3 +60,4 @@ uint8_t slow_pwm_set_duty(slow_pwm * s, uint8_t duty);
  */
 uint8_t slow_pwm_set_float_duty(slow_pwm * s, float u);
 #endif
+/** \} */

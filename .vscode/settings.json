@@ -38,7 +38,11 @@
         "machine_configuration.h": "c",
         "loop_rate_limiter.h": "c",
         "i2c_bus.h": "c",
-        "value_flasher.h": "c"
+        "value_flasher.h": "c",
+        "autobrew.h": "c",
+        "stdint.h": "c",
+        "nau7802.h": "c",
+        "clocks.h": "c"
     },
     "cSpell.words": [
         "autobrew",

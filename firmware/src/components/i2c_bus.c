@@ -1,3 +1,10 @@
+/**
+ * \file 
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief I2C Bus source
+ * \version 0.1
+ * \date 2022-08-17
+ */
 #include "i2c_bus.h"
 #include <string.h>
 /**

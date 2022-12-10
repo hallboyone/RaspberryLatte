@@ -1,5 +1,5 @@
-/** @defgroup value_flasher Value Flasher Library
- * 
+/** \defgroup value_flasher Value Flasher Library
+ * \ingroup utils
  * \brief Library for displaying integer values from 0 to 999 using flashes in a bitfield.
  * 
  * The value_flasher object will point at an external bitfield with bits 0 representing the

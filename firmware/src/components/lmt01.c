@@ -1,24 +1,35 @@
-#include "hardware/clocks.h"
+ /**
+ * \file
+ * \ingroup lmt01
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief LMT01 Driver source
+ * \version 0.1
+ * \date 2022-08-16
+ */
 
 #include "lmt01.h"
 #include "lmt01.pio.h"
 
-#include "status_ids.h"
+#include "hardware/clocks.h"
 
-static const int PULSE_COUNTS [21] = { 26, 181, 338, 494, 651, 808,
-                                       966, 1125, 1284, 1443, 1603, 
-                                      1762, 1923, 2084, 2245, 2407, 
-                                      2569, 2731, 2894, 3058, 3220};
+static const int PULSE_COUNTS [21] = { 
+    26, 181, 338, 494, 651, 808,
+    966, 1125, 1284, 1443, 1603, 
+    1762, 1923, 2084, 2245, 2407, 
+    2569, 2731, 2894, 3058, 3220
+    };
 
-static const float PULSE_SLOPES [20] = {1.03226,1.01911,1.02564,1.01911,1.01911,
-                                        1.01266,1.00629,1.00629,1.00629,1.00629,
-                                        1.00000,0.99379,0.99379,0.99379,0.98765,
-                                        0.98765,0.98765,0.98765,0.97561,0.99379};
+static const float PULSE_SLOPES [20] = {
+    1.03226,1.01911,1.02564,1.01911,1.01911,
+    1.01266,1.00629,1.00629,1.00629,1.00629,
+    1.00000,0.99379,0.99379,0.99379,0.98765,
+     0.98765,0.98765,0.98765,0.97561,0.99379};
 
-static const int PULSE_SHIFTS [20] = {-827, -824, -827, -823, -823, 
-                                      -818, -812, -812, -812, -812,
-                                      -802, -791, -791, -791, -777, 
-                                      -777, -777, -777, -742, -798};
+static const int PULSE_SHIFTS [20] = {
+    -827, -824, -827, -823, -823, 
+    -818, -812, -812, -812, -812,
+    -802, -791, -791, -791, -777, 
+    -777, -777, -777, -742, -798};
 
 /**
  * \brief Converts a pulse count to the corresponding temperature multiplied by 16
@@ -26,7 +37,7 @@ static const int PULSE_SHIFTS [20] = {-827, -824, -827, -823, -823,
  * \param pulse_count the number of pulses from the LMT01 sensor
  * \return The corresponding temp. Divide by 16 to get temp in C
  */
-static inline int pulse2Temp(const int pulse_count){
+static inline int _lmt01_pulse_to_temp(const int pulse_count){
     if (pulse_count < PULSE_COUNTS[1]){
         return (pulse_count*PULSE_SLOPES[0] + PULSE_SHIFTS[0]);
     } else if (pulse_count < PULSE_COUNTS[2]){
@@ -70,7 +81,13 @@ static inline int pulse2Temp(const int pulse_count){
     }
 }
 
-static inline void lmt01_program_init(lmt01 * l, uint offset) {
+/**
+ * \brief Setup and start the PIO program defined in lit01.pio
+ * 
+ * \param l The \ref lmt01 structure that will be attached to the PIO program.
+ * \param offset The offset into the current PIO memory in which to load the program. 
+ */
+static inline void _lmt01_program_init(lmt01 * l, uint offset) {
     // Setup dat_pin
     pio_sm_set_consecutive_pindirs(l->_pio, l->_sm, l->_dat_pin, 1, false);
     pio_gpio_init(l->_pio, l->_dat_pin);
@@ -93,7 +110,7 @@ static inline void lmt01_program_init(lmt01 * l, uint offset) {
 
 int lmt01_read(lmt01 * l){
     while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
-        l->_latest_temp = pulse2Temp(pio_sm_get_blocking(l->_pio, l->_sm));
+        l->_latest_temp = _lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm));
     }
     return l->_latest_temp;
 }
@@ -109,7 +126,7 @@ void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
     l->_pio =  (pio_num==0 ? pio0 : pio1);
     uint offset = pio_add_program(l->_pio, &lmt01_program);
     l->_sm = pio_claim_unused_sm(l->_pio, true);
-    lmt01_program_init(l, offset);
+    _lmt01_program_init(l, offset);
 
     while(l->_latest_temp<=0 || l->_latest_temp>2800){
         // Wait till a valid temperature is measured

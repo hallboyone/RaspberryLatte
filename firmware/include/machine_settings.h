@@ -1,4 +1,5 @@
-/** @defgroup machine_settings Machine Settings Library
+/** \defgroup machine_settings Machine Settings Library
+ *  \ingroup machine_logic
  * 
  *  \brief Library managing the settings of a single boiler espresso machine.
  * 

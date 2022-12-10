@@ -1,12 +1,24 @@
 /**
+ * \defgroup espresso_machine Espresso Machine Main
+ * \ingroup machine_logic
+ * \brief The functions and logic responsible for the operation of a single boiler espresso machine.
+ * 
+ * This is the core of the RaspberryLatte firmware. It handles the setup of all the drivers, tracks
+ * the machine states, and updates its outputs accordingly. The logic is broken into 5 main parts.
+ * -# Update state: Monitor the states of the machine switches and update parameters accordingly.
+ * -# Update settings: Update machine settings using the \ref machine_settings.
+ * -# Update boiler: Set the boiler's output and read its current temperature.
+ * -# Update pump: Set the pumps power setting according to the switch state and/or autobrew routine.
+ * -# Update LEDs: Set the LEDs to display the correct information given the machine context. 
+ * 
+ * Each of these 5 steps are run each time ::espresso_machine_tick is called. 
+ * 
+ * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
- * \brief Header for interfacing with a single boiler espresso machine.
+ * \brief Espresso Machine header
  * \version 0.1
  * \date 2022-08-16
- * 
- * Machine is assumed to have a power and pump switch, a mode dial, an output scale,
- * and other features.
  */
 
 #ifndef ESPRESSO_MACHINE_H
@@ -82,11 +94,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer);
  * \brief Tick the espresso machine.
  * 
  * This takes the following steps:
- * - Read the switch state
- * - Update the boiler
- * - Update the pump
- * - Update the LEDs
+ * -# Read the switch state
+ * -# Update the machine settings
+ * -# Update the boiler
+ * -# Update the pump
+ * -# Update the LEDs
  * These functions populate the state_viewer passed into the setup function.
  */
 void espresso_machine_tick();
 #endif
+/** \} */

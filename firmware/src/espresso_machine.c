@@ -1,3 +1,12 @@
+/**
+ * \file espresso_machine.c
+ * \ingroup espresso_machine
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Espresso Machine source
+ * \version 0.1
+ * \date 2022-12-09
+ */
+
 #include "espresso_machine.h"
 
 #include <stdio.h>
@@ -26,6 +35,7 @@ const float PID_GAIN_D = 0.0005;
 const float PID_GAIN_F = 0.00005;
 
 const float SCALE_CONVERSION_MG = -0.152710615479;
+const float PRESSURE_CONVERSION_BAR = 1.0;
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -49,7 +59,6 @@ static const machine_settings*   settings;
 
 /** Autobrew and control objects */
 static pid_ctrl         heater_pid;
-static autobrew_leg     autobrew_legs [6];
 static autobrew_routine autobrew_plan;
 
 /**
@@ -132,15 +141,11 @@ static void espresso_machine_autobrew_setup(){
 
     uint32_t preinf_off_time = *settings->autobrew.preinf_off_time*100000UL;
 
-    autobrew_leg_setup_function_call(&(autobrew_legs[0]),0, &zero_scale);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[1]), preinf_pwr_start, preinf_pwr, preinf_ramp_dur, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[2]), preinf_pwr,       preinf_pwr, preinf_on_dur,   NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[3]), 0,                0,          preinf_off_time, NULL);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[4]), 60,               brew_pwr,   brew_ramp_dur,   &scale_at_output);
-    autobrew_leg_setup_linear_power(&(autobrew_legs[5]), brew_pwr,         brew_pwr,   brew_on_dur,     &scale_at_output);
-    autobrew_routine_setup(&autobrew_plan, autobrew_legs, 6);
-
-    printf("pre - %d, brew - %d\n", preinf_pwr, brew_pwr);
+    autobrew_setup_linear_power_leg(&autobrew_plan, 1, preinf_pwr_start, preinf_pwr, preinf_ramp_dur, NULL);
+    autobrew_setup_linear_power_leg(&autobrew_plan, 2, preinf_pwr,       preinf_pwr, preinf_on_dur,   NULL);
+    autobrew_setup_linear_power_leg(&autobrew_plan, 3, 0,                0,          preinf_off_time, NULL);
+    autobrew_setup_linear_power_leg(&autobrew_plan, 4, 60,               brew_pwr,   brew_ramp_dur,   &scale_at_output);
+    autobrew_setup_linear_power_leg(&autobrew_plan, 5, brew_pwr,         brew_pwr,   brew_on_dur,     &scale_at_output);
 }
 
 /**
@@ -288,6 +293,11 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     settings = machine_settings_setup(&mem);
 
+    // Setup the autobrew first leg that does not depend on machine settings
+    autobrew_routine_setup(&autobrew_plan, 6);
+    autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
+
+
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     heater_pid.K.p = PID_GAIN_P;
@@ -302,7 +312,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     pid_init(&heater_pid, 0, 150, 1000);
 
     // Setup the pressure sensor
-    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN);
+    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN, PRESSURE_CONVERSION_BAR);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};

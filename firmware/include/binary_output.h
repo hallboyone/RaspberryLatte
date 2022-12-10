@@ -1,13 +1,19 @@
 /**
- * \file
- * \author Richard Hall (hallboyone@icloud.com)
- * \brief Abstraction of configuring and writing to binary outputs on the Pi Pico
- * \version 0.1
- * \date 2022-08-16
+ * \defgroup binary_output GPIO Binary Outputs
+ * \ingroup drivers
+ * \brief Abstraction of configuring and writing binary outputs on the Pi Pico.
  * 
  * Create binary output blocks of 1 or more GPIO pins. Each block is assigned
  * a unique ID and the outputs within each block are accessed using this ID and
  * and offset into the block. 
+ * 
+ * \{
+ * 
+ * \file
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Binary Output header
+ * \version 0.1
+ * \date 2022-08-16
  */
 
 #ifndef BINARY_OUTPUT_H
@@ -53,3 +59,4 @@ int binary_output_put(binary_output * b, uint8_t idx, bool val);
  */
 int binary_output_mask(binary_output * b, uint mask);
 #endif
+/** \} */
