@@ -10,17 +10,12 @@
 
 #include "binary_input.h"
 
-#include "pico/time.h"
-
 #include <stdlib.h>
 #include <string.h>
 
+#include "pico/time.h"
 
-/** \brief The binary input owning the corresponding GPIO */
-static binary_input * _binary_inputs [32] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                             NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+#include "gpio_multi_callback.h"
 
 /** \brief Sets flag that indicates bouncing has ended
  * 
@@ -35,12 +30,13 @@ static int64_t _debounce_callback(alarm_id_t id, void * b_in){
 }
 
 /** \brief ISR for debouncing. */
-static void _set_debounce_alarm(uint gpio, uint32_t events){
-    _binary_inputs[gpio]->bouncing = true;
-    if(_binary_inputs[gpio]->debounce_alarm != -1){
-        cancel_alarm(_binary_inputs[gpio]->debounce_alarm);
+static void _set_debounce_alarm(uint gpio, uint32_t events, void * data){
+    binary_input * b = (binary_input*)data;
+    b->bouncing = true;
+    if(b->debounce_alarm != -1){
+        cancel_alarm(b->debounce_alarm);
     }
-    _binary_inputs[gpio]->debounce_alarm = add_alarm_in_us(_binary_inputs[gpio]->debounce_us, &_debounce_callback, _binary_inputs[gpio], true);
+    b->debounce_alarm = add_alarm_in_us(b->debounce_us, &_debounce_callback, b, true);
 }
 
 /**
@@ -80,10 +76,9 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
         gpio_set_dir(b->pins[p], false);
         gpio_set_pulls(b->pins[p], pull_dir == BINARY_INPUT_PULL_UP,
                        pull_dir != BINARY_INPUT_PULL_UP);
-        _binary_inputs[b->pins[p]] = b;
         if(debounce_us > 0){
             // Attach irq to each pin if debouncing
-            gpio_set_irq_enabled_with_callback(b->pins[p], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &_set_debounce_alarm);
+            gpio_multi_callback_attach(b->pins[p], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &_set_debounce_alarm, b);
         }
     }
 }
