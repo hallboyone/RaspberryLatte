@@ -19,7 +19,6 @@ target_sources(RaspberryLattePico
                PRIVATE src/components/pid.c
                PRIVATE src/components/autobrew.c
                PRIVATE src/espresso_machine.c
-               PRIVATE src/components/loop_rate_limiter.c
                PRIVATE src/components/i2c_bus.c
                PRIVATE src/components/value_flasher.c
                PRIVATE src/components/mb85_fram.c
