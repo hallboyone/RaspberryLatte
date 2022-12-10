@@ -1,7 +1,17 @@
 /**
+ * \defgroup lmt01 LMT01 Driver
+ * \ingroup drivers
+ * \brief Driver to interface with a LMT01 sensor using a PIO program.
+ * 
+ * The LMT01 is a high precision temperature sensor that periodically sends a sequence current
+ * pulses. The number of pulses is roughly proportional to the current temperature. This driver
+ * counts the number of pulses using a PIO program and converts this to the corrsponding
+ * temperature using linear interpolation between data points givin in the data sheet.
+ * 
+ * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
- * \brief Header for interfacing with LMT01 sensor using a PIO program
+ * \brief LMT01 Driver header
  * \version 0.1
  * \date 2022-08-16
  */
@@ -34,7 +44,7 @@ typedef struct{
 void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin);
 
 /**
- * \brief Returns the current temputature in 16*C. Divide by 16 6o conver to C
+ * \brief Returns the current temperature in 16*C. Divide by 16 to convert to C
  * 
  * \param l Pointer to lmt01 struct that contains the parameters for the LMT01 interface
  * 
@@ -51,3 +61,4 @@ int lmt01_read(lmt01 * l);
  */
 float lmt01_read_float(lmt01 * l);
 #endif
+/** \} */

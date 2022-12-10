@@ -1,3 +1,12 @@
+/**
+ * \file espresso_machine.c
+ * \ingroup espresso_machine
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Espresso Machine source
+ * \version 0.1
+ * \date 2022-12-09
+ */
+
 #include "espresso_machine.h"
 
 #include <stdio.h>

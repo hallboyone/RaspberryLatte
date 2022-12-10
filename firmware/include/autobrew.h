@@ -15,6 +15,7 @@
  * 
  * \todo Convert to percent power, not duty cycle. 
  * 
+ * \ingroup machine_logic
  * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)

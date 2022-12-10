@@ -1,8 +1,32 @@
 /**
+ * \defgroup pid PID Controller Library
+ * \ingroup utils
+ * \version 0.2
+ * 
+ * \brief Implementation of a PID controller.
+ * 
+ * The PID controller is very common in applications such as temperature control. This library
+ * provides an easy method of setting one up. Unlike most other libraries in RaspberryLatte, you use
+ * the PID controller by configuring its settings in a struct and then passing this struct to the
+ * ::pid_init function. This will change in the future (see To-Do below). 
+ * 
+ * The PID controller uses callback functions to read the sensor data and update the output. This makes
+ * using the setup PID as easy as passing it to ::pid_tick. This function will only tick if some minimum
+ * length of time has passed since the last tick, thereby limiting the update frequency. 
+ * 
+ * The derivative, if used, is computed as the slope of best fit for all points in some interval. This
+ * helps filter noise that could negatively effect performance. Furthermore, the integral contains 
+ * windup bounds that automatically clip the error sum at user-defined values.
+ * 
+ * 
+ * \todo make consistent with rest of RaspberryLatte's firmware. 
+ * 
+ * \{
+ * 
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
- * \brief Header file defining objects and functions for implementing PID controllers on the RP2040.
- *  \date 2022-08-16
+ * \brief PID Library header
+ * \date 2022-08-16
  * 
  * The PID controller is defined as a pid_ctrl struct containing the required elements such as the gains
  * (.K), sensor, and plant. The sensor is a pointer to a function that takes no parameters and returns a
@@ -211,3 +235,4 @@ void pid_reset(pid_ctrl * controller);
  */
 void pid_deinit(pid_ctrl * controller);
 #endif
+/** \} */

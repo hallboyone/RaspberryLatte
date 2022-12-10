@@ -1,18 +1,28 @@
 /**
+ * \defgroup phasecontrol Phase Control Library
+ * \ingroup utils
+ * \brief Provides PWM like signal with switches timed relative to zero-crossings in AC voltage.
+ * 
+ * In circuits, switching inductive loads requires special consideration. Switching off when the
+ * current is high can lead to sudden spikes in the voltage, causing arcking and component damage.
+ * Even with circuits designed accordingly, constant PWM signals can create harmonics in the amount
+ * of power delivered to the load. This library gets around this problem by timing the switches 
+ * based on the AC signal's zero-cross time. 
+ * 
+ * This library was designed specifically for vibratory pumps used in espresso machines. These have 
+ * a diode so the pump is only active for half the period of the wave. When current is flowing through
+ * the diode, the load is not inductive so the system can be safely switched off. If used in a load
+ * without a diode, the timing after a zero cross when the current goes to zero must be tuned. 
+ * 
+ * \todo Switch to multiple GPIO callback library when written.
+ * 
+ * \{
+ * 
  * \file
- * \brief Header defining phase control API
  * \author Richard Hall (hallboyone@icloud.com)
  * \version 0.1
  * \date 2022-08-16
- * 
- * 
- * Phase control is an advanced, PWM like control output for AC signals
- * where the switching takes place at specific points in the AC phase.
- * This reduces the chance for inductive spikes if the signal is switched
- * off when current is high.
- * 
- * To time the AC signal, a zerocross circit is needed to trigger a 
- * callback whenever the AC signal goes to 0. 
+ * \brief Phase Control header
  */
 
 #ifndef PHASECONTROL_H
@@ -29,11 +39,11 @@
  */
 typedef struct {
   uint8_t event;             /**< The event to trigger on. Should be either ZEROCROSS_EVENT_RISING or ZEROCROSS_EVENT_FALLING */
-  uint8_t zerocross_pin;     /**< GPIO attached to zerocross circit */
+  uint8_t zerocross_pin;     /**< GPIO attached to zerocross circuit */
   int64_t zerocross_shift;   /**< Time between zerocross trigger and actual zerocross */
   uint8_t out_pin;           /**< Load output pin. Usually attached to an SSR or relay */
 
-  uint64_t _zerocross_time;  /**< Time of the last zerocrossing. Used to determine if the AC is on. */
+  uint64_t _zerocross_time;  /**< Time of the last zero-crossing. Used to determine if the AC is on. */
   uint8_t _timeout_idx;      /**< The timeout (i.e. duty cycle). The smaller the number, the longer before load is switched on. */
 } phasecontrol;
 
@@ -64,3 +74,4 @@ int phasecontrol_set_duty_cycle(phasecontrol * p, uint8_t duty_cycle);
  */
 bool phasecontrol_is_ac_hot(phasecontrol * p);
 #endif
+/** \} */

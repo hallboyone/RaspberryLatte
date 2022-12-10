@@ -1,7 +1,16 @@
-#include "pico/time.h"
+/**
+ * \file phasecontrol.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \version 0.1
+ * \date 2022-08-16
+ * \brief Phase Control source
+ * 
+ * \ingroup phasecontrol
+ */
 
 #include "phasecontrol.h"
-#include "status_ids.h"
+
+#include "pico/time.h"
 
 static const uint64_t PERIOD_1_00 = 16667;
 static const uint64_t PERIOD_0_75 = 12500;

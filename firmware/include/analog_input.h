@@ -1,7 +1,18 @@
 /**
+ * \defgroup analog_input GPIO Analog Inputs
+ * \ingroup drivers
+ * \version 0.2
+ * 
+ * \brief Abstraction of configuring and reading analog inputs on the Pi Pico.
+ * 
+ * Library providing matching interface design for analog inputs as the \ref binary_input 
+ * library provides for binary inputs. Abstracts away the GPIO setup and handles unit
+ * conversion.
+ * 
+ * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
- * \brief Abstraction of configuring and reading analog inputs on the Pi Pico
+ * \brief Analog Input Library header
  * \version 0.1
  * \date 2022-08-16
  */

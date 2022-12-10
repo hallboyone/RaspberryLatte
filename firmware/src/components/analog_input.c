@@ -1,8 +1,16 @@
-#include "hardware/adc.h"
+/**
+ * \ingroup analog_input
+ * 
+ * \file
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Analog Input Library source
+ * \version 0.1
+ * \date 2022-08-16
+ */
 
 #include "analog_input.h"
 
-#include "status_ids.h"
+#include "hardware/adc.h"
 
 /**
  * \brief Checks if pin is a valid ADC pin on Pi Pico (26-29)

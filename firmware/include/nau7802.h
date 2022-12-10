@@ -1,7 +1,25 @@
-/**
+/** \defgroup nau7802 NAU7802 Driver
+ * \ingroup drivers
+ *  
+ * \brief Driver for the NAU7802 wheatstone bridge amplifier ICs.
+ * 
+ * From the datasheet,
+ * > The Nuvoton NAU7802 is a precision low-power 24-bit analog-to-digital converter (ADC), 
+ * > with an onboard low-noise programmable gain amplifier (PGA), onboard RC or Crystal oscillator, 
+ * > and a precision 24-bit sigma-delta (Σ-Δ) analog to digital converter (ADC). The NAU7802 device 
+ * > is capable of up to 23-bit ENOB (Effective Number Of Bits) performance. This device provides a 
+ * > complete front-end solution for bridge/sensor measurement such as in weigh scales, strain gauges, 
+ * > and many other high resolution, low sample rate applications.
+ * 
+ * This library provides abstracts the interface with this IC. Using the ::nau7802_setup function,
+ * a user can initialize a \ref nau7802 structure attached to a specified \ref i2c_inst_t. The NAU7802
+ * IC will be initalized to default values, but these can be modified using the various helper 
+ * functions.
+ * 
+ * @{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
- * \brief Header for interfacing with NAU7802 ADC
+ * \brief NAU7802 Library header
  * \version 0.1
  * \date 2022-08-16
  * 
@@ -169,7 +187,7 @@ int nau7802_write_reg(nau7802 * scale, const reg_addr reg_idx, uint8_t len, uint
  * \param bits A bit_range struct indicating the register address and bits to read.
  * \param dst A pointer to the target location where the bits are stored.
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise. 
+ * \return NAU7802_SUCCESS if successful and an error code otherwise. 
  */
 int nau7802_read_bits(nau7802 * scale, const bit_range bits, uint8_t * dst);
 
@@ -190,7 +208,7 @@ int nau7802_write_bits(nau7802 * scale, const bit_range bits, uint8_t val);
  * reset. 
  * 
  * \param scale   Pointer to previously setup scale object
- * \returns I2C_BUS_SUCCESS if successfull. Else, an error code.
+ * \returns I2C_BUS_SUCCESS if successful. Else, an error code.
  */
 int nau7802_reset(nau7802 * scale);
 
@@ -239,7 +257,7 @@ int nau7802_set_digital_power(nau7802 * scale, pwr_setting on_off);
  * \param scale   Pointer to previously setup scale object
  * \param on_off Enumerated power setting. Options are PWR_ON and PWR_OFF. 
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_analog_power(nau7802 * scale, pwr_setting on_off);
 
@@ -249,7 +267,7 @@ int nau7802_set_analog_power(nau7802 * scale, pwr_setting on_off);
  * \param scale   Pointer to previously setup scale object
  * \param on_off Enumerated conversion settings. Options are CONVERSIONS_ON and CONVERSIONS_OFF. 
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_conversions(nau7802 * scale, conversion_setting on_off);
 
@@ -259,7 +277,7 @@ int nau7802_set_conversions(nau7802 * scale, conversion_setting on_off);
  * \param scale   Pointer to previously setup scale object
  * \param g Enumerated value indicating the gain. Options are GAIN_001, GAIN_002,..., GAIN_128. 
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_gain(nau7802 * scale, gain g);
 
@@ -269,7 +287,7 @@ int nau7802_set_gain(nau7802 * scale, gain g);
  * \param scale   Pointer to previously setup scale object
  * \param v Enumerated value indicating the LDO voltage. Values are in the form VLDO_X_Y for X.Y volts. 
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_ldo_voltage(nau7802 * scale, ldo_voltage v);
 
@@ -279,7 +297,7 @@ int nau7802_set_ldo_voltage(nau7802 * scale, ldo_voltage v);
  * \param scale   Pointer to previously setup scale object
  * \param mode Enumerated value indicating the LDO mode. Options are LDO_MODE_STABLE and LDO_MODE_ACCURATE. 
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_ldo_mode(nau7802 * scale, ldo_mode mode);
 
@@ -289,7 +307,7 @@ int nau7802_set_ldo_mode(nau7802 * scale, ldo_mode mode);
  * \param scale   Pointer to previously setup scale object
  * \param val PGA filter setting. Only can be CHP_CLK_OFF. 
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_chopper_clock(nau7802 * scale, chp_clk val);
 
@@ -299,7 +317,7 @@ int nau7802_set_chopper_clock(nau7802 * scale, chp_clk val);
  * \param scale   Pointer to previously setup scale object
  * \param off_on PGA filter setting. Options are PGA_ON and PGA_OFF.  
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_set_pga_filter(nau7802 * scale, pga_setting off_on);
 
@@ -307,7 +325,7 @@ int nau7802_set_pga_filter(nau7802 * scale, pga_setting off_on);
  * \brief Calibrate the NAU7802.
  * 
  * \param scale   Pointer to previously setup scale object
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_calibrate(nau7802 * scale);
 
@@ -325,7 +343,7 @@ bool nau7802_data_ready(nau7802 * scale);
  * \param scale   Pointer to previously setup scale object
  * \param dst Pointer to 32 bit buffer to store conversion result.  
  * 
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_read_raw(nau7802 * scale, uint32_t * dst);
 
@@ -342,7 +360,7 @@ int nau7802_read_mg(nau7802 * scale);
  * \brief Saves the current conversion result and subtracts this from future reads. 
  * 
  * \param scale   Pointer to previously setup scale object
- * \return NAU7802_SUCCESS if successfull and an error code otherwise.
+ * \return NAU7802_SUCCESS if successful and an error code otherwise.
  */
 int nau7802_zero(nau7802 * scale);
 
@@ -376,3 +394,4 @@ bool nau7802_at_val_mg(nau7802 * scale, int val);
  */
 int nau7802_setup(nau7802 * scale, i2c_inst_t * nau7802_i2c, float conversion_factor_mg);
 #endif
+/** \} */

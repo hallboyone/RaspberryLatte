@@ -1,5 +1,6 @@
 /**
- * \defgroup binary_input GPIO Binary-input Library
+ * \defgroup binary_input GPIO Binary Inputs
+ * \ingroup drivers
  * \version 0.2
  * 
  * \brief Abstraction of configuring and reading binary inputs on the Pi Pico.

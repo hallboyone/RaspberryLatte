@@ -1,3 +1,12 @@
+/**
+ * \file slow_pwm.c
+ * \ingroup slow_pwm
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Slow PWM source
+ * \version 0.1
+ * \date 2022-12-09
+ */
+
 #include "slow_pwm.h"
 
 /**

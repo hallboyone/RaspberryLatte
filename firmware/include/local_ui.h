@@ -14,6 +14,8 @@
  * calls the callback. Else, the indicated subfolder is entered. Note that any subfolders are
  * ignored if the \ref folder_action is set. 
  * 
+ * 
+ * \ingroup machine_logic
  * \{
  * 
  * \file local_ui.h

@@ -1,7 +1,17 @@
-#include <stdlib.h>
-#include <string.h>
+/**
+ * \ingroup pid
+ * 
+ * \file pid.c
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief PID Library source
+ * \version 0.1
+ * \date 2022-08-16
+*/
 
 #include "pid.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 /**
  * \brief Helper function returning the microseconds since booting

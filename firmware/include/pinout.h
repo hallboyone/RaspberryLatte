@@ -1,3 +1,11 @@
+/**
+ * \file pinout.h
+ * \author Richard Hall (hallboyone@icloud.com)
+ * \brief Macros defining the pinout of the RaspberryLatte main board
+ * \version 0.1
+ * \date 2022-12-09
+ */
+
 #ifndef PINOUT_H
 #define PINOUT_H
 

@@ -1,6 +1,7 @@
 
-/** @defgroup mb85_fram MB85 FRAM Library
- * 
+/** \defgroup mb85_fram MB85 FRAM Library
+ * \ingroup drivers
+ *  
  * \brief Driver for the MB85 series of FRAM ICs.
  * 
  * The MB85 series of FRAM ICs provide fast, non-volatile memory

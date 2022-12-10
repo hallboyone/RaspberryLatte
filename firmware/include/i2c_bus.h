@@ -1,7 +1,16 @@
 /**
+ * \defgroup i2c_bus I2C Bus
+ * \ingroup utils
+ * \brief Abstracts communication over the I2C bus.
+ * 
+ * There are standard procedures often needed when using a device over I2C (check if connected,
+ * write to bits in register, etc.). This library abstracts this away to simply be calling a 
+ * function and passing in the device and register addresses and other needed information.
+ * 
+ * \{
  * \file 
  * \author Richard Hall (hallboyone@icloud.com)
- * \brief Functions for communicating over an I2C bus
+ * \brief I2C Bus header
  * \version 0.1
  * \date 2022-08-17
  */
@@ -12,23 +21,23 @@
 #include "pico/stdlib.h"
 #include "hardware/i2c.h"
 
-#define I2C_BUS_SUCCESS 0              /**< Code used to indicate a successfull I2C operations */
-#define I2C_BUS_ERROR_WRITE_FAILURE -1 /**< Code used to indicate a failed I2C write operation */
-#define I2C_BUS_ERROR_READ_FAILURE  -2 /**< Code used to indicate a failed I2C read operation */
-#define I2C_BUS_ERROR_CONFIGURATION -3 /**< Code for invalid I2C configuration values */
+#define I2C_BUS_SUCCESS 0              /**< \brief Code used to indicate a successful I2C operations */
+#define I2C_BUS_ERROR_WRITE_FAILURE -1 /**< \brief Code used to indicate a failed I2C write operation */
+#define I2C_BUS_ERROR_READ_FAILURE  -2 /**< \brief Code used to indicate a failed I2C read operation */
+#define I2C_BUS_ERROR_CONFIGURATION -3 /**< \brief Code for invalid I2C configuration values */
 
-typedef uint8_t byte;           /**< Type name for a single byte of data */
-typedef uint8_t dev_addr;       /**< Type name for a device address */
-typedef uint32_t reg_addr;      /**< Type name for up to a 32 bit register address. */
+typedef uint8_t byte;           /**< \brief Type name for a single byte of data */
+typedef uint8_t dev_addr;       /**< \brief Type name for a device address */
+typedef uint32_t reg_addr;      /**< \brief Type name for up to a 32 bit register address. */
 
 /**
  * \brief Struct that defines a range of bits in a byte address.
  */
 typedef struct{
-    uint8_t from;         /**< The LSB in the bit range (inclusive). */
-    uint8_t to;           /**< The MSB in the bit range (inclusive). */
-    reg_addr in_reg;      /**< Address of register containing bit range */
-    uint8_t reg_addr_len; /**< Address space for I2C device */
+    uint8_t from;         /**< \brief The LSB in the bit range (inclusive). */
+    uint8_t to;           /**< \brief The MSB in the bit range (inclusive). */
+    reg_addr in_reg;      /**< \brief Address of register containing bit range */
+    uint8_t reg_addr_len; /**< \brief Address space for I2C device */
 } bit_range;
 
 /**
@@ -39,7 +48,7 @@ typedef struct{
  * \param scl_pin GPIO number for the clock pin
  * \param sda_pin GPIO number for the data pin
  * 
- * \return I2C_BUS_SUCCESS If successful and I2C_BUS_ERROR_CONFIGURATION if configutation failed.
+ * \return I2C_BUS_SUCCESS If successful and I2C_BUS_ERROR_CONFIGURATION if configuration failed.
  */
 int i2c_bus_setup(i2c_inst_t * bus, uint baudrate, uint8_t scl_pin, uint8_t sda_pin);
 
@@ -52,9 +61,10 @@ int i2c_bus_setup(i2c_inst_t * bus, uint baudrate, uint8_t scl_pin, uint8_t sda_
 bool i2c_bus_is_connected(i2c_inst_t * bus, dev_addr dev);
 
 /**
- * \brief Sets the bits within buf specified by the from_bit and to_bit. Only the specified bits
- * are ever written to. If the value does not fit within the specified bits, the highest 
- * bits are truncated.
+ * \brief Sets the bits within buf specified by the from_bit and to_bit. 
+ * 
+ * Only the specified bits are ever written to. If the value does not fit 
+ * within the specified bits, the highest bits are truncated.
  * 
  * \param buf Pointer to byte that will be updated
  * \param bits The range of bits to set.
@@ -88,7 +98,7 @@ int i2c_bus_read_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg
  */
 int i2c_bus_write_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t reg_addr_len, uint len, byte * src);
 
-/*
+/**
  * \brief Read a range of bits from a register on an I2C device.
  * 
  * \param bus The I2C instance the device is attached to.
@@ -100,7 +110,7 @@ int i2c_bus_write_bytes(i2c_inst_t * bus, dev_addr dev, reg_addr reg, uint8_t re
  */
 int i2c_bus_read_bits(i2c_inst_t * bus, const dev_addr dev, const bit_range bits, byte * dst);
 
-/*
+/**
  * \brief Write to a range of bits on a register in an I2C device.
  * 
  * \param bus The I2C instance the device is attached to.
@@ -112,3 +122,4 @@ int i2c_bus_read_bits(i2c_inst_t * bus, const dev_addr dev, const bit_range bits
  */
 int i2c_bus_write_bits(i2c_inst_t * bus, const dev_addr dev, const bit_range bits, const byte val);
 #endif
+/** \} */
