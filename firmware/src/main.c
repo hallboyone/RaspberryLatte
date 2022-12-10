@@ -5,21 +5,6 @@
 #include "machine_settings.h"
 #include "pinout.h"
 
-#include "gpio_multi_callback.h"
-
-uint32_t num_trigger_1 = 0;
-uint32_t num_trigger_2 = 0;
-
-void cb_1(uint8_t gpio, uint32_t event, void* data){
-    uint32_t* num = (uint32_t*)data;
-    *num += 1;
-}
-
-void cb_1(uint8_t gpio, uint32_t event, void* data){
-    uint32_t* num = (uint32_t*)data;
-    *num += 2;
-}
-
 int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);

@@ -312,6 +312,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     pid_init(&heater_pid, 0, 150, 1000);
 
     // Setup the pressure sensor
+    /** \todo Utilize analog input */
     analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN, PRESSURE_CONVERSION_BAR);
 
     // Setup the LED binary output
