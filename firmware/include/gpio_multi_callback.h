@@ -1,5 +1,6 @@
 /**
  * \defgroup gpio_multi_callback GPIO Multi-Callback Library
+ * \ingroup utils
  * 
  * \brief Library providing functionality for multiple GPIO callbacks.
  * 
@@ -23,7 +24,7 @@
 
 #include "pico/stdlib.h"
 
-typedef void (*gpio_multi_callback_t)(uint8_t gpio, uint32_t event, void* data);
+typedef void (*gpio_multi_callback_t)(uint gpio, uint32_t event, void* data);
 
 /**
  * \brief Attach a callback to a GPIO for specific events
