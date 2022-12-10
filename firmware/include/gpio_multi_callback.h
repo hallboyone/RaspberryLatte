@@ -6,6 +6,10 @@
  * Using the standard pico SDK, only a single GPIO callback can be defined. This library
  * allows for a custom callback to be assigned to each GPIO pin. 
  * 
+ * \note This library should completely replace the standard GPIO callback routines in the 
+ * pico SDK. If one component of your firmware uses this library, all components should use
+ * it.
+ * 
  * \{
  * 
  * \file gpio_multi_callback.h

@@ -12,37 +12,57 @@
 
 static bool _irq_dispatch_setup = false;
 
-static gpio_multi_callback_t _callbacks [32] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                                NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                                NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                                NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+typedef struct {
+    gpio_multi_callback_t fun;
+    uint32_t events;
+    void * data;
+} gpio_multi_callback_config_t;
 
-/** \brief Pointer to callback data. */
-static void* _callback_data [32] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL,
-                                    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static gpio_multi_callback_config_t _callbacks [32] = {
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
+    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL}};
 
-static uint32_t _callback_events [32] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-
-static void _gpio_multi_callback_irq_dispatch(uint8_t gpio, uint32_t event){
-    assert(_callbacks[gpio] != NULL);
-    _callbacks[gpio](gpio, event, _callback_data[gpio]);
+/**
+ * \brief Centralized callback that dispatches calls to the correct custom callback
+ * 
+ * \param gpio The GPIO pin that generated the interrupt
+ * \param event The GPIO even the generated the interrupt
+ */
+static void _gpio_multi_callback_irq_dispatch(uint gpio, uint32_t event){
+    // Call appropriate callback if set and events match.
+    const gpio_multi_callback_config_t cb = _callbacks[gpio];
+    if(cb.fun != NULL && (event & cb.events)) {
+        cb.fun(gpio, event, cb.data);
+    }
 }  
 
 int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, gpio_multi_callback_t cb, void * data){
     assert(gpio < 32);
-    assert(_callbacks[gpio] == NULL);
+    assert(_callbacks[gpio].fun == NULL);
     assert(cb != NULL);
 
     // Add custom callback to list.
-    _callbacks[gpio] = cb;
-    _callback_data[gpio] = data;
-    _callback_events[gpio] = event_mask;
+    _callbacks[gpio].fun = cb;
+    _callbacks[gpio].data = data;
+    _callbacks[gpio].events = event_mask;
 
     // Setup local dispatch if not already done 
     if(!_irq_dispatch_setup){
-        gpio_set_irq_enabled_with_callback(gpio, event_mask, true, &_gpio_multi_callback_irq_dispatch);
+        gpio_set_irq_enabled_with_callback(gpio, GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &_gpio_multi_callback_irq_dispatch);
         _irq_dispatch_setup = true;
     }
 
@@ -54,9 +74,9 @@ int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, 
 
 int gpio_multi_callback_enabled(uint8_t gpio, bool enable){
     assert(gpio < 32);
-    assert(_callbacks[gpio] == NULL);
+    assert(_callbacks[gpio].fun == NULL);
 
-    gpio_set_irq_enabled(gpio, _callback_events[gpio], enable);
+    gpio_set_irq_enabled(gpio, _callbacks[gpio].events, enable);
 
     return PICO_ERROR_NONE;
 }
@@ -64,7 +84,7 @@ int gpio_multi_callback_enabled(uint8_t gpio, bool enable){
 int gpio_multi_callback_clear(uint8_t gpio){
     assert(gpio < 32);
     gpio_set_irq_enabled(gpio, 0, false);
-    _callbacks[gpio] = NULL;
-    _callback_data[gpio] = NULL;
-    _callback_events[gpio] = 0;
+    _callbacks[gpio].fun = NULL;
+    _callbacks[gpio].data = NULL;
+    _callbacks[gpio].events = 0;
 }
