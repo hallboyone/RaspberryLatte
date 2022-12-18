@@ -63,7 +63,7 @@ float flow_meter_volume(flow_meter * fm){
  * \return Flow rate in ml/s 
  */
 float flow_meter_rate(flow_meter * fm){
-    return discrete_derivative_read(&(fm->flow_rate), dp) * fm->conversion_factor;
+    return discrete_derivative_read(&(fm->flow_rate)) * fm->conversion_factor;
 }
 
 /**

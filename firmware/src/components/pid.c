@@ -107,14 +107,13 @@ void _discrete_derivative_expand_buf(discrete_derivative *d) {
     d->_data = new_buf;
 }
 
-float discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
+void discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
     _discrete_derivative_remove_old_points(d, p.t);
     if (d->_num_el == d->_buf_len) {
         _discrete_derivative_expand_buf(d);
     }
     d->_data[d->_num_el] = p;
     d->_num_el += 1;
-    return discrete_derivative_read(d);
 }
 
 void discrete_derivative_reset(discrete_derivative *d) { 
@@ -129,20 +128,16 @@ void discrete_integral_init(discrete_integral *i, const float lower_bound,
 }
 
 float discrete_integral_read(discrete_integral *i) { 
-    return i->sum; 
+    return (i->prev_p.t != 0) ? i->sum : 0; 
 }
 
-float discrete_integral_add_point(discrete_integral *i, datapoint p) {
-    if (i->prev_p.t == 0) {
-        i->prev_p = p;
-        return 0;
-    } else {
+void discrete_integral_add_point(discrete_integral *i, datapoint p) {
+    if (i->prev_p.t != 0) {
         i->sum += ((p.v + i->prev_p.v) / 2.0) * (p.t - i->prev_p.t);
         i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
         i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
-        i->prev_p = p;
-        return i->sum;
     }
+    i->prev_p = p;
 }
 
 void discrete_integral_reset(discrete_integral *i) {
@@ -164,9 +159,11 @@ float pid_tick(pid_ctrl * controller){
         datapoint new_reading = {.t = sec_since_boot(), .v = controller->sensor()};
         datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
-        // If Ki (Kd) non-zero, compute the error sum (slope).
-        float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_add_point(&(controller->err_sum), new_err));
-        float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_add_point(&(controller->err_slope), new_err));
+        discrete_integral_add_point(&(controller->err_sum), new_err);
+        discrete_derivative_add_point(&(controller->err_slope), new_err);
+        
+        float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_read(&(controller->err_sum)));
+        float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_read(&(controller->err_slope)));
         float ff = (controller->sensor_feedforward != NULL ? controller->sensor_feedforward() : 0);
         float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
 

@@ -103,11 +103,8 @@ float discrete_derivative_read(discrete_derivative* d);
  * 
  * \param d Pointer to discrete_derivative that the point will be added to
  * \param p Datapoint struct with the value and timestamp of the new reading.
- * 
- * \returns The slope of the previous datapoints withint the filter_span of d. If only
- * 1 point, returns 0.
  */
-float discrete_derivative_add_point(discrete_derivative* d, datapoint p);
+void discrete_derivative_add_point(discrete_derivative* d, datapoint p);
 
 /**
  * \brief Resets the discrete_derivative to initial values. Memory is not freed.
@@ -144,7 +141,7 @@ void discrete_integral_init(discrete_integral* i, const float lower_bound,
  * \brief Helper function that returns the value of the integral's sum field.
  * \param i Pointer to discrete_integral stuct that will be read.
  *
- * \returns Value of integral: i->sum.
+ * \returns Value of integral: i->sum. 0 if only 0 or 1 point so far.
  */
 float discrete_integral_read(discrete_integral* i);
 
@@ -156,11 +153,8 @@ float discrete_integral_read(discrete_integral* i);
  *
  * \param i Pointer to discrete_integral stuct that will be added to.
  * \param p Datapoint to add to discrete_integral
- *
- * \returns The first time the function is called on i after initalizing or clearing it, 0 is
- * returned. After the, the value of integral after adding the datapoint p is returned.
  */
-float discrete_integral_add_point(discrete_integral* i, datapoint p);
+void discrete_integral_add_point(discrete_integral* i, datapoint p);
 
 /**
  * \brief Reset integral object. Sum is set to 0 and clear previous datapoint.

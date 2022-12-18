@@ -184,7 +184,8 @@ static void espresso_machine_update_state(){
     }
     _state.scale.val_mg = nau7802_read_mg(&scale);
     datapoint scale_val = {.t = sec_since_boot(), .v = nau7802_read_mg(&scale)};
-    _state.scale.flowrate_mg_s = discrete_derivative_add_point(&scale_flowrate, scale_val);
+    discrete_derivative_add_point(&scale_flowrate, scale_val);
+    _state.scale.flowrate_mg_s = discrete_derivative_read(&scale_flowrate);
 
     // Update setpoints
     if(_state.switches.ac_switch){
