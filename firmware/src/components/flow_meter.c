@@ -12,7 +12,8 @@
 #include "gpio_multi_callback.h"
 
 /**
- * \brief Simple callback that increments the corresponding flow_meter's pulse count by 1.
+ * \brief Simple callback that increments the corresponding flow_meter's pulse count by 1 and
+ * adds the new point to the discrete_derivative
  * 
  * \param gpio GPIO number triggering callback
  * \param event Event triggering callback
@@ -21,6 +22,8 @@
 static void _flow_meter_callback(uint gpio, uint32_t event, void* data){
     flow_meter * fm = (flow_meter*)data;
     fm->pulse_count += 1;
+    datapoint dp = {.t = sec_since_boot(), .v = fm->pulse_count};
+    discrete_derivative_add_point(&(fm->flow_rate), dp);
 }
 
 int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor){

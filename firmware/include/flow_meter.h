@@ -63,12 +63,11 @@ float flow_meter_volume(flow_meter * fm){
  * \return Flow rate in ml/s 
  */
 float flow_meter_rate(flow_meter * fm){
-    datapoint dp = {.t = sec_since_boot(), .v = flow_meter_volume(fm)};
-    return discrete_derivative_add_point(&(fm->flow_rate), dp);
+    return discrete_derivative_read(&(fm->flow_rate), dp) * fm->conversion_factor;
 }
 
 /**
- * \brief Returns the volume and flow rate to 0
+ * \brief Resets the volume and flow rate to 0
  * 
  * \param fm Flow meter to zero. 
  */
