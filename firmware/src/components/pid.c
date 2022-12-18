@@ -77,7 +77,7 @@ float discrete_derivative_read(discrete_derivative *d) {
 
 /**
  * \brief Removes all points in d's _data buf with timestamps more than
- * d->filter_span_ms millaseconds behind cur_t. If all points are outside of
+ * d->filter_span_ms milliseconds behind cur_t. If all points are outside of
  * this range, the most recent point is always kept.
  */
 void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
