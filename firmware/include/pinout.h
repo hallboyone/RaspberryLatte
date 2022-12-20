@@ -22,6 +22,7 @@
 #define LED1_PIN                  13
 #define PHASECONTROL_0CROSS_PIN   14
 #define LED0_PIN                  15
+#define FLOW_RATE_PIN             18
 #define PRESSURE_SENSOR_PIN       28
 
 
