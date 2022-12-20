@@ -52,9 +52,7 @@ int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor);
  * \param fm Flow meter to read
  * \return Volume, in ml, since last zero point.
  */
-float flow_meter_volume(flow_meter * fm){
-    return fm->pulse_count * fm->conversion_factor;
-}
+float flow_meter_volume(flow_meter * fm);
 
 /**
  * \brief Returns the current flowrate of the sensor
@@ -62,19 +60,14 @@ float flow_meter_volume(flow_meter * fm){
  * \param fm Flow meter to read from
  * \return Flow rate in ml/s 
  */
-float flow_meter_rate(flow_meter * fm){
-    return discrete_derivative_read(&(fm->flow_rate)) * fm->conversion_factor;
-}
+float flow_meter_rate(flow_meter * fm);
 
 /**
  * \brief Resets the volume and flow rate to 0
  * 
  * \param fm Flow meter to zero. 
  */
-void flow_meter_zero(flow_meter * fm){
-    fm->pulse_count = 0;
-    discrete_derivative_reset(&(fm->flow_rate));
-}
+void flow_meter_zero(flow_meter * fm);
 
 #endif
 /** \} */
