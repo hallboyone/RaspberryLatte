@@ -58,6 +58,7 @@ typedef struct {
     uint8_t power_level; /**< \brief Power being applied to the pump. */
     bool pump_lock;      /**< \brief Flag indicating if the pump is locked. */
     int8_t brew_leg;     /**< \brief The current leg of the autobrew routine.*/
+    float flowrate_ml_s; /**< \brief The rate the water is pumping in ml/s. */
 } espresso_machine_pump_state;
 
 /**
@@ -65,7 +66,6 @@ typedef struct {
  */
 typedef struct {
     int32_t val_mg; /**< \brief Value of the scale in mg. */
-    float flowrate_mg_s; /**< \brief The change in the scale in mg/s. */
 } espresso_machine_scale_state;
 
 /**
