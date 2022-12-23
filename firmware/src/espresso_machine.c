@@ -33,7 +33,7 @@
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.00175;
 const float PID_GAIN_D = 0.0005;
-const float PID_GAIN_F = 0.00005;
+const float PID_GAIN_F = 0.05;
 
 const float SCALE_CONVERSION_MG = -0.152710615479;
 const float FLOW_CONVERSION_ML = 0.5;
@@ -303,7 +303,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     heater_pid.sensor_feedforward = &read_pump_flowrate;
     heater_pid.plant = &apply_boiler_input;
     heater_pid.setpoint = 0;
-    pid_init(&heater_pid, 0, 150, 1000);
+    pid_init(&heater_pid, 0, 175, 1000);
 
     // Setup the pressure sensor
     /** \todo Utilize analog input */
