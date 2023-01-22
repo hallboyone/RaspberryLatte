@@ -29,7 +29,6 @@
 #include "autobrew.h"
 
 #include "machine_settings.h"
-const uint8_t BREW_PWR = 110;
 
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.00175;
@@ -178,17 +177,16 @@ static void espresso_machine_update_state(){
         _state.switches.mode_dial_changed = 0;
     }
 
-    //Pump lock
+    // Update Pump States
     _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || _state.pump.pump_lock));
     _state.pump.power_level = pump._timeout_idx;
+    _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
+    _state.pump.pressure_bar = 0.2*_state.pump.power_level - 1.4757*_state.pump.flowrate_ml_s - 9.2; // Parameters fitted to Ulka EAP5 pump.
 
     // Update scale
     if(_state.switches.mode_dial_changed){
         nau7802_zero(&scale);
     }
-
-    // Read current flowrate
-    _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
 
     // Update setpoints
     if(_state.switches.ac_switch){

@@ -59,6 +59,7 @@ typedef struct {
     bool pump_lock;      /**< \brief Flag indicating if the pump is locked. */
     int8_t brew_leg;     /**< \brief The current leg of the autobrew routine.*/
     float flowrate_ml_s; /**< \brief The rate the water is pumping in ml/s. */
+    float pressure_bar;  /**< \brief The pressure of the pump in bar. */
 } espresso_machine_pump_state;
 
 /**
