@@ -23,13 +23,16 @@ int main(){
     while(true){
         next_loop_time = make_timeout_time_us(loop_period_us);
         espresso_machine_tick();
-        if (espresso_machine->switches.pump_switch_changed){
-            printf("CHANGED\n");
-        }
         if(absolute_time_diff_us(get_absolute_time(), next_msg_time) < 0){
             next_msg_time = make_timeout_time_us(msg_period_us);
-            if(espresso_machine->boiler.setpoint){
-                printf("T = %0.2f / %0.2f\n", espresso_machine->boiler.temperature/16., espresso_machine->boiler.setpoint/16.);
+            if(true || espresso_machine->boiler.setpoint){
+                float pressure =0.2*espresso_machine->pump.power_level-1.4757*espresso_machine->pump.flowrate_ml_s-9.2;
+                pressure = (pressure < 0 ? 0 : pressure);
+                printf("T = %0.2f / %0.2f, F = %0.2f, P = %0.2f\n", 
+                espresso_machine->boiler.temperature/16., 
+                espresso_machine->boiler.setpoint/16., 
+                espresso_machine->pump.flowrate_ml_s,
+                pressure);
             }
         }
         sleep_until(next_loop_time);

@@ -29,6 +29,7 @@
 #include "autobrew.h"
 
 #include "machine_settings.h"
+const uint8_t BREW_PWR = 110;
 
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.00175;
@@ -179,6 +180,7 @@ static void espresso_machine_update_state(){
 
     //Pump lock
     _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || _state.pump.pump_lock));
+    _state.pump.power_level = pump._timeout_idx;
 
     // Update scale
     if(_state.switches.mode_dial_changed){
@@ -222,24 +224,31 @@ static void espresso_machine_update_pump(){
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
     } else {
+        // Get the max power that is safe given the flow rate (caps pressure around 13 bar)
+        uint8_t safe_pwr = 60 + 11*_state.pump.flowrate_ml_s;
         switch(_state.switches.mode_dial){
             case MODE_STEAM:
                 phasecontrol_set_duty_cycle(&pump, 0);
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_HOT:
-                phasecontrol_set_duty_cycle(&pump, convert_pump_power(*settings->hot.power));
+                safe_pwr = (safe_pwr < *settings->hot.power ? safe_pwr : *settings->hot.power);
+                phasecontrol_set_duty_cycle(&pump, convert_pump_power(safe_pwr));
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_MANUAL:
-                phasecontrol_set_duty_cycle(&pump, convert_pump_power(*settings->brew.power));
+                safe_pwr = (safe_pwr < *settings->brew.power ? safe_pwr : *settings->brew.power);
+                phasecontrol_set_duty_cycle(&pump, convert_pump_power(safe_pwr));
                 binary_output_put(&solenoid, 0, 1);
                 break;
             case MODE_AUTO:
                 if(!autobrew_routine_tick(&autobrew_plan)){
                     binary_output_put(&solenoid, 0, 1);
+                    safe_pwr = convert_pump_power(safe_pwr);
                     if(autobrew_plan.state.pump_setting_changed){
                         phasecontrol_set_duty_cycle(&pump, autobrew_plan.state.pump_setting);
+                    } else if (autobrew_plan.state.pump_setting > safe_pwr) {
+                        phasecontrol_set_duty_cycle(&pump, safe_pwr);
                     }
                 } else {
                     phasecontrol_set_duty_cycle(&pump, 0);
