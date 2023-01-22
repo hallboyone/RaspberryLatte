@@ -11,16 +11,25 @@
 #include "phasecontrol.h"
 
 #include "pico/time.h"
+#include "gpio_multi_callback.h"
 
 static const uint64_t PERIOD_1_00 = 16667;
 static const uint64_t PERIOD_0_75 = 12500;
 static const uint64_t PERIOD_0_50 =  8333;
 
-// Array of pointers to each of the configured controllers indexed by their zerocross pin.
+/**
+ * \brief Array of pointers to each of the configured controllers indexed by their zerocross pin.
+ * 
+ * Used by the zero-cross callbacks to update the corresponding phasecontroller
+ */
 static phasecontrol * _configured_phasecontrollers [32]; 
 
-// All possible timeouts. Spaced so that the area under the curve is split into 127 equal boxes.
-static const uint16_t timeouts_us[128] =
+/**
+ * \brief All possible timeouts in ms.
+ * 
+ * Spaced so that the area under a 60Hz sine curve is split into 127 equal boxes.
+ */
+static const uint16_t _timeouts_us[128] =
   {8333,7862,7666,7515,7387,7274,7171,7076,6987,6904,6824,6749,6676,6606,6538,6472,
    6408,6346,6286,6226,6168,6112,6056,6001,5947,5895,5842,5791,5740,5690,5641,5592,
    5544,5496,5448,5401,5355,5309,5263,5217,5172,5127,5083,5039,4995,4951,4907,4864,
@@ -50,8 +59,8 @@ static int64_t phasecontrol_set_output_high(int32_t alarm_num, void * data){
  * \brief ISR for zerocross pin. Schedules alarms to turn the output pin on (after some delay)
  * of off (after 0.75 a period).
  */
-static void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
-  volatile phasecontrol * p = _configured_phasecontrollers[gpio];
+static void phasecontrol_switch_scheduler(uint gpio, uint32_t events, void * data){
+  volatile phasecontrol * p = (phasecontrol*)data;
   const uint64_t cur_time = time_us_64();
   if(p->_zerocross_time + PERIOD_0_75 < cur_time){
     p->_zerocross_time = cur_time;
@@ -59,7 +68,7 @@ static void phasecontrol_switch_scheduler(uint gpio, uint32_t events){
       // Schedule stop time after 0.75 period
       add_alarm_in_us(p->zerocross_shift + PERIOD_0_75, &phasecontrol_set_output_low, _configured_phasecontrollers[gpio], false);
       // Schedule start time after the given timeout
-      add_alarm_in_us(p->zerocross_shift + timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, _configured_phasecontrollers[gpio], true);
+      add_alarm_in_us(p->zerocross_shift + _timeouts_us[p->_timeout_idx], &phasecontrol_set_output_high, _configured_phasecontrollers[gpio], true);
     }
   }
 }
@@ -92,7 +101,8 @@ void phasecontrol_setup(phasecontrol * p, uint8_t zerocross_pin, uint8_t out_pin
   gpio_init(p->zerocross_pin);
   gpio_set_dir(p->zerocross_pin, GPIO_IN);
   gpio_set_pulls(p->zerocross_pin, false, true);
-  gpio_set_irq_enabled_with_callback(p->zerocross_pin, p->event, true, &phasecontrol_switch_scheduler);
+
+  gpio_multi_callback_attach(p->zerocross_pin, p->event, true, &phasecontrol_switch_scheduler, p);
   return;
 }
 

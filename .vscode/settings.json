@@ -42,7 +42,9 @@
         "autobrew.h": "c",
         "stdint.h": "c",
         "nau7802.h": "c",
-        "clocks.h": "c"
+        "clocks.h": "c",
+        "gpio_multi_callback.h": "c",
+        "espresso_machine.h": "c"
     },
     "cSpell.words": [
         "autobrew",

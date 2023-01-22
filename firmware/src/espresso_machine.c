@@ -23,6 +23,7 @@
 #include "slow_pwm.h"
 #include "lmt01.h"
 #include "mb85_fram.h"
+#include "flow_meter.h"
 
 #include "pid.h"
 #include "autobrew.h"
@@ -32,9 +33,10 @@
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.00175;
 const float PID_GAIN_D = 0.0005;
-const float PID_GAIN_F = 0.00005;
+const float PID_GAIN_F = 0.05;
 
 const float SCALE_CONVERSION_MG = -0.152710615479;
+const float FLOW_CONVERSION_ML = 0.5;
 const float PRESSURE_CONVERSION_BAR = 1.0;
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
@@ -53,6 +55,7 @@ static lmt01               thermo;
 static nau7802             scale;
 static discrete_derivative scale_flowrate;
 static mb85_fram           mem;
+static flow_meter          flow;
 
 static const machine_settings*   settings;
 //static value_flasher       setting_display;
@@ -71,8 +74,8 @@ static float read_boiler_thermo(){
 /**
  * \brief Helper function that tracks and returns the scale's flowrate
 */
-static float read_scale_flowrate(){
-    return _state.scale.flowrate_mg_s;
+static float read_pump_flowrate(){
+    return _state.pump.flowrate_ml_s;
 }
 
 /**
@@ -174,17 +177,16 @@ static void espresso_machine_update_state(){
         _state.switches.mode_dial_changed = 0;
     }
 
-    //Pump lock
+    // Update Pump States
     _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || _state.pump.pump_lock));
+    _state.pump.power_level = pump._timeout_idx;
+    _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
+    _state.pump.pressure_bar = 0.2*_state.pump.power_level - 1.4757*_state.pump.flowrate_ml_s - 9.2; // Parameters fitted to Ulka EAP5 pump.
 
     // Update scale
     if(_state.switches.mode_dial_changed){
         nau7802_zero(&scale);
-        discrete_derivative_reset(&scale_flowrate);
     }
-    _state.scale.val_mg = nau7802_read_mg(&scale);
-    datapoint scale_val = {.t = sec_since_boot(), .v = nau7802_read_mg(&scale)};
-    _state.scale.flowrate_mg_s = discrete_derivative_add_point(&scale_flowrate, scale_val);
 
     // Update setpoints
     if(_state.switches.ac_switch){
@@ -213,40 +215,40 @@ static void espresso_machine_update_settings(){
 
 static void espresso_machine_update_pump(){
     if(!_state.switches.pump_switch){
-        heater_pid.K.f = 0;
         autobrew_routine_reset(&autobrew_plan);
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
     } else if (_state.pump.pump_lock){
-        heater_pid.K.f = 0;
         phasecontrol_set_duty_cycle(&pump, 0);
         binary_output_put(&solenoid, 0, 0);
     } else {
+        // Get the max power that is safe given the flow rate (caps pressure around 13 bar)
+        uint8_t safe_pwr = 60 + 11*_state.pump.flowrate_ml_s;
         switch(_state.switches.mode_dial){
             case MODE_STEAM:
-                heater_pid.K.f = 0;
                 phasecontrol_set_duty_cycle(&pump, 0);
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_HOT:
-                heater_pid.K.f = 0;
-                phasecontrol_set_duty_cycle(&pump, convert_pump_power(*settings->hot.power));
+                safe_pwr = (safe_pwr < *settings->hot.power ? safe_pwr : *settings->hot.power);
+                phasecontrol_set_duty_cycle(&pump, convert_pump_power(safe_pwr));
                 binary_output_put(&solenoid, 0, 0);
                 break;
             case MODE_MANUAL:
-                heater_pid.K.f = 0;
-                phasecontrol_set_duty_cycle(&pump, convert_pump_power(*settings->brew.power));
+                safe_pwr = (safe_pwr < *settings->brew.power ? safe_pwr : *settings->brew.power);
+                phasecontrol_set_duty_cycle(&pump, convert_pump_power(safe_pwr));
                 binary_output_put(&solenoid, 0, 1);
                 break;
             case MODE_AUTO:
                 if(!autobrew_routine_tick(&autobrew_plan)){
-                    heater_pid.K.f = PID_GAIN_F;
                     binary_output_put(&solenoid, 0, 1);
+                    safe_pwr = convert_pump_power(safe_pwr);
                     if(autobrew_plan.state.pump_setting_changed){
                         phasecontrol_set_duty_cycle(&pump, autobrew_plan.state.pump_setting);
+                    } else if (autobrew_plan.state.pump_setting > safe_pwr) {
+                        phasecontrol_set_duty_cycle(&pump, safe_pwr);
                     }
                 } else {
-                    heater_pid.K.f = 0;
                     phasecontrol_set_duty_cycle(&pump, 0);
                     binary_output_put(&solenoid, 0, 0);
                 }
@@ -297,21 +299,21 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     autobrew_routine_setup(&autobrew_plan, 6);
     autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
 
-
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     heater_pid.K.p = PID_GAIN_P;
-    heater_pid.K.i = PID_GAIN_I; 
+    heater_pid.K.i = PID_GAIN_I;
     heater_pid.K.d = PID_GAIN_D;
-    heater_pid.K.f = 0;
+    heater_pid.K.f = PID_GAIN_F;
     heater_pid.min_time_between_ticks_ms = 100;
     heater_pid.sensor = &read_boiler_thermo;
-    heater_pid.sensor_feedforward = &read_scale_flowrate;
+    heater_pid.sensor_feedforward = &read_pump_flowrate;
     heater_pid.plant = &apply_boiler_input;
     heater_pid.setpoint = 0;
-    pid_init(&heater_pid, 0, 150, 1000);
+    pid_init(&heater_pid, 0, 175, 1000);
 
     // Setup the pressure sensor
+    /** \todo Utilize analog input */
     analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN, PRESSURE_CONVERSION_BAR);
 
     // Setup the LED binary output
@@ -338,6 +340,9 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
+
+    // Setup flow meter
+    flow_meter_setup(&flow, FLOW_RATE_PIN, FLOW_CONVERSION_ML);
 
     espresso_machine_update_state();
 

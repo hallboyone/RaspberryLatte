@@ -21,7 +21,9 @@ target_sources(RaspberryLattePico
                PRIVATE src/espresso_machine.c
                PRIVATE src/components/i2c_bus.c
                PRIVATE src/components/value_flasher.c
-               PRIVATE src/components/mb85_fram.c)
+               PRIVATE src/components/mb85_fram.c
+               PRIVATE src/components/gpio_multi_callback.c
+               PRIVATE src/components/flow_meter.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
