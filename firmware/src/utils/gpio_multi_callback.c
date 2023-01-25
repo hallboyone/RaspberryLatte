@@ -4,11 +4,14 @@
  * \file gpio_multi_callback.c
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief GPIO Multi-Callback source
- * \version 0.1
- * \date 2022-11-28
+ * \version 0.2
+ * \date 2023-01-24
 */
 
 #include "utils/gpio_multi_callback.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 static bool _irq_dispatch_setup = false;
 
@@ -18,23 +21,28 @@ typedef struct {
     void * data;
 } gpio_multi_callback_config_t;
 
-static gpio_multi_callback_config_t _callbacks [32] = {
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL},
-    {.fun = NULL, .events = 0, .data = NULL}, {.fun = NULL, .events = 0, .data = NULL}};
+typedef struct {
+    gpio_multi_callback_config_t * callbacks;
+    uint8_t num_cb;
+} gpio_multi_callback_array_t;
+
+static gpio_multi_callback_array_t _callbacks [32] = {
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
+    {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0}};
 
 /**
  * \brief Centralized callback that dispatches calls to the correct custom callback
@@ -43,22 +51,31 @@ static gpio_multi_callback_config_t _callbacks [32] = {
  * \param event The GPIO even the generated the interrupt
  */
 static void _gpio_multi_callback_irq_dispatch(uint gpio, uint32_t event){
-    // Call appropriate callback if set and events match.
-    const gpio_multi_callback_config_t cb = _callbacks[gpio];
-    if(cb.fun != NULL && (event & cb.events)) {
-        cb.fun(gpio, event, cb.data);
+    // Call all callbacks with matching events.
+    const gpio_multi_callback_array_t cb = _callbacks[gpio];
+    for(uint8_t i = 0; i < cb.num_cb; i++){
+        if(event & cb.callbacks[i].events) {
+            cb.callbacks[i].fun(gpio, event, cb.callbacks[i].data);
+        }
     }
 }  
 
 int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, gpio_multi_callback_t cb, void * data){
     assert(gpio < 32);
-    assert(_callbacks[gpio].fun == NULL);
     assert(cb != NULL);
 
+    const uint8_t idx = _callbacks[gpio].num_cb;
+
+    // Just adding one to callback array. Computationally inefficient but uses less memory.
+    gpio_multi_callback_config_t * new_arr = malloc((idx+1) * sizeof(gpio_multi_callback_config_t));
+    memcpy(new_arr, _callbacks[gpio].callbacks, (idx+1) * sizeof(gpio_multi_callback_config_t));
+    free(_callbacks[gpio].callbacks);
+    _callbacks[gpio].callbacks = new_arr;
+
     // Add custom callback to list.
-    _callbacks[gpio].fun = cb;
-    _callbacks[gpio].data = data;
-    _callbacks[gpio].events = event_mask;
+    _callbacks[gpio].callbacks[idx].fun = cb;
+    _callbacks[gpio].callbacks[idx].data = data;
+    _callbacks[gpio].callbacks[idx].events = event_mask;
 
     // Setup local dispatch if not already done 
     if(!_irq_dispatch_setup){
@@ -68,15 +85,14 @@ int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, 
 
     // Setup GPIO as interrupt
     gpio_set_irq_enabled(gpio, event_mask, enabled);
-
+    
     return PICO_ERROR_NONE;
 }
 
-int gpio_multi_callback_enabled(uint8_t gpio, bool enable){
+int gpio_multi_callback_enabled(uint8_t gpio, uint32_t event_mask, bool enable){
     assert(gpio < 32);
-    assert(_callbacks[gpio].fun == NULL);
 
-    gpio_set_irq_enabled(gpio, _callbacks[gpio].events, enable);
+    gpio_set_irq_enabled(gpio, event_mask, enable);
 
     return PICO_ERROR_NONE;
 }
@@ -84,7 +100,7 @@ int gpio_multi_callback_enabled(uint8_t gpio, bool enable){
 int gpio_multi_callback_clear(uint8_t gpio){
     assert(gpio < 32);
     gpio_set_irq_enabled(gpio, 0, false);
-    _callbacks[gpio].fun = NULL;
-    _callbacks[gpio].data = NULL;
-    _callbacks[gpio].events = 0;
+    free(_callbacks[gpio].callbacks);
+    _callbacks[gpio].callbacks = NULL;
+    _callbacks[gpio].num_cb = 0;
 }
