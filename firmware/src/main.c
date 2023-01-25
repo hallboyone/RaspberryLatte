@@ -1,8 +1,8 @@
 #include <stdio.h>
 
-#include "espresso_machine.h"
+#include "machine_logic/espresso_machine.h"
 
-#include "machine_settings.h"
+#include "machine_logic/machine_settings.h"
 #include "pinout.h"
 
 int main(){

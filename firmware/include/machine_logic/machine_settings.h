@@ -39,7 +39,7 @@
 #define MACHINE_SETTINGS_H
 
 #include "pico/stdlib.h" // Typedefs
-#include "mb85_fram.h"   // FRAM memory driver to store settings
+#include "drivers/mb85_fram.h"   // FRAM memory driver to store settings
 
 typedef int16_t machine_setting;     /**< \brief Generic machine setting field */
 typedef machine_setting temp_dC;     /**< \brief Temperature value. Divide by 10 to get C */

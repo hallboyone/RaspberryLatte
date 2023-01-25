@@ -7,7 +7,7 @@
  * \date 2022-12-09
  */
 
-#include "slow_pwm.h"
+#include "utils/slow_pwm.h"
 
 /**
  * @brief Callback for alarm to turn off the heater pin

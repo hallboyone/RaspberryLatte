@@ -10,7 +10,7 @@
 
 #include "pico/time.h"
 
-#include "autobrew.h"
+#include "machine_logic/autobrew.h"
 #include <stdlib.h>
 
 typedef struct _autobrew_leg {

@@ -8,7 +8,7 @@
  * \date 2022-11-28
 */
 
-#include "gpio_multi_callback.h"
+#include "utils/gpio_multi_callback.h"
 
 static bool _irq_dispatch_setup = false;
 

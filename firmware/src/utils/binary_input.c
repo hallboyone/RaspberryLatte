@@ -8,14 +8,14 @@
  * \date 2022-08-16
 */
 
-#include "binary_input.h"
+#include "utils/binary_input.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 #include "pico/time.h"
 
-#include "gpio_multi_callback.h"
+#include "utils/gpio_multi_callback.h"
 
 /** \brief Sets flag that indicates bouncing has ended
  * 

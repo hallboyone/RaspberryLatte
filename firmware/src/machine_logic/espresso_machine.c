@@ -7,28 +7,27 @@
  * \date 2022-12-09
  */
 
-#include "espresso_machine.h"
+#include "machine_logic/espresso_machine.h"
 
 #include <stdio.h>
 
 #include "pinout.h"
 
-#include "i2c_bus.h"
+#include "machine_logic/autobrew.h"
+#include "machine_logic/machine_settings.h"
 
-#include "analog_input.h"
-#include "binary_output.h"
-#include "binary_input.h"
-#include "phasecontrol.h"
-#include "nau7802.h"
-#include "slow_pwm.h"
-#include "lmt01.h"
-#include "mb85_fram.h"
-#include "flow_meter.h"
+#include "drivers/nau7802.h"
+#include "drivers/lmt01.h"
+#include "drivers/mb85_fram.h"
+#include "drivers/flow_meter.h"
 
-#include "pid.h"
-#include "autobrew.h"
-
-#include "machine_settings.h"
+#include "utils/analog_input.h"
+#include "utils/binary_output.h"
+#include "utils/binary_input.h"
+#include "utils/phasecontrol.h"
+#include "utils/slow_pwm.h"
+#include "utils/i2c_bus.h"
+#include "utils/pid.h"
 
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.00175;

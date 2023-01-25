@@ -7,9 +7,9 @@
  * \date 2022-12-10
  */
 
-#include "flow_meter.h"
+#include "drivers/flow_meter.h"
 
-#include "gpio_multi_callback.h"
+#include "utils/gpio_multi_callback.h"
 
 /**
  * \brief Simple callback that increments the corresponding flow_meter's pulse count by 1 and

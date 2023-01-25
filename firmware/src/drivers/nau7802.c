@@ -8,7 +8,7 @@
  * \date 2022-08-16
 */
 
-#include "nau7802.h"
+#include "drivers/nau7802.h"
 
 const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
 

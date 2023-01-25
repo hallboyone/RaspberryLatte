@@ -21,7 +21,7 @@
 
 #include "pico/stdlib.h"
 
-#include "pid.h"
+#include "utils/pid.h"
 
 /** \brief Structure managing a single flowmeter. */
 typedef struct {
