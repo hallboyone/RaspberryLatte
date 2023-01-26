@@ -49,9 +49,7 @@ int64_t gpio_irq_timestamp_read_duration_us(uint8_t gpio);
  * \param gpio GPIO to check
  * \return Duration in milliseconds of last interrupt event. PICO_ERROR_INVALID_ARG if GPIO is out of range. 
  */
-int64_t gpio_irq_timestamp_read_duration_ms(uint8_t gpio){
-    return gpio_irq_timestamp_read_duration_us(gpio)/1000;
-}
+int64_t gpio_irq_timestamp_read_duration_ms(uint8_t gpio);
 
 #endif
 /** @} */

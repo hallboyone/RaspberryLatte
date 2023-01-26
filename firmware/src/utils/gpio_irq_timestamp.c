@@ -43,4 +43,8 @@ int64_t gpio_irq_timestamp_read_duration_us(uint8_t gpio){
     return absolute_time_diff_us(_timestamps[gpio], get_absolute_time());
 }
 
+int64_t gpio_irq_timestamp_read_duration_ms(uint8_t gpio){
+    return gpio_irq_timestamp_read_duration_us(gpio)/1000;
+}
+
 /** @} */
