@@ -39,8 +39,6 @@ typedef struct {
     bool muxed;        /**< \brief Flag indicating if the input is muxed (pins read as binary numer). */
     bool inverted;     /**< \brief Flag indicating if the wiring requires the pins to be inverted. */
     uint64_t debounce_us;  /**< \brief Length of time a binary input must remain constant before switching */
-    volatile alarm_id_t debounce_alarm; /**< \brief ID of alarm used to debounce the button */
-    volatile bool bouncing; /**< \brief Flag set on transition and cleared after debounce_alarm */
 } binary_input;
 
 /**
