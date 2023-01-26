@@ -21,6 +21,7 @@
 #include "drivers/mb85_fram.h"
 #include "drivers/flow_meter.h"
 
+#include "utils/gpio_irq_timestamp.h"
 #include "utils/analog_input.h"
 #include "utils/binary_output.h"
 #include "utils/binary_input.h"
@@ -111,6 +112,18 @@ static inline uint8_t convert_pump_power(uint8_t percent){
 }
 
 /**
+ * \brief Checks if AC is hot
+ * 
+ * Looks at the last zerocross time. If not 'too' long ago, then AC is on and function returns true.
+ * 
+ * \return true AC is on
+ * \return false AC is off
+ */
+static inline bool is_ac_on(){
+    return (gpio_irq_timestamp_read_duration_us(PHASECONTROL_0CROSS_PIN) < 17000);
+}
+
+/**
  * \brief Setup the autobrew routine using the latest machine settings.
  */
 static void espresso_machine_autobrew_setup(){
@@ -155,9 +168,9 @@ static void espresso_machine_autobrew_setup(){
  */
 static void espresso_machine_update_state(){
     // Update all switches and dials
-    if(_state.switches.ac_switch != phasecontrol_is_ac_hot(&pump)){
+    if(_state.switches.ac_switch != is_ac_on()){
         _state.switches.ac_switch_changed = (_state.switches.ac_switch ? -1 : 1);
-        _state.switches.ac_switch = phasecontrol_is_ac_hot(&pump);
+        _state.switches.ac_switch = is_ac_on();
         // Rebuild autobrew routine to account for setting changes
         espresso_machine_autobrew_setup();
     } else {
@@ -342,6 +355,9 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup flow meter
     flow_meter_setup(&flow, FLOW_RATE_PIN, FLOW_CONVERSION_ML);
+
+    // Setup AC power sensor
+    gpio_irq_timestamp_setup(PHASECONTROL_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
 
     espresso_machine_update_state();
 
