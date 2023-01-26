@@ -22,7 +22,8 @@ target_sources(RaspberryLattePico
                PRIVATE src/utils/analog_input.c
                PRIVATE src/utils/binary_output.c
                PRIVATE src/utils/binary_input.c
-               PRIVATE src/utils/phasecontrol.c)
+               PRIVATE src/utils/phasecontrol.c
+               PRIVATE src/utils/gpio_irq_timestamp.c)
 
 target_link_libraries(RaspberryLattePico PRIVATE 
   pico_stdlib
