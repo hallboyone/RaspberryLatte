@@ -8,13 +8,13 @@
  * \version 0.1
  * \date 2022-11-12
  */
-#include "machine_settings.h"
+#include "machine_logic/machine_settings.h"
 
 #include <stdio.h>
 #include <string.h>
 
-#include "local_ui.h"
-#include "value_flasher.h"
+#include "machine_logic/local_ui.h"
+#include "utils/value_flasher.h"
 
 /** \brief Enumerated list naming the indicies of the settings array. */
 typedef enum {TEMP_BREW = 0,  TEMP_HOT,        TEMP_STEAM,      WEIGHT_DOSE, WEIGHT_YIELD,

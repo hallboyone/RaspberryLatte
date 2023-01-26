@@ -8,7 +8,7 @@
  * \date 2022-11-15
 */
 
-#include "local_ui.h"
+#include "machine_logic/local_ui.h"
 
 #include <string.h>
 #include <stdlib.h>

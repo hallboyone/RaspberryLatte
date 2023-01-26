@@ -5,7 +5,7 @@
  * \version 0.1
  * \date 2022-08-17
  */
-#include "i2c_bus.h"
+#include "utils/i2c_bus.h"
 #include <string.h>
 /**
  * \brief Checks if the provided GPIO numbers corrispond to valid pins for the indicated I2C channel.

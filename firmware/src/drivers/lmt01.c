@@ -7,7 +7,7 @@
  * \date 2022-08-16
  */
 
-#include "lmt01.h"
+#include "drivers/lmt01.h"
 #include "lmt01.pio.h"
 
 #include "hardware/clocks.h"

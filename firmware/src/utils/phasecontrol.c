@@ -8,10 +8,10 @@
  * \ingroup phasecontrol
  */
 
-#include "phasecontrol.h"
+#include "utils/phasecontrol.h"
 
 #include "pico/time.h"
-#include "gpio_multi_callback.h"
+#include "utils/gpio_multi_callback.h"
 
 static const uint64_t PERIOD_1_00 = 16667;
 static const uint64_t PERIOD_0_75 = 12500;

@@ -1,6 +1,6 @@
 /**
  * \defgroup binary_output GPIO Binary Outputs
- * \ingroup drivers
+ * \ingroup utils
  * \brief Abstraction of configuring and writing binary outputs on the Pi Pico.
  * 
  * Create binary output blocks of 1 or more GPIO pins. Each block is assigned

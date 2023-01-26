@@ -8,7 +8,7 @@
  * \version 0.1
  * \date 2022-11-14
  */
-#include "mb85_fram.h"
+#include "drivers/mb85_fram.h"
 #include <string.h>
 #include <stdlib.h>
 

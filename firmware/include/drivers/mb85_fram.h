@@ -24,7 +24,7 @@
 #define MB85_FRAM_H
 
 #include "pico/stdlib.h"
-#include "i2c_bus.h"
+#include "utils/i2c_bus.h"
 
 /** \brief Indicate how the values should be initalized when linking remote var. */
 typedef enum {

@@ -8,7 +8,7 @@
  * \date 2022-08-16
  */
 
-#include "analog_input.h"
+#include "utils/analog_input.h"
 
 #include "hardware/adc.h"
 

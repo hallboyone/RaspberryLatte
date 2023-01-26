@@ -7,7 +7,7 @@
  * \date 2022-12-09
  * 
  */
-#include "binary_output.h"
+#include "utils/binary_output.h"
 
 #include <stdlib.h>
 #include <string.h>

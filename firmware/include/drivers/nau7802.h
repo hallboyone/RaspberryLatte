@@ -30,7 +30,7 @@
 #define NAU7802_H
 
 #include "pico/stdlib.h"
-#include "i2c_bus.h"
+#include "utils/i2c_bus.h"
 
 typedef struct {
     i2c_inst_t * bus;

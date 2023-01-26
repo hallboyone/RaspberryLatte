@@ -8,35 +8,31 @@
  * \date 2022-08-16
 */
 
-#include "binary_input.h"
+#include "utils/binary_input.h"
 
 #include <stdlib.h>
 #include <string.h>
 
-#include "pico/time.h"
+#include "utils/gpio_irq_timestamp.h"
 
-#include "gpio_multi_callback.h"
-
-/** \brief Sets flag that indicates bouncing has ended
+/**
+ * \brief Check if binary input is bouncing.
  * 
- * When a debounced pin transitions between states, a flag is set that indicates the pin recently
- * changed and an alarm is set that will call this callback to clear the flag. If that alarm is 
- * not canceled (by another transition, for example), the binary_input has settled and future read
- * operations will read the pins state instead of using the recorded ones
+ * The input is bouncing if any of its pins have changed within the last debounce_us
+ * microseconds. First, if debounce_us==0 then the input is never bouncing. Then, iterate
+ * through all pins and see if any have recently changed. If yes, then input is bouncing.
+ * If not, however, then input is not bouncing
+ * 
+ * \param b Configured binary input
+ * \return True if input is bouncing. False if it is not.
  */
-static int64_t _debounce_callback(alarm_id_t id, void * b_in){
-    binary_input * b = (binary_input*) b_in;
-    b->bouncing = false;
-}
-
-/** \brief ISR for debouncing. */
-static void _set_debounce_alarm(uint gpio, uint32_t events, void * data){
-    binary_input * b = (binary_input*)data;
-    b->bouncing = true;
-    if(b->debounce_alarm != -1){
-        cancel_alarm(b->debounce_alarm);
+static bool _binary_input_bouncing(binary_input * b){
+    if(b->debounce_us == 0) return false;
+    for(uint8_t p_idx = 0; p_idx < b->num_pins; p_idx++){
+        const uint8_t p = b->pins[p_idx];
+        if(gpio_irq_timestamp_read_duration_us(p) < b->debounce_us) return true;
     }
-    b->debounce_alarm = add_alarm_in_us(b->debounce_us, &_debounce_callback, b, true);
+    return false;
 }
 
 /**
@@ -46,7 +42,7 @@ static void _set_debounce_alarm(uint gpio, uint32_t events, void * data){
  * \param b Pointer to binary_input object that will be updated.
  */
 static inline void _binary_input_update_pin_states(binary_input * b){
-    if (!b->bouncing){
+    if (!_binary_input_bouncing(b)){
         for(uint8_t p_idx = 0; p_idx < b->num_pins; p_idx++){
             uint8_t p = b->pins[p_idx];
             bool var = (gpio_is_pulled_down(p) ? gpio_get(p) : !gpio_get(p));
@@ -63,8 +59,6 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
     b->debounce_us = debounce_us;
     b->muxed       = muxed;
     b->inverted    = invert;
-    b->bouncing    = false;
-    b->debounce_alarm = -1;
 
     // Init the allocated arrays
     memcpy(b->pins, pins, num_pins);
@@ -78,7 +72,7 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
                        pull_dir != BINARY_INPUT_PULL_UP);
         if(debounce_us > 0){
             // Attach irq to each pin if debouncing
-            gpio_multi_callback_attach(b->pins[p], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE, true, &_set_debounce_alarm, b);
+            gpio_irq_timestamp_setup(b->pins[p], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE);
         }
     }
 }

@@ -5,7 +5,7 @@
  * \brief Library providing functionality for multiple GPIO callbacks.
  * 
  * Using the standard pico SDK, only a single GPIO callback can be defined. This library
- * allows for a custom callback to be assigned to each GPIO pin. 
+ * allows for multiple custom callbacks to be assigned to each GPIO pin. 
  * 
  * \note This library should completely replace the standard GPIO callback routines in the 
  * pico SDK. If one component of your firmware uses this library, all components should use
@@ -16,8 +16,8 @@
  * \file gpio_multi_callback.h
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief GPIO Multi-Callback header
- * \version 0.1
- * \date 2022-11-28
+ * \version 0.2
+ * \date 2023-01-24
 */
 #ifndef GPIO_MULTI_CALLBACK
 #define GPIO_MULTI_CALLBACK
@@ -51,7 +51,7 @@ int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, 
  * \param enable Flag indicating if the events should be enabled or disabled.
  * \return PICO_ERROR_NONE 
  */
-int gpio_multi_callback_enabled(uint8_t gpio, bool enable);
+int gpio_multi_callback_enabled(uint8_t gpio, uint32_t event_mask, bool enable);
 
 /**
  * \brief Disable a GPIO callback and clear its associated fields
