@@ -58,7 +58,6 @@ static mb85_fram           mem;
 static flow_meter          flow;
 
 static const machine_settings*   settings;
-//static value_flasher       setting_display;
 
 /** Autobrew and control objects */
 static pid_ctrl         heater_pid;
@@ -125,6 +124,11 @@ static inline bool is_ac_on(){
 
 /**
  * \brief Setup the autobrew routine using the latest machine settings.
+ * 
+ * The way that the autobrew library is structured prevents direct setting adjustment. Whenever
+ * changes are made, the routine must be remade. This is a small amount of overhead since changes
+ * can only occur when the machine is off so this function only has to be called when it is switched
+ * on. 
  */
 static void espresso_machine_autobrew_setup(){
     uint32_t preinf_ramp_dur;
