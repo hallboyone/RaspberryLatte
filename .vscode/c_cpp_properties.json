@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${PICO_SDK_PATH}/**"
+                "${PICO_SDK_PATH}/**",
+                "${workspaceFolder}/firmware/include/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
