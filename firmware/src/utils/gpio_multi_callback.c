@@ -71,7 +71,8 @@ int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, 
     memcpy(new_arr, _callbacks[gpio].callbacks, (idx+1) * sizeof(gpio_multi_callback_config_t));
     free(_callbacks[gpio].callbacks);
     _callbacks[gpio].callbacks = new_arr;
-
+    _callbacks[gpio].num_cb += 1;
+    
     // Add custom callback to list.
     _callbacks[gpio].callbacks[idx].fun = cb;
     _callbacks[gpio].callbacks[idx].data = data;

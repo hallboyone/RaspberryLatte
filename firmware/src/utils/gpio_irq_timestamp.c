@@ -24,7 +24,7 @@ int gpio_irq_timestamp_setup(uint8_t gpio, uint32_t events){
     if(!(events & (GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE))) return PICO_ERROR_INVALID_ARG;
 
     // If indicated events are already watched, no reason to re-add it.
-    if(events != (events & _events[gpio])) return 0;
+    if(events == (events & _events[gpio])) return 0;
 
     // Save events and setup new ones
     _events[gpio] = _events[gpio] | events;
