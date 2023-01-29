@@ -34,7 +34,7 @@
             "gdbPath" : "gdb-multiarch",
             "device": "RP2040",
             "configFiles": [
-                "interface/picoprobe.cfg",
+                "interface/cmsis-dap.cfg",
                 "target/rp2040.cfg"
             ],
             "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
@@ -46,12 +46,23 @@
             ]
         },
         {
-            "name": "Python: Current File",
-            "type": "python",
+            "name": "Picoprobe Debug - External",
+            "type":"cortex-debug",
+            "cwd": "${workspaceRoot}",
+            "executable": "${command:cmake.launchTargetPath}",
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": true
+            "servertype": "external",
+            // This may need to be arm-none-eabi-gdb depending on your system
+            "gdbPath" : "gdb-multiarch",
+            // Connect to an already running OpenOCD instance
+            "gdbTarget": "localhost:3333",
+            "svdFile": "${env:PICO_SDK_PATH}/src/rp2040/hardware_regs/rp2040.svd",
+            "runToMain": true,
+            // Work around for stopping at main on restart
+            "postRestartCommands": [
+                "break main",
+                "continue"
+            ]
         },
         { 
             "name": "MacOS: Pico Debug",
