@@ -10,6 +10,7 @@ target_sources(RaspberryLattePico
                PRIVATE src/machine_logic/espresso_machine.c
                PRIVATE src/machine_logic/local_ui.c
                PRIVATE src/machine_logic/autobrew.c
+               PRIVATE src/machine_logic/ulka_pump.c
                PRIVATE src/drivers/nau7802.c
                PRIVATE src/drivers/flow_meter.c
                PRIVATE src/drivers/lmt01.c
