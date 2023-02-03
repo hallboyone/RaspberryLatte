@@ -22,7 +22,6 @@
 #include "drivers/flow_meter.h"
 
 #include "utils/gpio_irq_timestamp.h"
-#include "utils/analog_input.h"
 #include "utils/binary_output.h"
 #include "utils/binary_input.h"
 #include "utils/phasecontrol.h"
@@ -37,7 +36,6 @@ const float PID_GAIN_F = 0.05;
 
 const float SCALE_CONVERSION_MG = -0.152710615479;
 const float FLOW_CONVERSION_ML = 0.5;
-const float PRESSURE_CONVERSION_BAR = 1.0;
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -45,7 +43,6 @@ static espresso_machine_state _state = {.pump.pump_lock = true};
 static i2c_inst_t *  bus = i2c1;
 
 /** All the peripheral components for the espresso machine */
-static analog_input        pressure_sensor;
 static binary_output       leds;
 static binary_input        pump_switch, mode_dial;
 static phasecontrol        pump;
@@ -327,10 +324,6 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     heater_pid.plant = &apply_boiler_input;
     heater_pid.setpoint = 0;
     pid_init(&heater_pid, 0, 175, 1000);
-
-    // Setup the pressure sensor
-    /** \todo Utilize analog input */
-    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN, PRESSURE_CONVERSION_BAR);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
