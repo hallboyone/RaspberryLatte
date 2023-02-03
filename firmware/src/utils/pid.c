@@ -173,6 +173,19 @@ float pid_tick(pid_ctrl * controller){
     return 0;
 }
 
+/**
+ * \brief Checks if the plant is at the target setpoint +/- a tolerance
+ * 
+ * \param controller Pointer to PID controller object to check.
+ * \param tol The range around the setpoint that are considered good.
+ * 
+ * \return True if at setpoint. False otherwise.
+ */
+bool pid_at_setpoint(pid_ctrl * controller, float tol){
+    const float err = controller->sensor() - controller->setpoint;
+    return (err >= -tol && err <= tol);
+}
+
 void pid_reset(pid_ctrl * controller){
     discrete_derivative_reset(&(controller->err_slope));
     discrete_integral_reset(&(controller->err_sum));

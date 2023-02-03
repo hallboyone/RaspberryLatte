@@ -15,6 +15,7 @@
 
 #include "machine_logic/autobrew.h"
 #include "machine_logic/machine_settings.h"
+#include "machine_logic/ulka_pump.h"
 
 #include "drivers/nau7802.h"
 #include "drivers/lmt01.h"
@@ -25,7 +26,6 @@
 #include "utils/analog_input.h"
 #include "utils/binary_output.h"
 #include "utils/binary_input.h"
-#include "utils/phasecontrol.h"
 #include "utils/slow_pwm.h"
 #include "utils/i2c_bus.h"
 #include "utils/pid.h"
@@ -48,7 +48,6 @@ static i2c_inst_t *  bus = i2c1;
 static analog_input        pressure_sensor;
 static binary_output       leds;
 static binary_input        pump_switch, mode_dial;
-static phasecontrol        pump;
 static binary_output       solenoid;
 static slow_pwm            heater;
 static lmt01               thermo; 
@@ -56,6 +55,7 @@ static nau7802             scale;
 static discrete_derivative scale_flowrate;
 static mb85_fram           mem;
 static flow_meter          flow;
+static ulka_pump           pump;
 
 static const machine_settings*   settings;
 
@@ -74,7 +74,7 @@ static float read_boiler_thermo(){
  * \brief Helper function that tracks and returns the scale's flowrate
 */
 static float read_pump_flowrate(){
-    return _state.pump.flowrate_ml_s;
+    return flow_meter_rate(&flow);
 }
 
 /**
@@ -101,16 +101,6 @@ static int zero_scale(){
 }
 
 /**
- * \brief Convert percent power to value between 60 and 127 or 0 if percent is 0.
- * 
- * \param percent An integer percentage between 0 and 100
- * \return 0 if percent is 0. Else a value between 60 and 127
-*/
-static inline uint8_t convert_pump_power(uint8_t percent){
-    return (percent==0) ? 0 : 0.6 * percent + 67;
-}
-
-/**
  * \brief Checks if AC is hot
  * 
  * Looks at the last zerocross time. If not 'too' long ago, then AC is on and function returns true.
@@ -119,7 +109,7 @@ static inline uint8_t convert_pump_power(uint8_t percent){
  * \return false AC is off
  */
 static inline bool is_ac_on(){
-    return (gpio_irq_timestamp_read_duration_us(PHASECONTROL_0CROSS_PIN) < 17000);
+    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
 }
 
 /**
@@ -133,7 +123,7 @@ static inline bool is_ac_on(){
 static void espresso_machine_autobrew_setup(){
     uint32_t preinf_ramp_dur;
     uint32_t preinf_on_dur;
-    uint8_t preinf_pwr = convert_pump_power(*settings->autobrew.preinf_power);
+    uint8_t preinf_pwr = *settings->autobrew.preinf_power;
     uint8_t preinf_pwr_start = (preinf_pwr == 0) ? 0 : 60;
     if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.preinf_on_time){
         // Ramp and then run for remaining time
@@ -147,7 +137,7 @@ static void espresso_machine_autobrew_setup(){
 
     uint32_t brew_ramp_dur;
     uint32_t brew_on_dur;
-    uint8_t brew_pwr = convert_pump_power(*settings->brew.power);
+    uint8_t brew_pwr = *settings->brew.power;
     if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.timeout){
         // Ramp and then run for remaining time
         brew_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
@@ -168,53 +158,37 @@ static void espresso_machine_autobrew_setup(){
 }
 
 /**
- * \brief Flag changes in switch values and use their states to update the machine's configuration
+ * \brief Flag changes in switch values. Run simple event-driven routines (zero scale, setup autobrew,
+ * etc).
  */
-static void espresso_machine_update_state(){
-    // Update all switches and dials
-    if(_state.switches.ac_switch != is_ac_on()){
+static void espresso_machine_update_switches(){
+    const bool new_ac_switch = is_ac_on();
+    if(_state.switches.ac_switch != new_ac_switch){
+        // If machine has been turned on or off
         _state.switches.ac_switch_changed = (_state.switches.ac_switch ? -1 : 1);
-        _state.switches.ac_switch = is_ac_on();
-        // Rebuild autobrew routine to account for setting changes
-        espresso_machine_autobrew_setup();
+        _state.switches.ac_switch = new_ac_switch;
+
+        // If machine has been switched on, rebuild autobrew routine
+        if(new_ac_switch) espresso_machine_autobrew_setup();
     } else {
         _state.switches.ac_switch_changed = 0;
     }
-    if(_state.switches.pump_switch != binary_input_read(&pump_switch)){
+
+    const bool new_pump_switch = binary_input_read(&pump_switch);
+    if(_state.switches.pump_switch != new_pump_switch){
         _state.switches.pump_switch_changed = (_state.switches.pump_switch ? -1 : 1);
-        _state.switches.pump_switch = binary_input_read(&pump_switch);
+        _state.switches.pump_switch = new_pump_switch;
     } else {
         _state.switches.pump_switch_changed = 0;
     }
-    if(_state.switches.mode_dial != binary_input_read(&mode_dial)){
-        _state.switches.mode_dial_changed = (_state.switches.mode_dial > binary_input_read(&mode_dial) ? -1 : 1);
-        _state.switches.mode_dial = binary_input_read(&mode_dial);
+
+    const int new_mode_switch = binary_input_read(&mode_dial);
+    if(_state.switches.mode_dial != new_mode_switch){
+        _state.switches.mode_dial_changed = (_state.switches.mode_dial > new_mode_switch ? -1 : 1);
+        _state.switches.mode_dial = new_mode_switch;
+        nau7802_zero(&scale);
     } else {
         _state.switches.mode_dial_changed = 0;
-    }
-
-    // Update Pump States
-    _state.pump.pump_lock = !_state.switches.ac_switch || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || _state.pump.pump_lock));
-    _state.pump.power_level = pump._timeout_idx;
-    _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
-    _state.pump.pressure_bar = 0.2*_state.pump.power_level - 1.4757*_state.pump.flowrate_ml_s - 9.2; // Parameters fitted to Ulka EAP5 pump.
-
-    // Update scale
-    if(_state.switches.mode_dial_changed){
-        nau7802_zero(&scale);
-    }
-
-    // Update setpoints
-    if(_state.switches.ac_switch){
-        if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*(*settings->steam.temp);
-        } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = 1.6*(*settings->hot.temp);
-        } else {
-            _state.boiler.setpoint = 1.6*(*settings->brew.temp);
-        }
-    } else {
-        _state.boiler.setpoint = 0;
     }
 }
 
@@ -229,72 +203,98 @@ static void espresso_machine_update_settings(){
     machine_settings_update(reset_settings_ui, select_settings_ui, _state.switches.mode_dial);
 }
 
+/** \brief Uses the state of the switches to update the pump and solenoid.
+ * 
+ * First, the pump lock is updated. This prevents the pump from coming on unintentionally (e.g. pump
+ * switch on when turning AC switch on). Next the pump's power solenoid's state are updated based on
+ * the current machine mode. Finally, the state of the pump is saved into the machine_state var to
+ * facilitate its easy access.
+*/
 static void espresso_machine_update_pump(){
-    if(!_state.switches.pump_switch){
-        autobrew_routine_reset(&autobrew_plan);
-        phasecontrol_set_duty_cycle(&pump, 0);
-        binary_output_put(&solenoid, 0, 0);
-    } else if (_state.pump.pump_lock){
-        phasecontrol_set_duty_cycle(&pump, 0);
-        binary_output_put(&solenoid, 0, 0);
+    // Lock the pump if AC is off OR pump is on and the mode has changed or it has been locked already.
+    if(!_state.switches.ac_switch 
+       || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || ulka_pump_is_locked(&pump)))){
+        ulka_pump_lock(&pump);
     } else {
-        // Get the max power that is safe given the flow rate (caps pressure around 13 bar)
-        uint8_t safe_pwr = 60 + 11*_state.pump.flowrate_ml_s;
-        switch(_state.switches.mode_dial){
-            case MODE_STEAM:
-                phasecontrol_set_duty_cycle(&pump, 0);
-                binary_output_put(&solenoid, 0, 0);
-                break;
-            case MODE_HOT:
-                safe_pwr = (safe_pwr < *settings->hot.power ? safe_pwr : *settings->hot.power);
-                phasecontrol_set_duty_cycle(&pump, convert_pump_power(safe_pwr));
-                binary_output_put(&solenoid, 0, 0);
-                break;
-            case MODE_MANUAL:
-                safe_pwr = (safe_pwr < *settings->brew.power ? safe_pwr : *settings->brew.power);
-                phasecontrol_set_duty_cycle(&pump, convert_pump_power(safe_pwr));
-                binary_output_put(&solenoid, 0, 1);
-                break;
-            case MODE_AUTO:
-                if(!autobrew_routine_tick(&autobrew_plan)){
-                    binary_output_put(&solenoid, 0, 1);
-                    safe_pwr = convert_pump_power(safe_pwr);
-                    if(autobrew_plan.state.pump_setting_changed){
-                        phasecontrol_set_duty_cycle(&pump, autobrew_plan.state.pump_setting);
-                    } else if (autobrew_plan.state.pump_setting > safe_pwr) {
-                        phasecontrol_set_duty_cycle(&pump, safe_pwr);
-                    }
-                } else {
-                    phasecontrol_set_duty_cycle(&pump, 0);
-                    binary_output_put(&solenoid, 0, 0);
-                }
-                break;
+        ulka_pump_unlock(&pump);
+    }
+
+    if(!_state.switches.pump_switch 
+        || ulka_pump_is_locked(&pump) 
+        || MODE_STEAM == _state.switches.mode_dial){
+        // If the pump is locked, switched off, or in steam mode
+        autobrew_routine_reset(&autobrew_plan);
+        ulka_pump_off(&pump);
+        binary_output_put(&solenoid, 0, 0);
+
+    } else if (MODE_HOT == _state.switches.mode_dial){
+        ulka_pump_pwr_percent(&pump, *settings->hot.power);
+        binary_output_put(&solenoid, 0, 0);
+
+    } else if (MODE_MANUAL == _state.switches.mode_dial){
+        ulka_pump_pwr_percent(&pump, *settings->brew.power);
+        binary_output_put(&solenoid, 0, 1);
+
+    } else if (MODE_AUTO ==_state.switches.mode_dial){
+        if(!autobrew_routine_tick(&autobrew_plan)){
+            binary_output_put(&solenoid, 0, 1);
+            if(autobrew_plan.state.pump_setting_changed){
+                ulka_pump_pwr_percent(&pump, autobrew_plan.state.pump_setting);
+            }
+        } else {
+            ulka_pump_off(&pump);
+            binary_output_put(&solenoid, 0, 0);
         }
     }
+
+    // Update Pump States
+    _state.pump.pump_lock     = ulka_pump_get_lock(&pump);
+    _state.pump.power_level   = ulka_pump_get_pwr(&pump);
+    _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
+    _state.pump.pressure_bar  = ulka_pump_get_pressure(&pump);
 }
 
+/**
+ * \brief Updates the boiler's setpoint based on the machine's mode, saves its state,
+ * and ticks its controller.
+ */
 static void espresso_machine_update_boiler(){
-    heater_pid.setpoint = _state.boiler.setpoint/16.;
-    pid_tick(&heater_pid);
+    // Update setpoints
+    if(_state.switches.ac_switch){
+        if(_state.switches.mode_dial == MODE_STEAM){
+            _state.boiler.setpoint = 1.6*(*settings->steam.temp);
+        } else if(_state.switches.mode_dial == MODE_HOT){
+            _state.boiler.setpoint = 1.6*(*settings->hot.temp);
+        } else {
+            _state.boiler.setpoint = 1.6*(*settings->brew.temp);
+        }
+    } else {
+        _state.boiler.setpoint = 0;
+    }
 
+    heater_pid.setpoint = _state.boiler.setpoint/16.;
     _state.boiler.temperature = lmt01_read(&thermo);
+
+    pid_tick(&heater_pid);
 }
 
+/**
+ * \brief Updates the 3 LEDs on the front of the machine.
+ * 
+ * If the machine is off, then the settings UI mask is applied to the LEDs. Otherwise, the LED 0
+ * is on (indicating the machine is powered), LED 1 is on if the boiler is at it's setpoint, and LED 2
+ * is on if the pump is off and the scale is at the required dose.
+ */
 static void espresso_machine_update_leds(){
     if(_state.switches.ac_switch){
-        binary_output_put(
-            &leds, 0, 
-            _state.switches.ac_switch);
-        binary_output_put(
-            &leds, 1, 
-            _state.switches.ac_switch 
-            && lmt01_read_float(&thermo) - heater_pid.setpoint < 2.5 
-            && lmt01_read_float(&thermo) - heater_pid.setpoint > -2.5);
-        binary_output_put(
-            &leds, 2, 
-            _state.switches.ac_switch 
-            && !_state.switches.pump_switch 
-            && nau7802_at_val_mg(&scale, *settings->brew.dose *100));
+        const bool led0 = _state.switches.ac_switch;
+        const bool led1 = _state.switches.ac_switch && pid_at_setpoint(&heater_pid, 2.5);
+        const bool led2 = _state.switches.ac_switch 
+                          && !_state.switches.pump_switch 
+                          && nau7802_at_val_mg(&scale, *settings->brew.dose *100);
+        binary_output_put(&leds, 0, led0);
+        binary_output_put(&leds, 1, led1);
+        binary_output_put(&leds, 2, led2);
     } else {
         binary_output_mask(&leds, settings->ui_mask);
     }
@@ -343,8 +343,8 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, false, false);
     binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, 75000, false, true);
 
-    // Setup phase control
-    phasecontrol_setup(&pump,PHASECONTROL_0CROSS_PIN,PHASECONTROL_OUT_PIN,PHASECONTROL_0CROSS_SHIFT,ZEROCROSS_EVENT_RISING);
+    // Setup the pump
+    ulka_pump_setup(&pump,AC_0CROSS_PIN, PUMP_OUT_PIN, AC_0CROSS_SHIFT, ZEROCROSS_EVENT_RISING);
 
     // Setup solenoid as a binary output
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
@@ -361,7 +361,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     flow_meter_setup(&flow, FLOW_RATE_PIN, FLOW_CONVERSION_ML);
 
     // Setup AC power sensor
-    gpio_irq_timestamp_setup(PHASECONTROL_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
+    gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
 
     espresso_machine_update_state();
 
@@ -370,7 +370,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 }
 
 void espresso_machine_tick(){
-    espresso_machine_update_state();
+    espresso_machine_update_switches();
     espresso_machine_update_settings();
     espresso_machine_update_boiler();
     espresso_machine_update_pump();

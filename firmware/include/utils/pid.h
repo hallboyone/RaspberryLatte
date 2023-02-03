@@ -220,6 +220,16 @@ void pid_init(pid_ctrl * controller, const float windup_lb, const float windup_u
 float pid_tick(pid_ctrl * controller);
 
 /**
+ * \brief Checks if the plant is at the target setpoint +/- a tolerance
+ * 
+ * \param controller Pointer to PID controller object to check.
+ * \param tol The range around the setpoint that are considered good.
+ * 
+ * \return True if at setpoint. False otherwise.
+ */
+bool pid_at_setpoint(pid_ctrl * controller, float tol);
+
+/**
  * \brief Reset the internal fields of the PID controller
  */
 void pid_reset(pid_ctrl * controller);
