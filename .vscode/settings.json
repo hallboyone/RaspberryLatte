@@ -46,7 +46,8 @@
         "gpio_multi_callback.h": "c",
         "espresso_machine.h": "c",
         "mb85_fram.h": "c",
-        "gpio_irq_timestamp.h": "c"
+        "gpio_irq_timestamp.h": "c",
+        "flow_meter.h": "c"
     },
     "cSpell.words": [
         "autobrew",
