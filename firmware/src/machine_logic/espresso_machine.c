@@ -249,7 +249,7 @@ static void espresso_machine_update_pump(){
     }
 
     // Update Pump States
-    _state.pump.pump_lock     = ulka_pump_get_lock(&pump);
+    _state.pump.pump_lock     = ulka_pump_is_locked(&pump);
     _state.pump.power_level   = ulka_pump_get_pwr(&pump);
     _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
     _state.pump.pressure_bar  = ulka_pump_get_pressure(&pump);
@@ -364,7 +364,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
 
-    espresso_machine_update_state();
+    espresso_machine_update_settings();
 
     machine_settings_print();
     return 0;

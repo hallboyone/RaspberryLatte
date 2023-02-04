@@ -56,7 +56,9 @@ float ulka_pump_get_flow(ulka_pump * p){
     return flow_meter_rate(&(p->pump_flow_meter));
 }
 
-float ulka_pump_get_pressure(ulka_pump * p);
+float ulka_pump_get_pressure(ulka_pump * p){
+    return 0.2*p->percent_power - 1.4757*ulka_pump_get_flow(p) - 9.2;
+}
 
 bool ulka_pump_is_locked(ulka_pump * p){
     return p->locked;
