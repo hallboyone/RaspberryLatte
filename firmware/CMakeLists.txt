@@ -19,7 +19,6 @@ target_sources(RaspberryLattePico
                PRIVATE src/utils/i2c_bus.c
                PRIVATE src/utils/value_flasher.c
                PRIVATE src/utils/gpio_multi_callback.c
-               PRIVATE src/utils/analog_input.c
                PRIVATE src/utils/binary_output.c
                PRIVATE src/utils/binary_input.c
                PRIVATE src/utils/phasecontrol.c
