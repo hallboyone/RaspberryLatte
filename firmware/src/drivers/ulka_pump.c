@@ -37,12 +37,12 @@ void ulka_pump_pwr_percent(ulka_pump * p, uint8_t percent_power){
 }
 
 void ulka_pump_off(ulka_pump * p){
-    ulka_pump_pwr_percent(&(p->pump_driver), 0);
+    ulka_pump_pwr_percent(p, 0);
 }
 
 void ulka_pump_lock(ulka_pump * p){
     p->locked = true;
-    ulka_pump_pwr_percent(&(p->pump_driver), 0);
+    ulka_pump_pwr_percent(p, 0);
 }
 
 void ulka_pump_unlock(ulka_pump * p){
