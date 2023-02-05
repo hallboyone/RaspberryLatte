@@ -25,7 +25,7 @@ int main(){
         espresso_machine_tick();
         if(absolute_time_diff_us(get_absolute_time(), next_msg_time) < 0){
             next_msg_time = make_timeout_time_us(msg_period_us);
-            if(espresso_machine->boiler.setpoint){
+            if(espresso_machine->switches.ac_switch){
                 printf("T = %0.2fC / %0.2fC, F = %0.2fml/s, P = %0.2fbar\n",
                 espresso_machine->boiler.temperature/16.,
                 espresso_machine->boiler.setpoint/16.,
