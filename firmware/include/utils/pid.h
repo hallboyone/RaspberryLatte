@@ -202,18 +202,25 @@ typedef struct {
 } pid_ctrl;
 
 /**
- * \brief Sets a PID controller. Sets the appropriate parameters in internal sum and slope objects.
+ * \brief Configure a PID controller. Sets the appropriate parameters in internal sum and slope objects.
  * 
  * \param controller Pointer to pid_ctrl that will be initalized
+ * \param K The controller gains
+ * \param feedback_sensor Sensor used for feedback control
+ * \param feedforward_sensor Sensor used for feedforward control
+ * \param plant Plant that the control input is applied to
+ * \param time_between_ticks_ms Minimum length of time between ticks.
  * \param windup_lb The minimum value the error sum can have.
  * \param windup_ub The maximum value the error sum can have.
- * \param derivative_filter_span_ms The length of time in ms overwhich to compute the average slope.
+ * \param derivative_filter_span_ms The length of time in ms over which to compute the average slope.
  */
-void pid_init(pid_ctrl * controller, const float windup_lb, const float windup_ub, uint derivative_filter_span_ms);
+void pid_setup(pid_ctrl * controller, const pid_gains K, read_sensor feedback_sensor,
+               read_sensor feedforward_sensor, apply_input plant, uint16_t time_between_ticks_ms,
+               const float windup_lb, const float windup_ub, uint derivative_filter_span_ms);
 
 /**
  * \brief If the minimum time between ticks has elapsed, run one loop of the controller. This requires reading the sensor,
- * updateing the sum and slope terms, computing the input, and applying it to the plant. 
+ * updating the sum and slope terms, computing the input, and applying it to the plant (if not NULL). 
  * 
  * \param controller Pointer to PID controller object to update.
  */

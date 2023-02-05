@@ -314,17 +314,10 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
-    heater_pid.K.p = PID_GAIN_P;
-    heater_pid.K.i = PID_GAIN_I;
-    heater_pid.K.d = PID_GAIN_D;
-    heater_pid.K.f = PID_GAIN_F;
-    heater_pid.min_time_between_ticks_ms = 100;
-    heater_pid.sensor = &read_boiler_thermo;
-    heater_pid.sensor_feedforward = &read_pump_flowrate;
-    heater_pid.plant = &apply_boiler_input;
-    heater_pid.setpoint = 0;
-    pid_init(&heater_pid, 0, 175, 1000);
-
+    const pid_gains K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
+    pid_setup(&heater_pid, K, &read_boiler_thermo, &read_pump_flowrate, 
+              &apply_boiler_input, 100, 0, 175, 1000);
+    
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     binary_output_setup(&leds, led_pins, 3);
