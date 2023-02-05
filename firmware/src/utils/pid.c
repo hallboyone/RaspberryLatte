@@ -146,7 +146,15 @@ void discrete_integral_reset(discrete_integral *i) {
     i->sum = 0;
 }
 
-void pid_init(pid_ctrl * controller, const float windup_lb, const float windup_ub, uint derivative_filter_span_ms){
+void pid_setup(pid_ctrl * controller, const pid_gains K, read_sensor feedback_sensor,
+               read_sensor feedforward_sensor, apply_input plant, uint16_t time_between_ticks_ms,
+               const float windup_lb, const float windup_ub, uint derivative_filter_span_ms){
+    controller->K = K;
+    controller->sensor = feedback_sensor;
+    controller->sensor_feedforward = feedforward_sensor;
+    controller->plant = plant;
+    controller->min_time_between_ticks_ms = time_between_ticks_ms;
+    controller->setpoint = 0;
     controller->_next_tick_time = get_absolute_time();
 
     discrete_integral_init(&(controller->err_sum), windup_lb, windup_ub);
@@ -167,7 +175,9 @@ float pid_tick(pid_ctrl * controller){
         float ff = (controller->sensor_feedforward != NULL ? controller->sensor_feedforward() : 0);
         float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
 
-        controller->plant(input);
+        if(controller->plant != NULL){
+            controller->plant(input);
+        }
         return input;
     }
     return 0;

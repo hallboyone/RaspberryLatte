@@ -24,7 +24,6 @@
 #include "drivers/ulka_pump.h"
 
 #include "utils/gpio_irq_timestamp.h"
-#include "utils/analog_input.h"
 #include "utils/binary_output.h"
 #include "utils/binary_input.h"
 #include "utils/slow_pwm.h"
@@ -38,7 +37,6 @@ const float PID_GAIN_F = 0.05;
 
 const float SCALE_CONVERSION_MG = -0.152710615479;
 const float FLOW_CONVERSION_ML = 0.5;
-const float PRESSURE_CONVERSION_BAR = 1.0;
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -46,7 +44,6 @@ static espresso_machine_state _state = {.pump.pump_lock = true};
 static i2c_inst_t *  bus = i2c1;
 
 /** All the peripheral components for the espresso machine */
-static analog_input        pressure_sensor;
 static binary_output       leds;
 static binary_input        pump_switch, mode_dial;
 static binary_output       solenoid;
@@ -318,21 +315,10 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
-    heater_pid.K.p = PID_GAIN_P;
-    heater_pid.K.i = PID_GAIN_I;
-    heater_pid.K.d = PID_GAIN_D;
-    heater_pid.K.f = PID_GAIN_F;
-    heater_pid.min_time_between_ticks_ms = 100;
-    heater_pid.sensor = &read_boiler_thermo;
-    heater_pid.sensor_feedforward = &read_pump_flowrate;
-    heater_pid.plant = &apply_boiler_input;
-    heater_pid.setpoint = 0;
-    pid_init(&heater_pid, 0, 175, 1000);
-
-    // Setup the pressure sensor
-    /** \todo Utilize analog input */
-    analog_input_setup(&pressure_sensor, PRESSURE_SENSOR_PIN, PRESSURE_CONVERSION_BAR);
-
+    const pid_gains K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
+    pid_setup(&heater_pid, K, &read_boiler_thermo, &read_pump_flowrate, 
+              &apply_boiler_input, 100, 0, 175, 1000);
+    
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     binary_output_setup(&leds, led_pins, 3);
