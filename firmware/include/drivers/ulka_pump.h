@@ -25,7 +25,6 @@ typedef struct {
     phasecontrol pump_driver;
     flow_meter pump_flow_meter;
     bool locked;
-    float max_pressure;
     uint8_t percent_power;
 } ulka_pump;
 
@@ -64,9 +63,8 @@ int ulka_pump_setup_flow_meter(ulka_pump * p, uint8_t pin_num, float conversion)
  * 
  * \param p A previously setup pump struct to write the power to
  * \param percent_power A percent power between 0 and 100 inclusive. Values out or range are clipped.
- * \return int 
  */
-int ulka_pump_pwr_percent(ulka_pump * p, uint8_t percent_power);
+void ulka_pump_pwr_percent(ulka_pump * p, uint8_t percent_power);
 
 /**
  * \brief Turns the pump off.

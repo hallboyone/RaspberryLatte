@@ -59,6 +59,7 @@
         "leds",
         "phasecontrol",
         "PICO",
+        "pinout",
         "PREINF",
         "preinfuse",
         "setpoint",
