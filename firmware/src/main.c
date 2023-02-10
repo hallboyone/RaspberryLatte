@@ -15,18 +15,38 @@ int main(){
     }
     machine_settings * settings = machine_settings_acquire();
 
-    // Run main machine loop
+    // Message rate limiter
     absolute_time_t next_msg_time = get_absolute_time();
     const uint64_t msg_period_us = 1000000;
+
+    // Loop rate limiter
     absolute_time_t next_loop_time;
     const uint64_t loop_period_us = 10000;
 
+    // Power change rate limiter
     absolute_time_t next_pwr_change_time = get_absolute_time();
-    const uint64_t pwr_change_period_us = 30000000; // Change power every 30 seconds
-    settings->brew.power = 1;
+    const uint64_t pwr_change_period_us = 3000000; // Change power every 30 seconds
+    settings->brew.power = 0;
+
     while(true){
         next_loop_time = make_timeout_time_us(loop_period_us);
+
+        // Power is changed every 30s when machine is on
+        if(!espresso_machine->switches.ac_switch){
+            next_pwr_change_time = make_timeout_time_us(pwr_change_period_us);
+            settings->brew.power = 0;
+        } else {
+            if(absolute_time_diff_us(get_absolute_time(), next_pwr_change_time) < 0){
+                settings->brew.power += 5;
+                if(settings->brew.power > 100) settings->brew.power = 5;
+                next_pwr_change_time = make_timeout_time_us(pwr_change_period_us);
+            }
+        }
+
+        // Update the machine
         espresso_machine_tick();
+
+        // Print status once a second
         if(absolute_time_diff_us(get_absolute_time(), next_msg_time) < 0){
             next_msg_time = make_timeout_time_us(msg_period_us);
             if(espresso_machine->switches.ac_switch){
@@ -34,10 +54,7 @@ int main(){
                 printf("%07d,%03d,%0.2f\n",
                 timestamp_ms,
                 espresso_machine->pump.power_level,
-                //espresso_machine->boiler.temperature/16.,
-                //espresso_machine->boiler.setpoint/16.,
-                espresso_machine->pump.flowrate_ml_s);//,
-                //espresso_machine->pump.pressure_bar);
+                espresso_machine->pump.flowrate_ml_s);
             }
         }
         sleep_until(next_loop_time);
