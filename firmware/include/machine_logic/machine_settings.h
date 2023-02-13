@@ -101,7 +101,7 @@ const machine_settings * machine_settings_setup(mb85_fram * mem);
 /** \brief Get a const pointer to internal settings structure
  * \returns A const pointer to the global settings structure or NULL if not setup. 
 */
-const machine_settings * machine_settings_acquire();
+machine_settings * machine_settings_acquire();
 
 /**
  * \brief Navigates the internal setting's tree and updates values accordingly

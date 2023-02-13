@@ -295,7 +295,7 @@ const machine_settings * machine_settings_setup(mb85_fram * mem){
     return &_ms_struct;
 }
 
-const machine_settings * machine_settings_acquire(){
+machine_settings * machine_settings_acquire(){
     if(_mem == NULL) return NULL;
     else return &_ms_struct;
 }
