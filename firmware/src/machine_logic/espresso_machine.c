@@ -20,7 +20,6 @@
 #include "drivers/nau7802.h"
 #include "drivers/lmt01.h"
 #include "drivers/mb85_fram.h"
-#include "drivers/flow_meter.h"
 #include "drivers/ulka_pump.h"
 
 #include "utils/gpio_irq_timestamp.h"
@@ -52,7 +51,6 @@ static lmt01               thermo;
 static nau7802             scale;
 static discrete_derivative scale_flowrate;
 static mb85_fram           mem;
-static flow_meter          flow;
 static ulka_pump           pump;
 
 static const machine_settings*   settings;
@@ -72,7 +70,7 @@ static float read_boiler_thermo(){
  * \brief Helper function that tracks and returns the scale's flowrate
 */
 static float read_pump_flowrate(){
-    return flow_meter_rate(&flow);
+    return ulka_pump_get_flow(&pump);
 }
 
 /**
@@ -248,7 +246,7 @@ static void espresso_machine_update_pump(){
     // Update Pump States
     _state.pump.pump_lock     = ulka_pump_is_locked(&pump);
     _state.pump.power_level   = ulka_pump_get_pwr(&pump);
-    _state.pump.flowrate_ml_s = flow_meter_rate(&flow);
+    _state.pump.flowrate_ml_s = ulka_pump_get_flow(&pump);
     _state.pump.pressure_bar  = ulka_pump_get_pressure(&pump);
 }
 
@@ -332,6 +330,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup the pump
     ulka_pump_setup(&pump,AC_0CROSS_PIN, PUMP_OUT_PIN, AC_0CROSS_SHIFT, ZEROCROSS_EVENT_RISING);
+    ulka_pump_setup_flow_meter(&pump, FLOW_RATE_PIN, FLOW_CONVERSION_ML);
 
     // Setup solenoid as a binary output
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
@@ -343,9 +342,6 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
-
-    // Setup flow meter
-    flow_meter_setup(&flow, FLOW_RATE_PIN, FLOW_CONVERSION_ML);
 
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
