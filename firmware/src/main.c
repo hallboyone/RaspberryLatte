@@ -5,6 +5,9 @@
 #include "machine_logic/machine_settings.h"
 #include "pinout.h"
 
+#define S_TO_US 1000000
+#define MS_TO_US 1000
+
 int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
@@ -17,16 +20,16 @@ int main(){
 
     // Message rate limiter
     absolute_time_t next_msg_time = get_absolute_time();
-    const uint64_t msg_period_us = 1000000;
+    const uint64_t msg_period_us = 250 * MS_TO_US;
 
     // Loop rate limiter
     absolute_time_t next_loop_time;
-    const uint64_t loop_period_us = 10000;
+    const uint64_t loop_period_us = 10 * MS_TO_US;
 
     // Power change rate limiter
     absolute_time_t next_pwr_change_time = get_absolute_time();
-    const uint64_t pwr_change_period_us = 3000000; // Change power every 30 seconds
-    settings->brew.power = 0;
+    const uint64_t pwr_change_period_us = 40 * S_TO_US; // Change power every 40 seconds
+    *settings->brew.power = 0;
 
     while(true){
         next_loop_time = make_timeout_time_us(loop_period_us);
@@ -34,11 +37,13 @@ int main(){
         // Power is changed every 30s when machine is on
         if(!espresso_machine->switches.ac_switch){
             next_pwr_change_time = make_timeout_time_us(pwr_change_period_us);
-            settings->brew.power = 0;
+            *settings->brew.power = 0;
         } else {
             if(absolute_time_diff_us(get_absolute_time(), next_pwr_change_time) < 0){
-                settings->brew.power += 5;
-                if(settings->brew.power > 100) settings->brew.power = 5;
+                *settings->brew.power += 5;
+                if(*settings->brew.power > 100){
+                    *settings->brew.power = 0;
+                }
                 next_pwr_change_time = make_timeout_time_us(pwr_change_period_us);
             }
         }
