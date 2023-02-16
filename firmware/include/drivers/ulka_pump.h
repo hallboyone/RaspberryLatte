@@ -2,7 +2,9 @@
  * \defgroup ulka_pump Ulka Pump Library
  * \version 0.1
  * 
- * \brief Abstracts the use of Ulka vibratory pumps. Writes percentage power to the pump. If a
+ * \brief Abstracts the use of Ulka vibratory pumps. 
+ * 
+ * Writes percentage power to the pump. If a
  * flow_meter is configured, then the current flow and current pressure can be computed. Note
  * that pressure is computed from flow and may be inaccurate.
  * 
@@ -114,7 +116,7 @@ float ulka_pump_get_flow(ulka_pump * p);
  * 
  * Vibratory pumps have a relationship between the flow, power, and pressure. Using the 
  * internal flow sensor, the function computes the theoretical pressure. This is more accurate
- * at powers.
+ * at higher powers.
  * 
  * \param p A previously setup pump struct with a configured flow meter.
  * \return the current pressure if the flow meter has been configured. Else 0.
