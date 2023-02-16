@@ -11,6 +11,10 @@
 
 #include "drivers/ulka_pump.h"
 
+/**
+ * \brief LUT mapping percent power to duty cycle. Since low duty cycles don't operate the pump,
+ * 1% power corresponds with about 50% duty cycle.
+ */
 static const uint8_t _percent_to_power_lut [] = {
       0,  60,  61,  61,  62,  63,  63,  64,  65,  65,  66,  67,  67,  68,  69,  69,  70,  
      71,  72,  72,  73,  74,  74,  75,  76,  76,  77,  78,  78,  79,  80,  80,  81,  82,  
@@ -22,17 +26,17 @@ static const uint8_t _percent_to_power_lut [] = {
 int ulka_pump_setup(ulka_pump * p, uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocross_shift_us, uint8_t zerocross_event){
     p->locked = true;
     p->percent_power = 0;
-    phasecontrol_setup((&p->pump_driver), zerocross_pin, out_pin, zerocross_shift_us, zerocross_event);
+    phasecontrol_setup((&p->driver), zerocross_pin, out_pin, zerocross_shift_us, zerocross_event);
 }
 
 int ulka_pump_setup_flow_meter(ulka_pump * p, uint8_t pin_num, float conversion){
-    return flow_meter_setup(&(p->pump_flow_meter), pin_num, conversion);
+    return flow_meter_setup(&(p->flow), pin_num, conversion);
 }
 
 void ulka_pump_pwr_percent(ulka_pump * p, uint8_t percent_power){
     if(!p->locked){
         p->percent_power = (percent_power > 100 ? 100 : percent_power);
-        phasecontrol_set_duty_cycle(&(p->pump_driver), _percent_to_power_lut[p->percent_power]);
+        phasecontrol_set_duty_cycle(&(p->driver), _percent_to_power_lut[p->percent_power]);
     }
 }
 
@@ -54,7 +58,7 @@ uint8_t ulka_pump_get_pwr(ulka_pump * p){
 }
 
 float ulka_pump_get_flow(ulka_pump * p){
-    return flow_meter_rate(&(p->pump_flow_meter));
+    return flow_meter_rate(&(p->flow));
 }
 
 float ulka_pump_get_pressure(ulka_pump * p){
