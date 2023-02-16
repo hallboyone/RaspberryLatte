@@ -25,6 +25,7 @@
 #ifndef AUTOBREW_H
 #define AUTOBREW_H
 #include "pico/stdlib.h"
+#include "utils/pid.h"
 
 /** \brief Function prototype that will be called during a function call leg. */
 typedef int (*autobrew_fun)();
@@ -87,17 +88,20 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
  * 
  * \param r Previously setup autobrew_routine structure with the leg that will be setup.
  * \param leg_idx The index of the leg to be setup (0 indexed).
- * \param pump_starting_pwr Percent power at the start of the leg.
- * \param pump_ending_pwr Percent power at the end of the leg. Note this power is reached at the end of the timeout.
+ * \param pump_starting_setpoint Setpoint at the start of the leg.
+ * \param pump_ending_setpoint Setpoint at the end of the leg. Note this power is reached at the end of the timeout.
  * If there is a trigger function, this value may never be realized.
+ * \param ctrl Optional PID controller. If set, then its setpoint is updated according to previous parameters.
+ * If not set, then the previous parameters correspond with the pump's percent power.
  * \param timeout_us Time in microseconds from the first tick to the end of the leg if never triggered.
  * \param trigger Trigger function that returns true when some end condition is met (e.g. scale hits 30g).
  * If NULL, only the timeout_us is used and the leg is a timed leg.
  * 
  * \returns PICO_ERROR_NONE if successful. Else, PICO_ERROR_INVALID_ARG if leg_idx is out of range.
  */
-int autobrew_setup_linear_power_leg(autobrew_routine * r, uint8_t leg_idx, uint8_t pump_starting_pwr, 
-                                    uint8_t pump_ending_pwr, uint32_t timeout_us, autobrew_trigger trigger);
+int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, uint8_t pump_starting_setpoint, 
+                                    uint8_t pump_ending_setpoint, pid_ctrl * ctrl, uint32_t timeout_us, 
+                                    autobrew_trigger trigger);
 
 /**
  * \brief Setup the autobrew_routine * r with \ref num_legs empty legs.

@@ -145,11 +145,11 @@ static void espresso_machine_autobrew_setup(){
 
     uint32_t preinf_off_time = *settings->autobrew.preinf_off_time*100000UL;
 
-    autobrew_setup_linear_power_leg(&autobrew_plan, 1, 0,          preinf_pwr, preinf_ramp_dur, NULL);
-    autobrew_setup_linear_power_leg(&autobrew_plan, 2, preinf_pwr, preinf_pwr, preinf_on_dur,   NULL);
-    autobrew_setup_linear_power_leg(&autobrew_plan, 3, 0,          0,          preinf_off_time, NULL);
-    autobrew_setup_linear_power_leg(&autobrew_plan, 4, 0,          brew_pwr,   brew_ramp_dur,   &scale_at_output);
-    autobrew_setup_linear_power_leg(&autobrew_plan, 5, brew_pwr,   brew_pwr,   brew_on_dur,     &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 1, 0,          preinf_pwr, NULL, preinf_ramp_dur, NULL);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 2, preinf_pwr, preinf_pwr, NULL, preinf_on_dur,   NULL);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 3, 0,          0,          NULL, preinf_off_time, NULL);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 4, 0,          brew_pwr,   NULL, brew_ramp_dur,   &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, brew_pwr,   brew_pwr,   NULL, brew_on_dur,     &scale_at_output);
 }
 
 /**

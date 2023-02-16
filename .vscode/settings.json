@@ -50,6 +50,7 @@
         "flow_meter.h": "c"
     },
     "cSpell.words": [
+        "ABSP",
         "autobrew",
         "datapoint",
         "feedforward",
