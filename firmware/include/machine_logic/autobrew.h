@@ -13,8 +13,6 @@
  * 
  * \todo Add PID regulation option
  * 
- * \todo Convert to percent power, not duty cycle. 
- * 
  * \ingroup machine_logic
  * \{
  * \file
@@ -40,7 +38,7 @@ typedef bool (*autobrew_trigger)();
  * This struct is updated by tick calls (either leg or routine versions). 
  */
 typedef struct {
-    uint8_t pump_setting;       /**< \brief The value that the autobrew routine has set the pump to. */
+    uint8_t pump_setting;       /**< \brief The percent power that the autobrew routine has set the pump to. */
     bool pump_setting_changed;  /**< \brief Indicates if the pump_setting changed since the last tick. */
     bool finished;              /**< \brief Indicates if the leg/routine has completed. */
 } autobrew_state;
@@ -74,7 +72,7 @@ typedef struct {
  * 
  * \param r Previously setup autobrew_routine structure with the leg that will be setup.
  * \param leg_idx The index of the leg to be setup (0 indexed).
- * \param pump_pwr The power that will be returned after the leg's only tick.
+ * \param pump_pwr The percent power that will be returned after the leg's only tick.
  * \param fun The function that will be called during the leg's only tick.
  * 
  * \returns PICO_ERROR_NONE if successful. Else, PICO_ERROR_INVALID_ARG if leg_idx is out of range.
@@ -89,8 +87,8 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
  * 
  * \param r Previously setup autobrew_routine structure with the leg that will be setup.
  * \param leg_idx The index of the leg to be setup (0 indexed).
- * \param pump_starting_pwr Power at the start of the leg.
- * \param pump_ending_pwr Power at the end of the leg. Note this power is reached at the end of the timeout.
+ * \param pump_starting_pwr Percent power at the start of the leg.
+ * \param pump_ending_pwr Percent power at the end of the leg. Note this power is reached at the end of the timeout.
  * If there is a trigger function, this value may never be realized.
  * \param timeout_us Time in microseconds from the first tick to the end of the leg if never triggered.
  * \param trigger Trigger function that returns true when some end condition is met (e.g. scale hits 30g).
