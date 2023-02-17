@@ -14,8 +14,8 @@
 #include <stdlib.h>
 
 typedef struct _autobrew_leg {
-    uint8_t pump_pwr_start;   /**< \brief Pump power at start of leg. */
-    int8_t pump_pwr_delta;    /**< \brief Change in power over leg. If constant, set to 0. */
+    uint8_t pump_pwr_start;   /**< \brief Percent pump power at start of leg. */
+    int8_t pump_pwr_delta;    /**< \brief Change in percent power over leg. If constant, set to 0. */
     uint32_t timeout_us;      /**< \brief Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
     autobrew_fun fun;         /**< \brief Void function to call if FUNCTION_CALL leg. */
     autobrew_trigger trigger; /**< \brief Function used to trigger the end of a leg. */

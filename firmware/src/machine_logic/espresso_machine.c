@@ -120,7 +120,6 @@ static void espresso_machine_autobrew_setup(){
     uint32_t preinf_ramp_dur;
     uint32_t preinf_on_dur;
     uint8_t preinf_pwr = *settings->autobrew.preinf_power;
-    uint8_t preinf_pwr_start = (preinf_pwr == 0) ? 0 : 60;
     if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.preinf_on_time){
         // Ramp and then run for remaining time
         preinf_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
