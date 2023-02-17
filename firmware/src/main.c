@@ -26,27 +26,8 @@ int main(){
     absolute_time_t next_loop_time;
     const uint64_t loop_period_us = 10 * MS_TO_US;
 
-    // Power change rate limiter
-    absolute_time_t next_pwr_change_time = get_absolute_time();
-    const uint64_t pwr_change_period_us = 40 * S_TO_US; // Change power every 40 seconds
-    *settings->brew.power = 0;
-
     while(true){
         next_loop_time = make_timeout_time_us(loop_period_us);
-
-        // Power is changed every 30s when machine is on
-        if(!espresso_machine->switches.ac_switch){
-            next_pwr_change_time = make_timeout_time_us(pwr_change_period_us);
-            *settings->brew.power = 0;
-        } else {
-            if(absolute_time_diff_us(get_absolute_time(), next_pwr_change_time) < 0){
-                *settings->brew.power += 5;
-                if(*settings->brew.power > 100){
-                    *settings->brew.power = 0;
-                }
-                next_pwr_change_time = make_timeout_time_us(pwr_change_period_us);
-            }
-        }
 
         // Update the machine
         espresso_machine_tick();
@@ -56,10 +37,11 @@ int main(){
             next_msg_time = make_timeout_time_us(msg_period_us);
             if(espresso_machine->switches.ac_switch){
                 const uint32_t timestamp_ms = to_ms_since_boot(get_absolute_time());
-                printf("%07d,%03d,%0.2f\n",
+                printf("%07d,%03d,%0.2f,%0.2f\n",
                 timestamp_ms,
                 espresso_machine->pump.power_level,
-                espresso_machine->pump.flowrate_ml_s);
+                espresso_machine->pump.flowrate_ml_s,
+                espresso_machine->pump.pressure_bar);
             }
         }
         sleep_until(next_loop_time);
