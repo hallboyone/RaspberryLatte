@@ -12,7 +12,6 @@
 
 #include "machine_logic/autobrew.h"
 #include <stdlib.h>
-
 typedef struct _autobrew_leg {
     uint8_t pump_setpoint_start;          /**< \brief Setpoint at start of leg. */
     int8_t pump_setpoint_delta;           /**< \brief Change in Setpoint over leg. If constant, set to 0. */
@@ -91,7 +90,11 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
         } else {
             // PID controller generates pump_setting given setpoint
             leg->ctrl->setpoint = current_setpoint;
-            state->pump_setting = pid_tick(leg->ctrl);
+            float raw_input = pid_tick(leg->ctrl);
+            raw_input = (raw_input < 0 ? 0 : raw_input);
+            raw_input = (raw_input > 100 ? 100 : raw_input);
+            state->pump_setting = raw_input;
+            state->pump_setting_changed = true;
         }
 
         // Compute end condition by .trigger (if available) or timeout.
