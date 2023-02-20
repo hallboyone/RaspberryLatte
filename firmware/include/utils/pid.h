@@ -69,12 +69,11 @@ typedef struct _datapoint_ext_ _datapoint_ext;
  * fit.
  */
 typedef struct {
-    uint filter_span_ms; /**< The amount of the dataseries in ms that the slope will be fitted to. */
-    _datapoint_ext * _data;    /**< The most recent datapoints in the dataseries. */
-    uint16_t _buf_len;   /**< The max number of datapoints the _data can hold. */
-    uint16_t _num_el;    /**< Number of datapoints between low and high idx. */
-    uint16_t _low_idx;   /**< The first index of the data in array (inclusive). */
-    uint16_t _high_idx;  /**< The last index of the data in array (exclusive). */ 
+    uint filter_span_ms;    /**< The amount of the dataseries in ms that the slope will be fitted to. */
+    _datapoint_ext * _data; /**< The most recent datapoints in the dataseries. */
+    uint16_t _buf_len;      /**< The max number of datapoints the _data can hold. */
+    uint16_t _num_el;       /**< Number of datapoints in buffer. */
+    uint16_t _start_idx;    /**< The first index of the data in array (inclusive). */
     float _sum_v;
     float _sum_t;
     float _sum_tt;
