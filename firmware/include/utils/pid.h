@@ -59,6 +59,8 @@ typedef struct {
     float v; /**< Value associated with datapoint */
 } datapoint;
 
+typedef struct _datapoint_ext_ _datapoint_ext;
+
 /**
  * \brief Stuct representing a discrete derivative.
  * 
@@ -68,9 +70,15 @@ typedef struct {
  */
 typedef struct {
     uint filter_span_ms; /**< The amount of the dataseries in ms that the slope will be fitted to. */
-    datapoint* _data;    /**< The most recent datapoints in the dataseries. */
+    _datapoint_ext * _data;    /**< The most recent datapoints in the dataseries. */
     uint16_t _buf_len;   /**< The max number of datapoints the _data can hold. */
-    uint16_t _num_el;    /**< The current number of datapoints in _data. */
+    uint16_t _num_el;    /**< Number of datapoints between low and high idx. */
+    uint16_t _low_idx;   /**< The first index of the data in array (inclusive). */
+    uint16_t _high_idx;  /**< The last index of the data in array (exclusive). */ 
+    float _sum_v;
+    float _sum_t;
+    float _sum_tt;
+    float _sum_vt;
 } discrete_derivative;
 
 /**

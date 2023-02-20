@@ -13,8 +13,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+struct _datapoint_ext_{
+    float v;
+    float t;
+    float tt;
+    float vt;
+};
+
 /**
- * \brief Helper function returning the microseconds since booting
+ * \brief Helper function returning the seconds since booting
  */
 float sec_since_boot(){
     return to_us_since_boot(get_absolute_time())/1000000.;
@@ -30,7 +37,7 @@ void discrete_derivative_init(discrete_derivative *d, uint filter_span_ms) {
     d->filter_span_ms = filter_span_ms;
     d->_buf_len = 10;
     d->_num_el = 0;
-    d->_data = malloc((d->_buf_len) * sizeof(datapoint));
+    d->_data = malloc((d->_buf_len) * sizeof(_datapoint_ext));
 }
 
 /**
@@ -39,9 +46,8 @@ void discrete_derivative_init(discrete_derivative *d, uint filter_span_ms) {
  * \param d Pointer to discrete_derivative that will be destroyed
  */
 void discrete_derivative_deinit(discrete_derivative *d) {
+    discrete_derivative_reset(d);
     d->filter_span_ms = 0;
-    d->_buf_len = 0;
-    d->_num_el = 0;
     free(d->_data);
 }
 
@@ -50,74 +56,91 @@ void discrete_derivative_deinit(discrete_derivative *d) {
  * 
  * \param d Pointer to discrete_derivative that will be read
  * 
- * \returns The slope of the previous datapoints within the filter_span of d. If only
- * 0 or 1 point, returns 0.
+ * \returns The slope of the previous datapoints within the filter_span of d. If less 
+ * than 2 datapoints, returns 0.
  */
 float discrete_derivative_read(discrete_derivative *d) {
-    if (d->_num_el < 2) {
-        return 0;
-    }
-    float v_avg = 0;
-    float t_avg = 0;
-    for (uint16_t i = 0; i < d->_num_el; i++) {
-        v_avg += d->_data[i].v;
-        t_avg += d->_data[i].t;
-    }
-    v_avg /= (float)d->_num_el;
-    t_avg /= (float)d->_num_el;
+    if (d->_num_el < 2) return 0;
 
-    float num = 0;
-    float dem = 0;
-    for (uint16_t i = 0; i < d->_num_el; i++) {
-        num = num + (d->_data[i].t - t_avg) * (d->_data[i].v - v_avg);
-        dem = dem + ((d->_data[i].t - t_avg) * (d->_data[i].t - t_avg));
-    }
-    return num / dem;
+    // Compute and return
+    const float v_avg = d->_sum_v/d->_num_el;
+    const float t_avg = d->_sum_t/d->_num_el;
+    return (d->_sum_vt - d->_sum_t*v_avg)/(d->_sum_tt - d->_sum_t*t_avg);
 }
 
 /**
  * \brief Removes all points in d's _data buf with timestamps more than
- * d->filter_span_ms milliseconds behind cur_t. If all points are outside of
- * this range, the most recent point is always kept.
+ * d->filter_span_ms milliseconds behind cur_t. 
+ * 
+ * If all points are outside of this range, the most recent point is always kept.
+ * 
+ * \param d Pointer to a \ref discrete_derivative that will be cleaned
+ * \param cur_t The current timestamp as seconds-since-boot
  */
-void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
-    uint16_t keep_from_idx = 0;
-    for (keep_from_idx; keep_from_idx < d->_num_el - 1; keep_from_idx++) {
-        // Find first point within the time range from cur_t
-        if ((cur_t - d->_data[keep_from_idx].t)*1000 <= d->filter_span_ms) {
-            break;
-        }
-    }
-    // If this is not the first point in array
-    if (keep_from_idx > 0) {
-        // Shift first point to start of array
-        d->_num_el -= keep_from_idx;
-        memcpy(d->_data, &(d->_data[keep_from_idx]), (d->_num_el) * sizeof(datapoint));
+static void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
+    while((cur_t - d->_data[d->_low_idx].t)*1000 > d->filter_span_ms && d->_num_el > 1){
+        d->_sum_t -= d->_data[d->_low_idx].t;
+        d->_sum_v -= d->_data[d->_low_idx].v;
+        d->_sum_tt -= d->_data[d->_low_idx].tt;
+        d->_sum_vt -= d->_data[d->_low_idx].vt;
+        d->_low_idx = (d->_low_idx+1) % d->_buf_len; // Increment low index and wrap arround buf
+        d->_num_el -= 1;
     }
 }
 
 /**
  * \brief Doubles the size of the _data buffer in d.
+ * 
+ * The buffer must be full for the data to remain valid.
  */
-void _discrete_derivative_expand_buf(discrete_derivative *d) {
-    d->_buf_len *= 2;
-    datapoint *new_buf = malloc(sizeof(datapoint) * d->_buf_len);
-    memcpy(new_buf, d->_data, (d->_num_el) * sizeof(datapoint));
+static void _discrete_derivative_expand_buf(discrete_derivative *d) {
+    assert(d->_buf_len == d->_num_el);
+
+    // Create new buf and get lengths before and after low_idx
+    _datapoint_ext * new_buf = malloc(2 * sizeof(_datapoint_ext) * d->_buf_len);
+    const uint16_t len_low_to_end = d->_buf_len - d->_low_idx;
+    const uint16_t len_start_to_low = d->_low_idx;
+
+    // Copy the data from low to end of buf and then from start of buf to low
+    memcpy(new_buf, &(d->_data[d->_low_idx]), len_low_to_end * sizeof(_datapoint_ext));
+    memcpy(&(new_buf[len_low_to_end]), d->_data, len_start_to_low * sizeof(_datapoint_ext));
+
+    // Update internal vars to new buffer
     free(d->_data);
     d->_data = new_buf;
+    d->_low_idx = 0;
+    d->_high_idx = d->_num_el;
+    d->_buf_len *= 2;
 }
 
 void discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
+    // Remove old points and expand buffer if needed
     _discrete_derivative_remove_old_points(d, p.t);
-    if (d->_num_el == d->_buf_len) {
-        _discrete_derivative_expand_buf(d);
-    }
-    d->_data[d->_num_el] = p;
+    if (d->_num_el == d->_buf_len) _discrete_derivative_expand_buf(d);
+
+    // Add new point to buffer
+    d->_data[d->_high_idx].v = p.v;
+    d->_data[d->_high_idx].t = p.t;
+    d->_data[d->_high_idx].tt = p.t*p.t;
+    d->_data[d->_high_idx].vt = p.t*p.v;
+
+    // Update internal vars.
+    d->_sum_t += d->_data[d->_high_idx].t;
+    d->_sum_v += d->_data[d->_high_idx].v;
+    d->_sum_tt += d->_data[d->_high_idx].tt;
+    d->_sum_vt += d->_data[d->_high_idx].vt;
+    d->_high_idx = (d->_high_idx + 1) % d->_buf_len;
     d->_num_el += 1;
 }
 
 void discrete_derivative_reset(discrete_derivative *d) { 
+    d->_high_idx = 0;
+    d->_low_idx = 0;
     d->_num_el = 0; 
+    d->_sum_t = 0;
+    d->_sum_v = 0;
+    d->_sum_tt = 0;
+    d->_sum_vt = 0;
 }
 
 void discrete_integral_init(discrete_integral *i, const float lower_bound,
