@@ -112,12 +112,20 @@ void discrete_derivative_deinit(discrete_derivative* d);
 float discrete_derivative_read(discrete_derivative* d);
 
 /**
- * \brief Updates the internally managed time series and computes its linear slope.
+ * \brief Updates the internally managed time series.
  * 
  * \param d Pointer to discrete_derivative that the point will be added to
  * \param p Datapoint struct with the value and timestamp of the new reading.
  */
-void discrete_derivative_add_point(discrete_derivative* d, datapoint p);
+void discrete_derivative_add_datapoint(discrete_derivative* d, datapoint p);
+
+/**
+ * \brief Updates the internally managed time series.
+ * 
+ * \param d Pointer to discrete_derivative that the point will be added to
+ * \param v Value of a new reading.
+ */
+void discrete_derivative_add_value(discrete_derivative* d, float v);
 
 /**
  * \brief Resets the discrete_derivative to initial values. Memory is not freed.
@@ -167,7 +175,7 @@ float discrete_integral_read(discrete_integral* i);
  * \param i Pointer to discrete_integral stuct that will be added to.
  * \param p Datapoint to add to discrete_integral
  */
-void discrete_integral_add_point(discrete_integral* i, datapoint p);
+void discrete_integral_add_datapoint(discrete_integral* i, datapoint p);
 
 /**
  * \brief Reset integral object. Sum is set to 0 and clear previous datapoint.

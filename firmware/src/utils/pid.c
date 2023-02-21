@@ -106,7 +106,7 @@ float discrete_derivative_read(discrete_derivative *d) {
     return (d->_sum.vt - d->_sum.t*v_avg)/(d->_sum.tt - d->_sum.t*t_avg);
 }
 
-void discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
+void discrete_derivative_add_datapoint(discrete_derivative *d, datapoint p) {
     // Remove old points and expand buffer if needed
     _discrete_derivative_remove_old_points(d, p.t);
     if (d->_num_el == d->_buf_len) _discrete_derivative_expand_buf(d);
@@ -124,6 +124,11 @@ void discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
     d->_sum.tt += d->_data[high_idx].tt;
     d->_sum.vt += d->_data[high_idx].vt;
     d->_num_el += 1;
+}
+
+void discrete_derivative_add_value(discrete_derivative* d, float v){
+    const datapoint dp = {.v = v, .t = sec_since_boot()};
+    discrete_derivative_add_datapoint(d, dp);
 }
 
 void discrete_derivative_reset(discrete_derivative *d) { 
@@ -146,7 +151,7 @@ float discrete_integral_read(discrete_integral *i) {
     return (i->prev_p.t != 0) ? i->sum : 0; 
 }
 
-void discrete_integral_add_point(discrete_integral *i, datapoint p) {
+void discrete_integral_add_datapoint(discrete_integral *i, datapoint p) {
     if (i->prev_p.t != 0) {
         i->sum += ((p.v + i->prev_p.v) / 2.0) * (p.t - i->prev_p.t);
         i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
@@ -182,8 +187,8 @@ float pid_tick(pid_ctrl * controller){
         datapoint new_reading = {.t = sec_since_boot(), .v = controller->sensor()};
         datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
-        discrete_integral_add_point(&(controller->err_sum), new_err);
-        discrete_derivative_add_point(&(controller->err_slope), new_err);
+        discrete_integral_add_datapoint(&(controller->err_sum), new_err);
+        discrete_derivative_add_datapoint(&(controller->err_slope), new_err);
         
         float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_read(&(controller->err_sum)));
         float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_read(&(controller->err_slope)));

@@ -22,8 +22,7 @@
 static void _flow_meter_callback(uint gpio, uint32_t event, void* data){
     flow_meter * fm = (flow_meter*)data;
     fm->pulse_count += 1;
-    datapoint dp = {.t = sec_since_boot(), .v = fm->pulse_count};
-    discrete_derivative_add_point(&(fm->flow_rate), dp);
+    discrete_derivative_add_value(&(fm->flow_rate), fm->pulse_count);
 }
 
 int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor){
@@ -46,8 +45,7 @@ float flow_meter_volume(flow_meter * fm){
 }
 
 float flow_meter_rate(flow_meter * fm){
-    datapoint dp = {.t = sec_since_boot(), .v = fm->pulse_count};
-    discrete_derivative_add_point(&(fm->flow_rate), dp);
+    discrete_derivative_add_value(&(fm->flow_rate), fm->pulse_count);
     return discrete_derivative_read(&(fm->flow_rate)) * fm->conversion_factor;
 }
 
