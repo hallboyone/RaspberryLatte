@@ -344,9 +344,8 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
     binary_output_setup(&solenoid, solenoid_pin, 1);
 
-    // Setup nau7802 and flowrate tracker
+    // Setup nau7802
     nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);
-    discrete_derivative_init(&scale_flowrate, 250);
 
     // Setup thermometer
     lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
