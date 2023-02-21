@@ -13,13 +13,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct _datapoint_ext_{
-    float v;
-    float t;
-    float tt;
-    float vt;
-};
-
 /**
  * \brief Helper function returning the seconds since booting
  */
@@ -28,26 +21,71 @@ float sec_since_boot(){
 }
 
 /**
+ * \brief Removes all points in d's _data buf with timestamps more than
+ * d->filter_span_ms milliseconds behind cur_t. 
+ * 
+ * If all points are outside of this range, the most recent point is always kept.
+ * 
+ * \param d Pointer to a \ref discrete_derivative that will be cleaned
+ * \param cur_t The current timestamp as seconds-since-boot
+ */
+static void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
+    while((cur_t - d->_data[d->_start_idx].t)*1000 > d->filter_span_ms && d->_num_el > 1){
+        d->_sum.t -= d->_data[d->_start_idx].t;
+        d->_sum.v -= d->_data[d->_start_idx].v;
+        d->_sum.tt -= d->_data[d->_start_idx].tt;
+        d->_sum.vt -= d->_data[d->_start_idx].vt;
+        d->_start_idx = (d->_start_idx+1) % d->_buf_len; // Increment starting index and wrap arround buf
+        d->_num_el -= 1;
+    }
+}
+
+/** \brief Doubles the size of the _data buffer in d. 
+ * 
+ * \param d Pointer to discrete_derivative owning buffer to expand.
+*/
+static void _discrete_derivative_expand_buf(discrete_derivative *d) {
+    // Get current layout of data in buffer
+    const bool wraps = (d->_start_idx + d->_num_el > d->_buf_len);
+    const uint16_t len_from_0 = (wraps ? (d->_start_idx + d->_num_el) % d->_buf_len : 0);
+    const uint16_t len_from_start = d->_num_el - len_from_0;
+    
+    // Double _buf_len and make new buffer
+    d->_buf_len <<= 1;
+    discrete_derivative_datapoint * new_buf = malloc(sizeof(discrete_derivative_datapoint) * d->_buf_len);
+    
+    // Copy the data into new buffer
+    memcpy(new_buf, &(d->_data[d->_start_idx]), len_from_start * sizeof(discrete_derivative_datapoint));
+    if(len_from_0 > 0){
+        memcpy(&(new_buf[len_from_start]), d->_data, len_from_0 * sizeof(discrete_derivative_datapoint));
+    }
+
+    // Free mem and update internal vars to new buffer
+    free(d->_data);
+    d->_data = new_buf;
+    d->_start_idx = 0;
+}
+
+/**
  * \brief Clear the internal fields of struct d and initalize.
  * 
  * \param d Pointer to discrete_derivative that will be initalized
  * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
  */
-void discrete_derivative_init(discrete_derivative *d, uint filter_span_ms) {
+void discrete_derivative_setup(discrete_derivative *d, uint filter_span_ms) {
+    discrete_derivative_reset(d);
     d->filter_span_ms = filter_span_ms;
     d->_buf_len = 16;
-    d->_num_el = 0;
-    d->_data = malloc((d->_buf_len) * sizeof(_datapoint_ext));
+    d->_data = malloc((d->_buf_len) * sizeof(discrete_derivative_datapoint));
 }
 
 /**
- * \brief Release internal memory and reset object.
+ * \brief Free internal memory.
  * 
  * \param d Pointer to discrete_derivative that will be destroyed
  */
 void discrete_derivative_deinit(discrete_derivative *d) {
-    discrete_derivative_reset(d);
-    d->filter_span_ms = 0;
+    d->_buf_len = 0;
     free(d->_data);
 }
 
@@ -63,52 +101,9 @@ float discrete_derivative_read(discrete_derivative *d) {
     if (d->_num_el < 2) return 0;
 
     // Compute and return
-    const float v_avg = d->_sum_v/d->_num_el;
-    const float t_avg = d->_sum_t/d->_num_el;
-    return (d->_sum_vt - d->_sum_t*v_avg)/(d->_sum_tt - d->_sum_t*t_avg);
-}
-
-/**
- * \brief Removes all points in d's _data buf with timestamps more than
- * d->filter_span_ms milliseconds behind cur_t. 
- * 
- * If all points are outside of this range, the most recent point is always kept.
- * 
- * \param d Pointer to a \ref discrete_derivative that will be cleaned
- * \param cur_t The current timestamp as seconds-since-boot
- */
-static void _discrete_derivative_remove_old_points(discrete_derivative *d, float cur_t) {
-    while((cur_t - d->_data[d->_start_idx].t)*1000 > d->filter_span_ms && d->_num_el > 1){
-        d->_sum_t -= d->_data[d->_start_idx].t;
-        d->_sum_v -= d->_data[d->_start_idx].v;
-        d->_sum_tt -= d->_data[d->_start_idx].tt;
-        d->_sum_vt -= d->_data[d->_start_idx].vt;
-        d->_start_idx = (d->_start_idx+1) % d->_buf_len; // Increment starting index and wrap arround buf
-        d->_num_el -= 1;
-    }
-}
-
-/** \brief Doubles the size of the _data buffer in d. */
-static void _discrete_derivative_expand_buf(discrete_derivative *d) {
-    // Get current layout of data in buffer
-    const bool wraps = (d->_start_idx + d->_num_el > d->_buf_len);
-    const uint16_t len_from_0 = (wraps ? (d->_start_idx + d->_num_el) % d->_buf_len : 0);
-    const uint16_t len_from_start = d->_num_el - len_from_0;
-    
-    // Double _buf_len and make new buffer
-    d->_buf_len <<= 1;
-    _datapoint_ext * new_buf = malloc(sizeof(_datapoint_ext) * d->_buf_len);
-    
-    // Copy the data into new buffer
-    memcpy(new_buf, &(d->_data[d->_start_idx]), len_from_start * sizeof(_datapoint_ext));
-    if(len_from_0 > 0){
-        memcpy(&(new_buf[len_from_start]), d->_data, len_from_0 * sizeof(_datapoint_ext));
-    }
-
-    // Free mem and updat internal vars to new buffer
-    free(d->_data);
-    d->_data = new_buf;
-    d->_start_idx = 0;
+    const float v_avg = d->_sum.v/d->_num_el;
+    const float t_avg = d->_sum.t/d->_num_el;
+    return (d->_sum.vt - d->_sum.t*v_avg)/(d->_sum.tt - d->_sum.t*t_avg);
 }
 
 void discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
@@ -124,23 +119,23 @@ void discrete_derivative_add_point(discrete_derivative *d, datapoint p) {
     d->_data[high_idx].vt = p.t*p.v;
 
     // Update internal vars.
-    d->_sum_t += d->_data[high_idx].t;
-    d->_sum_v += d->_data[high_idx].v;
-    d->_sum_tt += d->_data[high_idx].tt;
-    d->_sum_vt += d->_data[high_idx].vt;
+    d->_sum.t += d->_data[high_idx].t;
+    d->_sum.v += d->_data[high_idx].v;
+    d->_sum.tt += d->_data[high_idx].tt;
+    d->_sum.vt += d->_data[high_idx].vt;
     d->_num_el += 1;
 }
 
 void discrete_derivative_reset(discrete_derivative *d) { 
     d->_start_idx = 0;
     d->_num_el = 0; 
-    d->_sum_t = 0;
-    d->_sum_v = 0;
-    d->_sum_tt = 0;
-    d->_sum_vt = 0;
+    d->_sum.t = 0;
+    d->_sum.v = 0;
+    d->_sum.tt = 0;
+    d->_sum.vt = 0;
 }
 
-void discrete_integral_init(discrete_integral *i, const float lower_bound,
+void discrete_integral_setup(discrete_integral *i, const float lower_bound,
                             const float upper_bound) {
     discrete_integral_reset(i);
     i->lower_bound = lower_bound;
@@ -177,8 +172,8 @@ void pid_setup(pid_ctrl * controller, const pid_gains K, read_sensor feedback_se
     controller->setpoint = 0;
     controller->_next_tick_time = get_absolute_time();
 
-    discrete_integral_init(&(controller->err_sum), windup_lb, windup_ub);
-    discrete_derivative_init(&(controller->err_slope), derivative_filter_span_ms);
+    discrete_integral_setup(&(controller->err_sum), windup_lb, windup_ub);
+    discrete_derivative_setup(&(controller->err_slope), derivative_filter_span_ms);
 }
 
 float pid_tick(pid_ctrl * controller){

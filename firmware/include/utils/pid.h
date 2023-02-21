@@ -59,7 +59,16 @@ typedef struct {
     float v; /**< Value associated with datapoint */
 } datapoint;
 
-typedef struct _datapoint_ext_ _datapoint_ext;
+/** \brief datapoint with fields for t^2 and t*v.
+ * 
+ * It's better to compute once and store these values.
+ */
+typedef struct _discrete_derivative_datapoint{
+    float t;  /**< Time associated with datapoint */
+    float v;  /**< Value associated with datapoint */
+    float tt; /**< The time squared */
+    float vt; /**< The value multiplied by the time */
+} discrete_derivative_datapoint;
 
 /**
  * \brief Stuct representing a discrete derivative.
@@ -69,15 +78,12 @@ typedef struct _datapoint_ext_ _datapoint_ext;
  * fit.
  */
 typedef struct {
-    uint filter_span_ms;    /**< The amount of the dataseries in ms that the slope will be fitted to. */
-    _datapoint_ext * _data; /**< The most recent datapoints in the dataseries. */
-    uint16_t _buf_len;      /**< The max number of datapoints the _data can hold. */
-    uint16_t _num_el;       /**< Number of datapoints in buffer. */
-    uint16_t _start_idx;    /**< The first index of the data in array (inclusive). */
-    float _sum_v;
-    float _sum_t;
-    float _sum_tt;
-    float _sum_vt;
+    uint filter_span_ms;                    /**< The amount of the dataseries in ms that the slope will be fitted to. */
+    discrete_derivative_datapoint * _data; /**< The most recent datapoints in the dataseries. */
+    discrete_derivative_datapoint _sum;    /**< Running sums of the values in _data. */
+    uint16_t _buf_len;                      /**< The max number of datapoints the _data can hold. */
+    uint16_t _num_el;                       /**< Number of datapoints in buffer. */
+    uint16_t _start_idx;                    /**< The first index of the data in array (inclusive). */
 } discrete_derivative;
 
 /**
@@ -86,7 +92,7 @@ typedef struct {
  * \param d Pointer to discrete_derivative that will be initalized
  * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
  */
-void discrete_derivative_init(discrete_derivative* d, uint filter_span_ms);
+void discrete_derivative_setup(discrete_derivative* d, uint filter_span_ms);
 
 /**
  * \brief Release internal memory and reset object.
@@ -141,7 +147,7 @@ typedef struct {
  * \param lower_bound A floating point lower bound on the integral's value.
  * \param upper_bound A floating point upper bound on the integral's value.
  */
-void discrete_integral_init(discrete_integral* i, const float lower_bound,
+void discrete_integral_setup(discrete_integral* i, const float lower_bound,
                             const float upper_bound);
 
 /**
