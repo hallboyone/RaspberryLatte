@@ -50,25 +50,14 @@
  * \brief Helper function returning the microseconds since booting
  */
 float sec_since_boot();
-
+uint64_t ms_since_boot();
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
  */
 typedef struct {
-    float t; /**< Time associated with datapoint */
-    float v; /**< Value associated with datapoint */
+    int64_t t; /**< Time associated with datapoint */
+    int64_t v; /**< Value associated with datapoint */
 } datapoint;
-
-/** \brief datapoint with fields for t^2 and t*v.
- * 
- * It's better to compute once and store these values.
- */
-typedef struct _discrete_derivative_datapoint{
-    float t;  /**< Time associated with datapoint */
-    float v;  /**< Value associated with datapoint */
-    float tt; /**< The time squared */
-    float vt; /**< The value multiplied by the time */
-} discrete_derivative_datapoint;
 
 /**
  * \brief Stuct representing a discrete derivative.
@@ -78,12 +67,12 @@ typedef struct _discrete_derivative_datapoint{
  * fit.
  */
 typedef struct {
-    uint filter_span_ms;                    /**< The amount of the dataseries in ms that the slope will be fitted to. */
-    discrete_derivative_datapoint * _data; /**< The most recent datapoints in the dataseries. */
-    discrete_derivative_datapoint _sum;    /**< Running sums of the values in _data. */
-    uint16_t _buf_len;                      /**< The max number of datapoints the _data can hold. */
-    uint16_t _num_el;                       /**< Number of datapoints in buffer. */
-    uint16_t _start_idx;                    /**< The first index of the data in array (inclusive). */
+    uint filter_span_ms;        /**< The amount of the dataseries in ms that the slope will be fitted to. */
+    uint ms_between_datapoints;
+    datapoint * _data;          /**< The most recent datapoints in the dataseries. */
+    uint16_t _buf_len;          /**< The max number of datapoints the _data can hold. */
+    uint16_t _num_el;           /**< Number of datapoints in buffer. */
+    uint16_t _start_idx;        /**< The first index of the data in array (inclusive). */
 } discrete_derivative;
 
 /**
@@ -92,7 +81,7 @@ typedef struct {
  * \param d Pointer to discrete_derivative that will be initalized
  * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
  */
-void discrete_derivative_setup(discrete_derivative* d, uint filter_span_ms);
+void discrete_derivative_setup(discrete_derivative* d, uint filter_span_ms, uint ms_between_datapoints);
 
 /**
  * \brief Release internal memory and reset object.
@@ -125,7 +114,7 @@ void discrete_derivative_add_datapoint(discrete_derivative* d, datapoint p);
  * \param d Pointer to discrete_derivative that the point will be added to
  * \param v Value of a new reading.
  */
-void discrete_derivative_add_value(discrete_derivative* d, float v);
+void discrete_derivative_add_value(discrete_derivative* d, int64_t v);
 
 /**
  * \brief Resets the discrete_derivative to initial values. Memory is not freed.

@@ -35,7 +35,7 @@ int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor){
     fm->conversion_factor = conversion_factor;
     fm->pulse_count = 0;
     
-    discrete_derivative_setup(&(fm->flow_rate), 1500);
+    discrete_derivative_setup(&(fm->flow_rate), 500, 5);
 
     return gpio_multi_callback_attach(pin_num, GPIO_IRQ_EDGE_FALL, true, &_flow_meter_callback, fm);
 }
@@ -46,7 +46,7 @@ float flow_meter_volume(flow_meter * fm){
 
 float flow_meter_rate(flow_meter * fm){
     discrete_derivative_add_value(&(fm->flow_rate), fm->pulse_count);
-    return discrete_derivative_read(&(fm->flow_rate)) * fm->conversion_factor;
+    return discrete_derivative_read(&(fm->flow_rate)) * fm->conversion_factor * 1000.;
 }
 
 void flow_meter_zero(flow_meter * fm){

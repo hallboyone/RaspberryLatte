@@ -152,7 +152,7 @@ static void espresso_machine_autobrew_setup(){
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 2, preinf_pwr, preinf_pwr, NULL,    0*preinf_on_dur,   NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 3, 0,          0,          NULL,    0*preinf_off_time, NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 4, 0,          0,          NULL,    0*brew_ramp_dur,   &scale_at_output);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 1,          1,          &flow_pid, brew_on_dur,     &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 3,          3,          &flow_pid, brew_on_dur,     &scale_at_output);
 }
 
 /**
@@ -269,13 +269,16 @@ static void espresso_machine_update_boiler(){
     } else {
         _state.boiler.setpoint = 0;
     }
+
+    heater_pid.setpoint = _state.boiler.setpoint/16.;
+
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
-    #endif
-    heater_pid.setpoint = _state.boiler.setpoint/16.;
-    _state.boiler.temperature = lmt01_read(&thermo);
-
+    #else
     pid_tick(&heater_pid);
+    #endif
+
+    _state.boiler.temperature = lmt01_read(&thermo);
 }
 
 /**
@@ -314,16 +317,14 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup the autobrew first leg that does not depend on machine settings
     autobrew_routine_setup(&autobrew_plan, 6);
     autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
+    const pid_gains flow_K = {.p = 1, .i = 10, .d = 0, .f = 0};
+    pid_setup(&flow_pid, flow_K, &read_pump_flowrate, NULL, NULL, 5, 0, 10, 1000);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
     pid_setup(&heater_pid, boiler_K, &read_boiler_thermo, &read_pump_flowrate, 
               &apply_boiler_input, 100, 0, 175, 1000);
-    
-    const pid_gains flow_K = {.p = 30, .i = 3, .d = 0, .f = 0};
-    pid_setup(&flow_pid, flow_K, &read_pump_flowrate, NULL, 
-              NULL, 100, 0, 175, 1000);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
