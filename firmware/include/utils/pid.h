@@ -56,7 +56,7 @@ uint64_t ms_since_boot();
  */
 typedef struct {
     int64_t t; /**< Time associated with datapoint */
-    int64_t v; /**< Value associated with datapoint */
+    int32_t v; /**< Value associated with datapoint */
 } datapoint;
 
 /**
@@ -67,12 +67,17 @@ typedef struct {
  * fit.
  */
 typedef struct {
-    uint filter_span_ms;        /**< The amount of the dataseries in ms that the slope will be fitted to. */
+    uint filter_span_ms;        /**< The amount of the data series in ms that the slope will be fitted to. */
     uint ms_between_datapoints;
     datapoint * _data;          /**< The most recent datapoints in the dataseries. */
     uint16_t _buf_len;          /**< The max number of datapoints the _data can hold. */
     uint16_t _num_el;           /**< Number of datapoints in buffer. */
     uint16_t _start_idx;        /**< The first index of the data in array (inclusive). */
+    datapoint _origin;
+    int64_t _sum_v;
+    int64_t _sum_t;
+    int64_t _sum_vt;
+    int64_t _sum_tt;
 } discrete_derivative;
 
 /**
