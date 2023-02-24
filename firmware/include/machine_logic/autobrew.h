@@ -99,8 +99,8 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
  * 
  * \returns PICO_ERROR_NONE if successful. Else, PICO_ERROR_INVALID_ARG if leg_idx is out of range.
  */
-int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, uint8_t pump_starting_setpoint, 
-                                    uint8_t pump_ending_setpoint, pid_ctrl * ctrl, uint32_t timeout_us, 
+int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pid_data_t pump_starting_setpoint, 
+                                    pid_data_t pump_ending_setpoint, pid_ctrl * ctrl, uint32_t timeout_us, 
                                     autobrew_trigger trigger);
 
 /**

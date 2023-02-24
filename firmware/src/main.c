@@ -20,7 +20,7 @@ int main(){
 
     // Message rate limiter
     absolute_time_t next_msg_time = get_absolute_time();
-    const uint64_t msg_period_us = 1000 * MS_TO_US;
+    const uint64_t msg_period_us = 200 * MS_TO_US;
 
     // Loop rate limiter
     absolute_time_t next_loop_time;

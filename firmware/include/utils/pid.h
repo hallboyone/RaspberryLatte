@@ -51,12 +51,16 @@
  */
 float sec_since_boot();
 uint64_t ms_since_boot();
+
+typedef int32_t pid_data_t;
+typedef int64_t pid_time_t;
+
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
  */
 typedef struct {
-    int64_t t; /**< Time associated with datapoint */
-    int32_t v; /**< Value associated with datapoint */
+    pid_time_t t; /**< Time associated with datapoint */
+    pid_data_t v; /**< Value associated with datapoint */
 } datapoint;
 
 /**
@@ -135,9 +139,9 @@ void discrete_derivative_reset(discrete_derivative* d);
  * points have been passed to it.
  */
 typedef struct {
-    float sum;         /**< The current area under the curve. */
-    float lower_bound; /**< The lower bound on the area under the curve. Useful for antiwindup. */
-    float upper_bound; /**< The upper bound on the area under the curve. Useful for antiwindup. */
+    float  sum;         /**< The current area under the curve. */
+    pid_data_t lower_bound; /**< The lower bound on the area under the curve. Useful for antiwindup. */
+    pid_data_t upper_bound; /**< The upper bound on the area under the curve. Useful for antiwindup. */
     datapoint prev_p;  /**< The previous datapoint. Updated each time the integral is ticked. */
 } discrete_integral;
 
@@ -146,11 +150,11 @@ typedef struct {
  * bounds.
  *
  * \param i Pointer to discrete_integral stuct that will be initalized.
- * \param lower_bound A floating point lower bound on the integral's value.
- * \param upper_bound A floating point upper bound on the integral's value.
+ * \param lower_bound Lower bound on the integral's value.
+ * \param upper_bound Upper bound on the integral's value.
  */
-void discrete_integral_setup(discrete_integral* i, const float lower_bound,
-                            const float upper_bound);
+void discrete_integral_setup(discrete_integral* i, const pid_data_t lower_bound,
+                            const pid_data_t upper_bound);
 
 /**
  * \brief Helper function that returns the value of the integral's sum field.
@@ -192,7 +196,7 @@ typedef struct {
  * \brief Typedef of pointer to function taking no parameters but returning float. Used to gather
  * sensor data.
  */
-typedef float (*read_sensor)();
+typedef pid_data_t (*read_sensor)();
 
 /**
  * \brief Typedef of pointer to function that takes a float and applies it to some plant. Used to
@@ -205,7 +209,7 @@ typedef void (*apply_input)(float);
  * The others are set by pid_init.
  */
 typedef struct {
-    float setpoint;                     /**< The current setpoint the PID is regulating to. */
+    pid_data_t setpoint;                     /**< The current setpoint the PID is regulating to. */
     pid_gains K;                        /**< The gains of the PID controller. */
     read_sensor sensor;                 /**< The sensor function. */
     read_sensor sensor_feedforward;     /**< The sensor providing feedforward values. */
@@ -231,7 +235,7 @@ typedef struct {
  */
 void pid_setup(pid_ctrl * controller, const pid_gains K, read_sensor feedback_sensor,
                read_sensor feedforward_sensor, apply_input plant, uint16_t time_between_ticks_ms,
-               const float windup_lb, const float windup_ub, uint derivative_filter_span_ms);
+               const pid_data_t windup_lb, const pid_data_t windup_ub, uint derivative_filter_span_ms);
 
 /**
  * \brief If the minimum time between ticks has elapsed, run one loop of the controller. This requires reading the sensor,
