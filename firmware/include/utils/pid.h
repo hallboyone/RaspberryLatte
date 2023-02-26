@@ -46,14 +46,14 @@
 #define PID_NO_WINDUP_LB -1000000 /**< Small value used to indicate no windup lower bound */
 #define PID_NO_WINDUP_UB  1000000 /**< Large value used to indicate no windup upper bound */
 
+typedef int32_t pid_data_t;
+typedef int64_t pid_time_t;
+
 /** \brief Helper function returning the seconds since booting */
 float sec_since_boot();
 
 /** \brief Helper function returning the milliseconds since booting */
-uint32_t ms_since_boot();
-
-typedef int32_t pid_data_t;
-typedef int64_t pid_time_t;
+pid_time_t ms_since_boot();
 
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
