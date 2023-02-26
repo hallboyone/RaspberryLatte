@@ -46,11 +46,11 @@
 #define PID_NO_WINDUP_LB -1000000 /**< Small value used to indicate no windup lower bound */
 #define PID_NO_WINDUP_UB  1000000 /**< Large value used to indicate no windup upper bound */
 
-/**
- * \brief Helper function returning the microseconds since booting
- */
+/** \brief Helper function returning the seconds since booting */
 float sec_since_boot();
-uint64_t ms_since_boot();
+
+/** \brief Helper function returning the milliseconds since booting */
+uint32_t ms_since_boot();
 
 typedef int32_t pid_data_t;
 typedef int64_t pid_time_t;
@@ -72,20 +72,20 @@ typedef struct {
  */
 typedef struct {
     uint filter_span_ms;        /**< The amount of the data series in ms that the slope will be fitted to. */
-    uint ms_between_datapoints;
-    datapoint * _data;          /**< The most recent datapoints in the dataseries. */
+    uint ms_between_datapoints; /**< The minimal length of time between datapoints. */
+    datapoint * _data;          /**< Circular buffer representing the recent datapoints. */
     uint16_t _buf_len;          /**< The max number of datapoints the _data can hold. */
     uint16_t _num_el;           /**< Number of datapoints in buffer. */
-    uint16_t _start_idx;        /**< The first index of the data in array (inclusive). */
-    datapoint _origin;
-    int64_t _sum_v;
-    int64_t _sum_t;
-    int64_t _sum_vt;
-    int64_t _sum_tt;
+    uint16_t _start_idx;        /**< The index of the first datapoint in array. */
+    datapoint _origin;          /**< The current origin of the data. As data/time grows, the origin will be shifted. */
+    int64_t _sum_v;             /**< The sum of the values in the current datapoints */
+    int64_t _sum_t;             /**< The sum of the times in the current datapoints */
+    int64_t _sum_vt;            /**< The sum of the value/time product in the current datapoints */
+    int64_t _sum_tt;            /**< The sum of the time squared in the current datapoints */
 } discrete_derivative;
 
 /**
- * \brief Clear the internal fields of struct d and initalize.
+ * \brief Clear the internal fields of struct d and initialize.
  * 
  * \param d Pointer to discrete_derivative that will be initalized
  * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
@@ -93,7 +93,12 @@ typedef struct {
 void discrete_derivative_setup(discrete_derivative* d, uint filter_span_ms, uint ms_between_datapoints);
 
 /**
- * \brief Release internal memory and reset object.
+ * \brief Resets the discrete_derivative to initial values. Memory is not freed.
+ */
+void discrete_derivative_reset(discrete_derivative* d);
+
+/**
+ * \brief Free internal memory.
  * 
  * \param d Pointer to discrete_derivative that will be destroyed
  */
@@ -104,13 +109,17 @@ void discrete_derivative_deinit(discrete_derivative* d);
  * 
  * \param d Pointer to discrete_derivative that will be read
  * 
- * \returns The slope of the previous datapoints within the filter_span of d. If only
- * 0 or 1 point, returns 0.
+ * \returns The slope of the previous datapoints within the filter_span of d. If less 
+ * than 2 datapoints, returns 0.
  */
 float discrete_derivative_read(discrete_derivative* d);
 
 /**
- * \brief Updates the internally managed time series.
+ * \brief Adds a datapoint to the internally managed time series.
+ * 
+ * Function returns immediately if datapoint is too close to last added datapoint. 
+ * Otherwise, the buffer is expanded if needed, the datapoint is added, old datapoints
+ * are removed, and the origin is shifted (if needed).
  * 
  * \param d Pointer to discrete_derivative that the point will be added to
  * \param p Datapoint struct with the value and timestamp of the new reading.
@@ -118,17 +127,16 @@ float discrete_derivative_read(discrete_derivative* d);
 void discrete_derivative_add_datapoint(discrete_derivative* d, datapoint p);
 
 /**
- * \brief Updates the internally managed time series.
+ * \brief Adds a value to the internally managed time series as if measured at the current time.
+ * 
+ * Function returns immediately if datapoint is too close to last added datapoint. 
+ * Otherwise, the buffer is expanded if needed, the datapoint is added, old datapoints
+ * are removed, and the origin is shifted (if needed).
  * 
  * \param d Pointer to discrete_derivative that the point will be added to
  * \param v Value of a new reading.
  */
-void discrete_derivative_add_value(discrete_derivative* d, int64_t v);
-
-/**
- * \brief Resets the discrete_derivative to initial values. Memory is not freed.
- */
-void discrete_derivative_reset(discrete_derivative* d);
+void discrete_derivative_add_value(discrete_derivative* d, pid_data_t v);
 
 /**
  * \brief Stuct representing a discrete integral.

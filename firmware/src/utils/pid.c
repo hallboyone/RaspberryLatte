@@ -21,7 +21,8 @@
 float sec_since_boot(){
     return to_ms_since_boot(get_absolute_time())/1000.;
 }
-uint64_t ms_since_boot(){
+
+pid_time_t ms_since_boot(){
     return to_ms_since_boot(get_absolute_time());
 }
 
@@ -36,29 +37,64 @@ static inline void _discrete_derivative_remove_start_point(discrete_derivative *
     d->_num_el -= 1;
 }
 
+/**
+ * \brief Returns a pointer to the element some distance from the starting datapoint.
+ * 
+ * 
+ * \param d The discrete derivative to examine.
+ * \param offset The number of datapoints after the starting index to return.
+ * \return A pointer to the datapoint in the circular array.
+ */
+static inline datapoint * _discrete_derivative_dp(discrete_derivative *d, uint16_t offset){
+    return &d->_data[(d->_start_idx + offset) % d->_buf_len];
+}
+
+/**
+ * \brief Returns a pointer to the next open space in the circular datapoint buffer.
+ * 
+ * \param d The discrete derivative to examine.
+ * \return A pointer to the next open space in the circular array.
+ */
+static inline datapoint * _discrete_derivative_next_dp(discrete_derivative *d){
+    return _discrete_derivative_dp(d, d->_num_el);
+}
+
+/**
+ * \brief Returns a pointer to the last element in the circular datapoint buffer.
+ * 
+ * \param d The discrete derivative to examine.
+ * \return A pointer to the datapoint in the circular array. NULL if no datapoints.
+ */
+static inline datapoint * _discrete_derivative_latest_dp(discrete_derivative *d){
+    return (d->_num_el>0) ? _discrete_derivative_dp(d, d->_num_el - 1) : NULL;
+}
+
 /** 
  * \brief Adds a datapoint to the internal data series of d.
  * 
  * Internal summations are also incremented based on the new data.
  */
 static inline void _discrete_derivative_add_point(discrete_derivative *d, const datapoint p){
-    const uint16_t high_idx = (d->_start_idx + d->_num_el) % d->_buf_len;
-    d->_data[high_idx].v = p.v - d->_origin.v;
-    d->_data[high_idx].t = p.t - d->_origin.t;
+    datapoint * new_dp = _discrete_derivative_next_dp(d);
+    
+    // Set datapoint values with origin offset
+    new_dp->v = p.v - d->_origin.v;
+    new_dp->t = p.t - d->_origin.t;
 
-    d->_sum_v += d->_data[high_idx].v;
-    d->_sum_t += d->_data[high_idx].t;
-    d->_sum_vt += (d->_data[high_idx].t)*(d->_data[high_idx].v);
-    d->_sum_tt += (d->_data[high_idx].t)*(d->_data[high_idx].t);
+    // Add new values to summations
+    d->_sum_v += new_dp->v;
+    d->_sum_t += new_dp->t;
+    d->_sum_vt += (new_dp->t)*(new_dp->v);
+    d->_sum_tt += (new_dp->t)*(new_dp->t);
 
     d->_num_el += 1;
 }
 
 /**
- * \brief Removes all points in d's _data buf with timestamps more than
+ * \brief Removes all points in d's data buffer with timestamps more than
  * d->filter_span_ms milliseconds behind cur_t. 
  * 
- * If all points are outside of this range, the two most recent points are always kept.
+ * This function will never remove points if only two are left.
  * 
  * \param d Pointer to a \ref discrete_derivative that will be cleaned
  * \param cur_t The current timestamp as milliseconds-since-boot
@@ -96,7 +132,7 @@ static void _discrete_derivative_expand_buf(discrete_derivative *d) {
 }
 
 /**
- * \brief Shift the time and value data to the origin to prevent overflow
+ * \brief Shift the time and value data to the origin to avoid overflow.
  * 
  * \param d Discrete Derivative tht will be shifted.
  */
@@ -126,65 +162,14 @@ static void _discrete_derivative_shift_data(discrete_derivative *d){
     }
 }
 
-/**
- * \brief Clear the internal fields of struct d and initalize.
- * 
- * \param d Pointer to discrete_derivative that will be initalized
- * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
- */
 void discrete_derivative_setup(discrete_derivative *d, uint filter_span_ms, uint ms_between_datapoints) {
     discrete_derivative_reset(d);
     d->ms_between_datapoints = ms_between_datapoints;
     d->filter_span_ms = filter_span_ms;
+    d->_origin.t = 0;
+    d->_origin.v = 0;
     d->_buf_len = 16;
     d->_data = malloc((d->_buf_len) * sizeof(datapoint));
-}
-
-/**
- * \brief Free internal memory.
- * 
- * \param d Pointer to discrete_derivative that will be destroyed
- */
-void discrete_derivative_deinit(discrete_derivative *d) {
-    d->_buf_len = 0;
-    free(d->_data);
-}
-
-/**
- * \brief Computes the linear slope of the current datapoints.
- * 
- * \param d Pointer to discrete_derivative that will be read
- * 
- * \returns The slope of the previous datapoints within the filter_span of d. If less 
- * than 2 datapoints, returns 0.
- */
-float discrete_derivative_read(discrete_derivative *d) {
-    _discrete_derivative_remove_old_points(d, ms_since_boot());
-    if (d->_num_el < 2) return 0;
-    // Compute and return
-    return (float)(d->_sum_vt*d->_num_el - (d->_sum_t)*(d->_sum_v))/(float)(d->_sum_tt*d->_num_el - (d->_sum_t)*(d->_sum_t));
-}
-
-void discrete_derivative_add_datapoint(discrete_derivative *d, datapoint p) {
-    const bool dwell_time_up = p.t - d->_data[(d->_start_idx+d->_num_el-1)%d->_buf_len].t >= d->ms_between_datapoints;
-    const bool no_points = d->_num_el == 0;
-    if(no_points) d->_origin = p;
-    if(dwell_time_up || no_points){
-        // Expand buffer if needed
-        if (d->_num_el == d->_buf_len) _discrete_derivative_expand_buf(d);
-
-        // Add new point to buffer
-        _discrete_derivative_add_point(d, p);
-
-        // Clean data and shift if needed (values are getting large)
-        _discrete_derivative_remove_old_points(d, p.t);
-        _discrete_derivative_shift_data(d);
-    }
-}
-
-void discrete_derivative_add_value(discrete_derivative* d, int64_t v){
-    const datapoint dp = {.v = v, .t = ms_since_boot()};
-    discrete_derivative_add_datapoint(d, dp);
 }
 
 void discrete_derivative_reset(discrete_derivative *d) { 
@@ -196,6 +181,32 @@ void discrete_derivative_reset(discrete_derivative *d) {
     d->_sum_t = 0;
     d->_sum_vt = 0;
     d->_sum_tt = 0;
+}
+
+void discrete_derivative_deinit(discrete_derivative *d) {
+    d->_buf_len = 0;
+    free(d->_data);
+}
+
+float discrete_derivative_read(discrete_derivative *d) {
+    _discrete_derivative_remove_old_points(d, ms_since_boot());
+    if (d->_num_el < 2) return 0;
+    return (float)(d->_sum_vt*d->_num_el - (d->_sum_t)*(d->_sum_v))/(float)(d->_sum_tt*d->_num_el - (d->_sum_t)*(d->_sum_t));
+}
+
+void discrete_derivative_add_datapoint(discrete_derivative *d, datapoint p) {
+    const bool dwell_time_up = p.t - d->_data[_discrete_derivative_last_idx(d)].t >= d->ms_between_datapoints;
+    if(d->_num_el == 0 || dwell_time_up){
+        _discrete_derivative_remove_old_points(d, p.t);
+        if (d->_num_el == d->_buf_len) _discrete_derivative_expand_buf(d);
+        _discrete_derivative_add_point(d, p);
+        _discrete_derivative_shift_data(d);
+    }
+}
+
+void discrete_derivative_add_value(discrete_derivative* d, pid_data_t v){
+    const datapoint dp = {.v = v, .t = ms_since_boot()};
+    discrete_derivative_add_datapoint(d, dp);
 }
 
 void discrete_integral_setup(discrete_integral *i, const pid_data_t lower_bound,
