@@ -18,8 +18,9 @@
  * helps filter noise that could negatively effect performance. Furthermore, the integral contains 
  * windup bounds that automatically clip the error sum at user-defined values.
  * 
- * 
- * \todo make consistent with rest of RaspberryLatte's firmware. 
+ * Changelog:
+ * v0.2 - Switched from floating point data to integer data. Input is still floating point, however.
+ * Dramatically improved discrete derivative calculation speed.
  * 
  * \{
  * 
@@ -42,18 +43,16 @@
 
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "stdint.h"
 
-#define PID_NO_WINDUP_LB -1000000 /**< Small value used to indicate no windup lower bound */
-#define PID_NO_WINDUP_UB  1000000 /**< Large value used to indicate no windup upper bound */
+#define PID_NO_WINDUP_LB INT32_MIN  /**< Small value used to indicate no windup lower bound */
+#define PID_NO_WINDUP_UB INT32_MAX  /**< Large value used to indicate no windup upper bound */
 
 typedef int32_t pid_data_t;
 typedef int64_t pid_time_t;
 
-/** \brief Helper function returning the seconds since booting */
-float sec_since_boot();
-
 /** \brief Helper function returning the milliseconds since booting */
-pid_time_t ms_since_boot();
+ pid_time_t ms_since_boot();
 
 /**
  * \brief Struct containing a floating point value and the time (in seconds since boot) the value was read
@@ -89,11 +88,14 @@ typedef struct {
  * 
  * \param d Pointer to discrete_derivative that will be initalized
  * \param filter_span_ms Slope is computed over all datapoints taken within the last filter_span_ms
+ * \param ms_between_datapoints The minimum duration between new datapoints.
  */
 void discrete_derivative_setup(discrete_derivative* d, uint filter_span_ms, uint ms_between_datapoints);
 
 /**
  * \brief Resets the discrete_derivative to initial values. Memory is not freed.
+ * 
+ * \param d Pointer to discrete_derivative that will be reset
  */
 void discrete_derivative_reset(discrete_derivative* d);
 
@@ -147,9 +149,9 @@ void discrete_derivative_add_value(discrete_derivative* d, pid_data_t v);
  * points have been passed to it.
  */
 typedef struct {
-    float  sum;         /**< The current area under the curve. */
-    pid_data_t lower_bound; /**< The lower bound on the area under the curve. Useful for antiwindup. */
-    pid_data_t upper_bound; /**< The upper bound on the area under the curve. Useful for antiwindup. */
+    pid_data_t sum;         /**< The current area under the curve. */
+    pid_data_t lower_bound; /**< The lower bound on the area under the curve. Useful for anti-windup. */
+    pid_data_t upper_bound; /**< The upper bound on the area under the curve. Useful for anti-windup. */
     datapoint prev_p;  /**< The previous datapoint. Updated each time the integral is ticked. */
 } discrete_integral;
 
@@ -161,8 +163,7 @@ typedef struct {
  * \param lower_bound Lower bound on the integral's value.
  * \param upper_bound Upper bound on the integral's value.
  */
-void discrete_integral_setup(discrete_integral* i, const pid_data_t lower_bound,
-                            const pid_data_t upper_bound);
+void discrete_integral_setup(discrete_integral* i, const pid_data_t lower_bound, const pid_data_t upper_bound);
 
 /**
  * \brief Helper function that returns the value of the integral's sum field.
@@ -170,7 +171,7 @@ void discrete_integral_setup(discrete_integral* i, const pid_data_t lower_bound,
  *
  * \returns Value of integral: i->sum. 0 if only 0 or 1 point so far.
  */
-float discrete_integral_read(discrete_integral* i);
+pid_data_t discrete_integral_read(discrete_integral* i);
 
 /**
  * \brief Compute the area under the curve since the last time this function was called and add to
@@ -217,7 +218,7 @@ typedef void (*apply_input)(float);
  * The others are set by pid_init.
  */
 typedef struct {
-    pid_data_t setpoint;                     /**< The current setpoint the PID is regulating to. */
+    pid_data_t setpoint;                /**< The current setpoint the PID is regulating to. */
     pid_gains K;                        /**< The gains of the PID controller. */
     read_sensor sensor;                 /**< The sensor function. */
     read_sensor sensor_feedforward;     /**< The sensor providing feedforward values. */
@@ -261,7 +262,7 @@ float pid_tick(pid_ctrl * controller);
  * 
  * \return True if at setpoint. False otherwise.
  */
-bool pid_at_setpoint(pid_ctrl * controller, float tol);
+bool pid_at_setpoint(pid_ctrl * controller, pid_data_t tol);
 
 /**
  * \brief Reset the internal fields of the PID controller

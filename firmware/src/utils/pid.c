@@ -4,7 +4,7 @@
  * \file pid.c
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief PID Library source
- * \version 0.1
+ * \version 0.2
  * \date 2022-08-16
 */
 
@@ -13,16 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define DISCRETE_DERIVATIVE_SHIFT_AT_VAL 0x00000FFF
+#define DISCRETE_DERIVATIVE_SHIFT_AT_VAL 0x00FFFFFF
 
-/**
- * \brief Helper function returning the seconds since booting
- */
-float sec_since_boot(){
-    return to_ms_since_boot(get_absolute_time())/1000.;
-}
-
-pid_time_t ms_since_boot(){
+inline pid_time_t ms_since_boot(){
     return to_ms_since_boot(get_absolute_time());
 }
 
@@ -195,7 +188,7 @@ float discrete_derivative_read(discrete_derivative *d) {
 }
 
 void discrete_derivative_add_datapoint(discrete_derivative *d, datapoint p) {
-    const bool dwell_time_up = p.t - d->_data[_discrete_derivative_last_idx(d)].t >= d->ms_between_datapoints;
+    const bool dwell_time_up = p.t - _discrete_derivative_latest_dp(d)->t >= d->ms_between_datapoints;
     if(d->_num_el == 0 || dwell_time_up){
         _discrete_derivative_remove_old_points(d, p.t);
         if (d->_num_el == d->_buf_len) _discrete_derivative_expand_buf(d);
@@ -209,20 +202,19 @@ void discrete_derivative_add_value(discrete_derivative* d, pid_data_t v){
     discrete_derivative_add_datapoint(d, dp);
 }
 
-void discrete_integral_setup(discrete_integral *i, const pid_data_t lower_bound,
-                            const pid_data_t upper_bound) {
+void discrete_integral_setup(discrete_integral *i, const pid_data_t lower_bound, const pid_data_t upper_bound) {
     discrete_integral_reset(i);
     i->lower_bound = lower_bound;
     i->upper_bound = upper_bound;
 }
 
-float discrete_integral_read(discrete_integral *i) { 
-    return (i->prev_p.t != 0) ? i->sum : 0; 
+pid_data_t discrete_integral_read(discrete_integral *i) { 
+    return i->sum/2.0;
 }
 
 void discrete_integral_add_datapoint(discrete_integral *i, datapoint p) {
-    if (i->prev_p.t != 0) {
-        i->sum += ((p.v + i->prev_p.v) / 2.0) * (p.t - i->prev_p.t);
+    if (i->prev_p.t != -1) {
+        i->sum += (p.v + i->prev_p.v) * (p.t - i->prev_p.t);
         i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
         i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
     }
@@ -230,8 +222,8 @@ void discrete_integral_add_datapoint(discrete_integral *i, datapoint p) {
 }
 
 void discrete_integral_reset(discrete_integral *i) {
-    datapoint init_p = {.t = 0, .v = 0};
-    i->prev_p = init_p;
+    i->prev_p.t = -1;
+    i->prev_p.v = 0;
     i->sum = 0;
 }
 
@@ -253,35 +245,26 @@ void pid_setup(pid_ctrl * controller, const pid_gains K, read_sensor feedback_se
 float pid_tick(pid_ctrl * controller){
     if(absolute_time_diff_us(get_absolute_time(), controller->_next_tick_time) < 0){
         controller->_next_tick_time = delayed_by_ms(get_absolute_time(), controller->min_time_between_ticks_ms);
-        datapoint new_reading = {.t = ms_since_boot(), .v = controller->sensor()};
-        datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
+        const datapoint new_reading = {.t = ms_since_boot(), .v = controller->sensor()};
+        const datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
         discrete_integral_add_datapoint(&(controller->err_sum), new_err);
         discrete_derivative_add_datapoint(&(controller->err_slope), new_reading);
         
-        float e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_read(&(controller->err_sum)));
-        float e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_read(&(controller->err_slope)));
-        float ff = (controller->sensor_feedforward != NULL ? controller->sensor_feedforward() : 0);
+        const pid_data_t e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_read(&(controller->err_sum)));
+        const pid_data_t e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_read(&(controller->err_slope)));
+        const pid_data_t ff = (controller->sensor_feedforward != NULL ? controller->sensor_feedforward() : 0);
+
         float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
 
-        if(controller->plant != NULL){
-            controller->plant(input);
-        }
+        if(controller->plant != NULL) controller->plant(input);
         return input;
     }
     return 0;
 }
 
-/**
- * \brief Checks if the plant is at the target setpoint +/- a tolerance
- * 
- * \param controller Pointer to PID controller object to check.
- * \param tol The range around the setpoint that are considered good.
- * 
- * \return True if at setpoint. False otherwise.
- */
-bool pid_at_setpoint(pid_ctrl * controller, float tol){
-    const float err = controller->sensor() - controller->setpoint;
+bool pid_at_setpoint(pid_ctrl * controller, pid_data_t tol){
+    const pid_data_t err = controller->sensor() - controller->setpoint;
     return (err >= -tol && err <= tol);
 }
 
