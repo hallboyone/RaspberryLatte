@@ -26,9 +26,9 @@
 /** \brief Structure managing a single flowmeter. */
 typedef struct {
     uint8_t pin;                   /**< \brief The GPIO attached to the flow meter's signal. */
-    float conversion_factor;       /**< \brief Factor converting pulse counts to ml. */
+    float conversion_factor;       /**< \brief Factor converting pulse counts to volume. */
     uint pulse_count;              /**< \brief Number of pulses since last zero. */
-    discrete_derivative flow_rate; /**< \brief Derivative structure for tracking the flow rate. */
+    discrete_derivative flow_rate; /**< \brief Derivative structure for tracking the flow rate in pulse/ms. */
 } flow_meter;
 
 /**
@@ -50,7 +50,7 @@ int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor);
  * \brief Return the volume since the last zero point
  * 
  * \param fm Flow meter to read
- * \return Volume, in ml, since last zero point.
+ * \return Volume since last zero point based on the conversion factor.
  */
 float flow_meter_volume(flow_meter * fm);
 
@@ -58,7 +58,7 @@ float flow_meter_volume(flow_meter * fm);
  * \brief Returns the current flowrate of the sensor
  * 
  * \param fm Flow meter to read from
- * \return Flow rate in ml/s 
+ * \return Flow rate in volume/s 
  */
 float flow_meter_rate(flow_meter * fm);
 
