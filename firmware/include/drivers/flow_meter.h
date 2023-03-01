@@ -42,9 +42,12 @@ typedef struct {
  * \param fm The flow_meter that will be configured
  * \param pin_num The GPIO attached to the flow meter's signal wire
  * \param conversion_factor The factor to convert from pulse counts to ml
+ * \param filter_span_ms The duration over which the slope will be computed.
+ * \param sample_dwell_time_ms The minimum duration between samples.
  * \return PICO_ERROR_NONE on success. Else, error code.  
  */
-int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor);
+int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor, 
+                     uint16_t filter_span_ms, uint16_t sample_dwell_time_ms);
 
 /**
  * \brief Return the volume since the last zero point
