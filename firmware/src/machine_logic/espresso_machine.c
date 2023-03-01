@@ -318,7 +318,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     autobrew_routine_setup(&autobrew_plan, 6);
     autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
     const pid_gains flow_K = {.p = 0.1, .i = 0, .d = 0, .f = 0};
-    pid_setup(&flow_pid, flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, 10000, 1000);
+    pid_setup(&flow_pid, flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, PID_NO_WINDUP_UB, 0);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
