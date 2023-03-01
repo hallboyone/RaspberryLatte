@@ -11,6 +11,9 @@
 
 #include "drivers/ulka_pump.h"
 
+#define ULKA_PUMP_FILTER_SPAN_MS 500
+#define ULKA_PUMP_SAMPLE_RATE_MS 10
+
 /**
  * \brief LUT mapping percent power to duty cycle. Since low duty cycles don't operate the pump,
  * 1% power corresponds with about 50% duty cycle.
@@ -30,7 +33,7 @@ int ulka_pump_setup(ulka_pump * p, uint8_t zerocross_pin, uint8_t out_pin, int32
 }
 
 int ulka_pump_setup_flow_meter(ulka_pump * p, uint8_t pin_num, float conversion){
-    return flow_meter_setup(&(p->flow), pin_num, conversion);
+    return flow_meter_setup(&(p->flow), pin_num, conversion, ULKA_PUMP_FILTER_SPAN_MS, ULKA_PUMP_SAMPLE_RATE_MS);
 }
 
 void ulka_pump_pwr_percent(ulka_pump * p, uint8_t percent_power){
