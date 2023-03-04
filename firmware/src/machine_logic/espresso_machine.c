@@ -58,8 +58,8 @@ static ulka_pump           pump;
 static const machine_settings*   settings;
 
 /** Autobrew and control objects */
-static pid_ctrl         heater_pid;
-static pid_ctrl         flow_pid;
+static pid         heater_pid;
+static pid         flow_pid;
 static autobrew_routine autobrew_plan;
 
 /**
@@ -152,7 +152,7 @@ static void espresso_machine_autobrew_setup(){
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 2, preinf_pwr, preinf_pwr, NULL,    0*preinf_on_dur,   NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 3, 0,          0,          NULL,    0*preinf_off_time, NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 4, 0,          0,          NULL,    0*brew_ramp_dur,   &scale_at_output);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 3000,       3000,       &flow_pid, brew_on_dur,     &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 3000,       3000,       flow_pid, brew_on_dur,     &scale_at_output);
 }
 
 /**
@@ -270,7 +270,7 @@ static void espresso_machine_update_boiler(){
         _state.boiler.setpoint = 0;
     }
 
-    heater_pid.setpoint = _state.boiler.setpoint/16.;
+    pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
 
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
@@ -291,7 +291,7 @@ static void espresso_machine_update_boiler(){
 static void espresso_machine_update_leds(){
     if(_state.switches.ac_switch){
         const bool led0 = _state.switches.ac_switch;
-        const bool led1 = _state.switches.ac_switch && pid_at_setpoint(&heater_pid, 2.5);
+        const bool led1 = _state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5);
         const bool led2 = _state.switches.ac_switch 
                           && !_state.switches.pump_switch 
                           && nau7802_at_val_mg(&scale, *settings->brew.dose *100);
@@ -318,12 +318,12 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     autobrew_routine_setup(&autobrew_plan, 6);
     autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
     const pid_gains flow_K = {.p = 0.1, .i = 0, .d = 0, .f = 0};
-    pid_setup(&flow_pid, flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, PID_NO_WINDUP_UB, 0);
+    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, PID_NO_WINDUP_UB, 0);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
-    pid_setup(&heater_pid, boiler_K, &read_boiler_thermo_mC, &read_pump_flowrate_ml_ms, 
+    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_mC, &read_pump_flowrate_ml_ms, 
               &apply_boiler_input, 100, 0, 175, 1000);
 
     // Setup the LED binary output

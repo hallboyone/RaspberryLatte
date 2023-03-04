@@ -19,7 +19,7 @@ typedef struct _autobrew_leg {
     
     autobrew_fun fun;                     /**< \brief Void function to call if FUNCTION_CALL leg. */
     autobrew_trigger trigger;             /**< \brief Function used to trigger the end of a leg. */
-    pid_ctrl * ctrl;                      /**< \brief Controller object used get a pump value to track setpoint. */
+    pid ctrl;                      /**< \brief Controller object used get a pump value to track setpoint. */
     uint64_t _end_time_us;                /**< \brief End time of leg. Set the first time the leg is ticked*/
 } autobrew_leg;
 
@@ -89,7 +89,7 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
             state->pump_setting = current_setpoint;
         } else {
             // PID controller generates pump_setting given setpoint
-            leg->ctrl->setpoint = current_setpoint;
+            pid_update_setpoint(leg->ctrl, current_setpoint);
             float raw_input = pid_tick(leg->ctrl);
             raw_input = (raw_input < 0 ? 0 : raw_input);
             raw_input = (raw_input > 100 ? 100 : raw_input);
@@ -117,7 +117,7 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
 }
 
 int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pid_data_t pump_starting_setpoint, 
-                                    pid_data_t pump_ending_setpoint, pid_ctrl * ctrl, uint32_t timeout_us, 
+                                    pid_data_t pump_ending_setpoint, pid ctrl, uint32_t timeout_us, 
                                     autobrew_trigger trigger){
     if(r->_num_legs <= leg_idx) return PICO_ERROR_INVALID_ARG;
 
