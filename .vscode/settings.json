@@ -59,6 +59,7 @@
         "fram",
         "gpio",
         "leds",
+        "Microliters",
         "phasecontrol",
         "PICO",
         "pinout",

@@ -2,9 +2,9 @@
  * \defgroup flow_meter Flow Meter Driver
  * \ingroup drivers
  * 
- * \brief Driver using pulse-count flow meters
+ * \brief Driver for flow meters with volumetric pulsing output.
  * 
- * Tracks the number of ticks throw a flow meter and uses a \ref discrete_derivative to convert
+ * Tracks the number of ticks through a flow meter and uses a \ref discrete_derivative to convert
  * to a rate of change (i.e. flow-rate). Methods are provided for reading both the volume of 
  * flow and the flowrate.
  * 
@@ -23,13 +23,8 @@
 
 #include "utils/pid.h"
 
-/** \brief Structure managing a single flowmeter. */
-typedef struct {
-    uint8_t pin;                   /**< \brief The GPIO attached to the flow meter's signal. */
-    float conversion_factor;       /**< \brief Factor converting pulse counts to volume. */
-    uint pulse_count;              /**< \brief Number of pulses since last zero. */
-    discrete_derivative flow_rate; /**< \brief Derivative structure for tracking the flow rate in pulse/ms. */
-} flow_meter;
+/** \brief Opaque object defining a single flow meter. */
+typedef struct flow_meter_s* flow_meter;
 
 /**
  * \brief Configures a single flow_meter structure.
@@ -39,38 +34,37 @@ typedef struct {
  * -# Attaches callback using \ref gpio_multi_callback.
  * -# Initializes the internal discrete_derivative.
  * 
- * \param fm The flow_meter that will be configured
- * \param pin_num The GPIO attached to the flow meter's signal wire
- * \param conversion_factor The factor to convert from pulse counts to ml
+ * \param pin_num The GPIO attached to the flow meter's signal wire.
+ * \param conversion_factor The factor to convert from pulse counts to desired volume.
  * \param filter_span_ms The duration over which the slope will be computed.
  * \param sample_dwell_time_ms The minimum duration between samples.
- * \return PICO_ERROR_NONE on success. Else, error code.  
+ * \return A new flow_meter object on success. NULL on error.  
  */
-int flow_meter_setup(flow_meter * fm, uint8_t pin_num, float conversion_factor, 
-                     uint16_t filter_span_ms, uint16_t sample_dwell_time_ms);
+flow_meter flow_meter_setup(uint8_t pin_num, uint16_t conversion_factor, 
+                            uint16_t filter_span_ms, uint16_t sample_dwell_time_ms);
 
 /**
- * \brief Return the volume since the last zero point
+ * \brief Return the volume since the last zero point.
  * 
- * \param fm Flow meter to read
+ * \param fm Flow meter to read volume from.
  * \return Volume since last zero point based on the conversion factor.
  */
-float flow_meter_volume(flow_meter * fm);
+uint flow_meter_volume(flow_meter fm);
 
 /**
- * \brief Returns the current flowrate of the sensor
+ * \brief Returns the current flowrate of the sensor.
  * 
- * \param fm Flow meter to read from
- * \return Flow rate in volume/s 
+ * \param fm Flow meter to read rate from.
+ * \return Flow rate in volume/s.
  */
-float flow_meter_rate(flow_meter * fm);
+float flow_meter_rate(flow_meter fm);
 
 /**
- * \brief Resets the volume and flow rate to 0
+ * \brief Resets the volume and flow rate to 0.
  * 
  * \param fm Flow meter to zero. 
  */
-void flow_meter_zero(flow_meter * fm);
+void flow_meter_zero(flow_meter fm);
 
 #endif
 /** \} */

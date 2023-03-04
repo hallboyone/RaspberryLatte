@@ -36,8 +36,8 @@ const float PID_GAIN_I = 0.00175;
 const float PID_GAIN_D = 0.0005;
 const float PID_GAIN_F = 0.05;
 
-const float SCALE_CONVERSION_MG = -0.152710615479;
-const float FLOW_CONVERSION_ML = 0.5;
+const float    SCALE_CONVERSION_MG = -0.152710615479;
+const uint16_t FLOW_CONVERSION_UL = 500; /**< Microliters per pulse of pump flow sensor. */
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -339,7 +339,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup the pump
     ulka_pump_setup(&pump,AC_0CROSS_PIN, PUMP_OUT_PIN, AC_0CROSS_SHIFT, ZEROCROSS_EVENT_RISING);
-    ulka_pump_setup_flow_meter(&pump, FLOW_RATE_PIN, FLOW_CONVERSION_ML);
+    ulka_pump_setup_flow_meter(&pump, FLOW_RATE_PIN, FLOW_CONVERSION_UL);
 
     // Setup solenoid as a binary output
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};

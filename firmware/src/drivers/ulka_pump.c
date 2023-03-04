@@ -32,8 +32,9 @@ int ulka_pump_setup(ulka_pump * p, uint8_t zerocross_pin, uint8_t out_pin, int32
     phasecontrol_setup((&p->driver), zerocross_pin, out_pin, zerocross_shift_us, zerocross_event);
 }
 
-int ulka_pump_setup_flow_meter(ulka_pump * p, uint8_t pin_num, float conversion){
-    return flow_meter_setup(&(p->flow), pin_num, conversion, ULKA_PUMP_FILTER_SPAN_MS, ULKA_PUMP_SAMPLE_RATE_MS);
+int ulka_pump_setup_flow_meter(ulka_pump * p, uint8_t pin_num, uint16_t conversion){
+    p->flow = flow_meter_setup(pin_num, conversion, ULKA_PUMP_FILTER_SPAN_MS, ULKA_PUMP_SAMPLE_RATE_MS);
+    return (p->flow == NULL ? PICO_ERROR_GENERIC : PICO_ERROR_NONE);
 }
 
 void ulka_pump_pwr_percent(ulka_pump * p, uint8_t percent_power){
@@ -61,7 +62,7 @@ uint8_t ulka_pump_get_pwr(ulka_pump * p){
 }
 
 float ulka_pump_get_flow(ulka_pump * p){
-    return flow_meter_rate(&(p->flow));
+    return flow_meter_rate(p->flow);
 }
 
 float ulka_pump_get_pressure(ulka_pump * p){
