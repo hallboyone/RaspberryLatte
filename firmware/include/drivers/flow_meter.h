@@ -66,5 +66,11 @@ float flow_meter_rate(flow_meter fm);
  */
 void flow_meter_zero(flow_meter fm);
 
+/**
+ * \brief Destroy a flow_meter object.
+ * 
+ * \param fm The flow_meter object to destroy.
+ */
+void flow_meter_deinit(flow_meter fm);
 #endif
 /** \} */

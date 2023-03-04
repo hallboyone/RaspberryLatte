@@ -39,7 +39,7 @@ flow_meter flow_meter_setup(uint8_t pin_num, uint16_t conversion_factor,
                             uint16_t filter_span_ms, uint16_t sample_dwell_time_ms){
     flow_meter fm = malloc(sizeof(flow_meter_));
 
-    if(pin_num >= 32) return PICO_ERROR_INVALID_ARG;
+    if(pin_num >= 32) return NULL;
 
     gpio_set_dir(pin_num, false);
     gpio_set_pulls(pin_num, false, true);
@@ -51,7 +51,11 @@ flow_meter flow_meter_setup(uint8_t pin_num, uint16_t conversion_factor,
     fm->flow_rate = discrete_derivative_setup(filter_span_ms, sample_dwell_time_ms);
 
     // Every time the flow meter pin falls, trigger callback
-    return gpio_multi_callback_attach(pin_num, GPIO_IRQ_EDGE_FALL, true, &_flow_meter_callback, fm);
+    if(PICO_ERROR_NONE != gpio_multi_callback_attach(pin_num, GPIO_IRQ_EDGE_FALL, true, &_flow_meter_callback, fm)){
+        free(fm);
+        return NULL;
+    }
+    return fm;
 }
 
 uint flow_meter_volume(flow_meter fm){
@@ -67,4 +71,9 @@ float flow_meter_rate(flow_meter fm){
 void flow_meter_zero(flow_meter fm){
     fm->pulse_count = 0;
     discrete_derivative_reset(fm->flow_rate);
+}
+
+void flow_meter_deinit(flow_meter fm){
+    discrete_derivative_deinit(fm->flow_rate);
+    free(fm);
 }
