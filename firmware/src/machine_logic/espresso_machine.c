@@ -72,7 +72,7 @@ static pid_data_t read_boiler_thermo_mC(){
  * \brief Helper function that tracks and returns the scale's flowrate
 */
 static pid_data_t read_pump_flowrate_ml_ms(){
-    return 1000*ulka_pump_get_flow(pump);
+    return 1000*ulka_pump_get_flow_ul_s(pump);
 }
 
 /**
@@ -247,7 +247,7 @@ static void espresso_machine_update_pump(){
     // Update Pump States
     _state.pump.pump_lock     = ulka_pump_is_locked(pump);
     _state.pump.power_level   = ulka_pump_get_pwr(pump);
-    _state.pump.flowrate_ml_s = ulka_pump_get_flow(pump);
+    _state.pump.flowrate_ml_s = ulka_pump_get_flow_ul_s(pump);
     _state.pump.pressure_bar  = ulka_pump_get_pressure(pump);
 }
 

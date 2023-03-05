@@ -45,10 +45,10 @@ ulka_pump ulka_pump_setup(uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocr
     return p;
 }
 
-int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, uint16_t conversion){
+int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, uint16_t ticks_to_ul){
     if(p->flow != NULL) flow_meter_deinit(p->flow);
 
-    p->flow = flow_meter_setup(pin_num, conversion, ULKA_PUMP_FILTER_SPAN_MS, ULKA_PUMP_SAMPLE_RATE_MS);
+    p->flow = flow_meter_setup(pin_num, ticks_to_ul, ULKA_PUMP_FILTER_SPAN_MS, ULKA_PUMP_SAMPLE_RATE_MS);
     return (p->flow == NULL ? PICO_ERROR_GENERIC : PICO_ERROR_NONE);
 }
 
@@ -76,33 +76,33 @@ uint8_t ulka_pump_get_pwr(ulka_pump p){
     return p->percent_power;
 }
 
-float ulka_pump_get_flow(ulka_pump p){
-    return (p->flow == NULL ? 0 : flow_meter_rate(p->flow));
+int16_t ulka_pump_get_flow_ul_s(ulka_pump p){
+    return (p->flow == NULL ? 0 : 1000*flow_meter_rate(p->flow));
 }
 
-float ulka_pump_get_pressure(ulka_pump p){
+int16_t ulka_pump_get_pressure_mbar(ulka_pump p){
     float pressure = 0;
     if(p->percent_power == 0) return 0;
     else if(p->percent_power < 10){
-        pressure = 0.4319*p->percent_power - 0.6476*ulka_pump_get_flow(p);
+        pressure =  431.9*p->percent_power - 0.6476*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 20){
-        pressure = 2.6426 + 0.0686*p->percent_power - 1.0042*ulka_pump_get_flow(p);
+        pressure = 2642.6 +  68.6*p->percent_power - 1.0042*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 30){
-        pressure = 4.0434 + 0.0640*p->percent_power - 1.2913*ulka_pump_get_flow(p);
+        pressure = 4043.4 +  64.0*p->percent_power - 1.2913*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 40){
-        pressure = 2.5994 + 0.1425*p->percent_power - 1.5014*ulka_pump_get_flow(p);
+        pressure = 2599.4 + 142.5*p->percent_power - 1.5014*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 50){
-        pressure = 2.3161 + 0.1532*p->percent_power - 1.5692*ulka_pump_get_flow(p);
+        pressure = 2316.1 + 153.2*p->percent_power - 1.5692*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 60){
-        pressure = 1.8617 + 0.1626*p->percent_power - 1.6878*ulka_pump_get_flow(p);
+        pressure = 1861.7 + 162.6*p->percent_power - 1.6878*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 70){
-        pressure = 5.6301 + 0.0955*p->percent_power - 1.6701*ulka_pump_get_flow(p);
+        pressure = 5630.1 +  95.5*p->percent_power - 1.6701*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 80){
-        pressure = 6.5122 + 0.0847*p->percent_power - 1.6412*ulka_pump_get_flow(p);
+        pressure = 6512.2 +  84.7*p->percent_power - 1.6412*ulka_pump_get_flow_ul_s(p);
     } else if(p->percent_power < 90){
-        pressure = 2.4047 + 0.1405*p->percent_power - 1.6984*ulka_pump_get_flow(p);
+        pressure = 2404.7 + 140.5*p->percent_power - 1.6984*ulka_pump_get_flow_ul_s(p);
     } else {
-        pressure = 3.5282 + 0.1258*p->percent_power - 1.6838*ulka_pump_get_flow(p);
+        pressure = 3.5282 + 0.1258*p->percent_power - 1.6838*ulka_pump_get_flow_ul_s(p);
     }
     return (pressure > 0 ? pressure : 0);
 }

@@ -4,9 +4,8 @@ set(PICO_BOARD pico_w)
 
 include($ENV{PICO_SDK_PATH}/pico_sdk_init.cmake)
 
-project(RaspberryLatte C CXX ASM)
+project(RaspberryLattePico C CXX ASM)
 set(CMAKE_C_STANDARD 11)
-
 set(PICO_BOARD pico_w)
 pico_sdk_init()
 

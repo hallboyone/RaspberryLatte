@@ -48,11 +48,11 @@ ulka_pump ulka_pump_setup(uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocr
  * it is destroyed. 
  * 
  * \param p Previously setup pump that the flow meter will be associated with.
- * \param pin_num The digital pin attached to the flow meter
- * \param conversion The conversion factor between ticks and volume for the flowmeter
+ * \param pin_num The digital pin attached to the flow meter.
+ * \param ticks_to_ul How many microliters corresponds with a single pulse from the flowmeter.
  * \return PICO_ERROR_NONE on success. Else and error code is returned. 
  */
-int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, uint16_t conversion);
+int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, uint16_t ticks_to_ul);
 
 /**
  * \brief Set the pump's percent power.
@@ -101,9 +101,9 @@ uint8_t ulka_pump_get_pwr(ulka_pump p);
  * Requires configuring an internal flow sensor using \ref ulka_pump_setup_flow_meter.
  * 
  * \param p A previously setup pump struct with a configured flow meter.
- * \return the current flow rate if configured. Else 0.
+ * \return the current flow rate in ul/s if the flow meter is configured. Else 0.
  */
-float ulka_pump_get_flow(ulka_pump p);
+int16_t ulka_pump_get_flow_ul_s(ulka_pump p);
 
 /**
  * \brief Return the pressure of the pump.
@@ -113,9 +113,9 @@ float ulka_pump_get_flow(ulka_pump p);
  * at powers.
  * 
  * \param p A previously setup pump struct with a configured flow meter.
- * \return the current pressure if the flow meter has been configured. Else 0.
+ * \return the current pressure in millibar if the flow meter has been configured. Else 0.
  */
-float ulka_pump_get_pressure(ulka_pump p);
+int16_t ulka_pump_get_pressure_mbar(ulka_pump p);
 
 /**
  * \brief Check if pump is locked.

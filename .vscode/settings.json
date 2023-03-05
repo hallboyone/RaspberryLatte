@@ -59,6 +59,7 @@
         "fram",
         "gpio",
         "leds",
+        "mbar",
         "Microliters",
         "phasecontrol",
         "PICO",
