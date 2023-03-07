@@ -13,6 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 
+
+//#define PID_PRINT_DEBUG_MESSAGES
+#ifdef PID_PRINT_DEBUG_MESSAGES
+#include <stdio.h>
+#endif
+
 #define DISCRETE_DERIVATIVE_SHIFT_AT_VAL 0x00FFFFFF
 
 /**
@@ -23,17 +29,17 @@
  * fit.
  */
 typedef struct discrete_derivative_s{
-    uint filter_span_ms; /**< The amount of the data series in ms that the slope will be fitted to. */
-    uint sample_rate_ms; /**< The minimal length of time between datapoints. */
-    datapoint * data;    /**< Circular buffer representing the recent datapoints. */
-    uint16_t buf_len;    /**< The max number of datapoints the data can hold. */
-    uint16_t num_el;     /**< Number of datapoints in buffer. */
-    uint16_t start_idx;  /**< The index of the first datapoint in array. */
-    datapoint origin;    /**< The current origin of the data. As data/time grows, the origin will be shifted. */
-    int64_t sum_v;       /**< The sum of the values in the current datapoints */
-    int64_t sum_t;       /**< The sum of the times in the current datapoints */
-    int64_t sum_vt;      /**< The sum of the value/time product in the current datapoints */
-    int64_t sum_tt;      /**< The sum of the time squared in the current datapoints */
+    uint16_t filter_span_ms; /**< The amount of the data series in ms that the slope will be fitted to. */
+    uint16_t sample_rate_ms; /**< The minimal length of time between datapoints. */
+    datapoint * data;        /**< Circular buffer representing the recent datapoints. */
+    uint16_t buf_len;        /**< The max number of datapoints the data can hold. */
+    uint16_t num_el;         /**< Number of datapoints in buffer. */
+    uint16_t start_idx;      /**< The index of the first datapoint in array. */
+    datapoint origin;        /**< The current origin of the data. As data/time grows, the origin will be shifted. */
+    int64_t sum_v;           /**< The sum of the values in the current datapoints */
+    int64_t sum_t;           /**< The sum of the times in the current datapoints */
+    int64_t sum_vt;          /**< The sum of the value/time product in the current datapoints */
+    int64_t sum_tt;          /**< The sum of the time squared in the current datapoints */
 } discrete_derivative_;
 
 /**
@@ -64,6 +70,7 @@ typedef struct pid_s{
     discrete_integral err_sum;          /**< A discrete_integral tracking the sum of the error. */
     uint16_t min_time_between_ticks_ms; /**< The minimum time, in ms, between ticks. If time hasn't elapsed, the previous input is returned. */
     absolute_time_t _next_tick_time;    /**< Timestamp used to track the earliest time that the system can be ticked again. */
+    float last_input;                   /**< Saves the last computed input between while dwelling between ticks. */
 } pid_;
 
 inline pid_time_t ms_since_boot(){
@@ -259,8 +266,9 @@ void discrete_derivative_add_value(discrete_derivative d, const pid_data_t v){
 discrete_integral discrete_integral_setup(const pid_data_t lower_bound, const pid_data_t upper_bound){
     discrete_integral i = malloc(sizeof(discrete_integral_));
     discrete_integral_reset(i);
-    i->lower_bound = lower_bound;
-    i->upper_bound = upper_bound;
+    // scale by 2 since the average values are summed, to be devided once when read.
+    i->lower_bound = 2*lower_bound;
+    i->upper_bound = 2*upper_bound;
     return i;
 }
 
@@ -323,11 +331,16 @@ float pid_tick(pid controller){
         const pid_data_t ff = (controller->read_ff != NULL ? controller->read_ff() : 0);
 
         float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
+        
+        #ifdef PID_PRINT_DEBUG_MESSAGES
+        printf("%07ld - %07ld - %07ld - %07ld - %07ld - %0.2f\n", new_reading.v, new_err.v, e_sum, e_slope, ff, input);
+        #endif
 
         if(controller->apply_input != NULL) controller->apply_input(input);
+        controller->last_input = input;
         return input;
     }
-    return 0;
+    return controller->last_input;
 }
 
 bool pid_at_setpoint(const pid controller, const pid_data_t tol){

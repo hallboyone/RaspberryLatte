@@ -31,13 +31,15 @@ int main(){
 
         // Update the machine
         espresso_machine_tick();
-
+        if(espresso_machine->pump.flowrate_ml_s < 0){
+            printf("Warning\n");
+        }
         // Print status once a second
         if(absolute_time_diff_us(get_absolute_time(), next_msg_time) < 0){
             next_msg_time = make_timeout_time_us(msg_period_us);
             if(espresso_machine->switches.ac_switch){
                 const uint32_t timestamp_ms = to_ms_since_boot(get_absolute_time());
-                printf("%07d,%0.2f,%0.2f,%03d,%0.6f\n",
+                printf("%07d,%0.2f,%0.2f,%03d,%0.3f\n",
                 timestamp_ms,
                 espresso_machine->boiler.setpoint/16.,
                 espresso_machine->boiler.temperature/16.,

@@ -72,7 +72,7 @@ static pid_data_t read_boiler_thermo_mC(){
  * \brief Helper function that tracks and returns the scale's flowrate
 */
 static pid_data_t read_pump_flowrate_ml_ms(){
-    return 1000*ulka_pump_get_flow_ul_s(pump);
+    return ulka_pump_get_flow_ul_s(pump);
 }
 
 /**
@@ -151,7 +151,7 @@ static void espresso_machine_autobrew_setup(){
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 2, preinf_pwr, preinf_pwr, NULL,    0*preinf_on_dur,   NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 3, 0,          0,          NULL,    0*preinf_off_time, NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, 4, 0,          0,          NULL,    0*brew_ramp_dur,   &scale_at_output);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 3000,       3000,       flow_pid, brew_on_dur,     &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 1000,       1000,       flow_pid, brew_on_dur,     &scale_at_output);
 }
 
 /**
@@ -248,7 +248,7 @@ static void espresso_machine_update_pump(){
     _state.pump.pump_lock     = ulka_pump_is_locked(pump);
     _state.pump.power_level   = ulka_pump_get_pwr(pump);
     _state.pump.flowrate_ml_s = ulka_pump_get_flow_ul_s(pump);
-    _state.pump.pressure_bar  = ulka_pump_get_pressure(pump);
+    _state.pump.pressure_bar  = ulka_pump_get_pressure_mbar(pump);
 }
 
 /**
@@ -316,8 +316,8 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup the autobrew first leg that does not depend on machine settings
     autobrew_routine_setup(&autobrew_plan, 6);
     autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
-    const pid_gains flow_K = {.p = 0.1, .i = 0, .d = 0, .f = 0};
-    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, PID_NO_WINDUP_UB, 0);
+    const pid_gains flow_K = {.p = 0.001, .i = 0.00001, .d = 0, .f = 0};
+    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, 100000000, 0);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);

@@ -10,6 +10,7 @@
 #include "drivers/flow_meter.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "utils/gpio_multi_callback.h"
 
@@ -64,8 +65,7 @@ uint flow_meter_volume(flow_meter fm){
 
 float flow_meter_rate(flow_meter fm){
     discrete_derivative_add_value(fm->flow_rate, fm->pulse_count);
-    // scale by 1000 to convert 1/ms to 1/s.
-    return discrete_derivative_read(fm->flow_rate) * fm->conversion_factor * 1000;
+    return discrete_derivative_read(fm->flow_rate) * fm->conversion_factor;
 }
 
 void flow_meter_zero(flow_meter fm){

@@ -12,6 +12,7 @@
 #include "drivers/ulka_pump.h"
 
 #include "stdlib.h"
+#include <stdio.h>
 
 #define ULKA_PUMP_FILTER_SPAN_MS 500
 #define ULKA_PUMP_SAMPLE_RATE_MS 10
@@ -77,7 +78,7 @@ uint8_t ulka_pump_get_pwr(ulka_pump p){
 }
 
 int16_t ulka_pump_get_flow_ul_s(ulka_pump p){
-    return (p->flow == NULL ? 0 : 1000*flow_meter_rate(p->flow));
+    return (p->flow == NULL ? 0 : 1000.0*flow_meter_rate(p->flow));
 }
 
 int16_t ulka_pump_get_pressure_mbar(ulka_pump p){
