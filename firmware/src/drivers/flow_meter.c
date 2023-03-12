@@ -59,13 +59,14 @@ flow_meter flow_meter_setup(uint8_t pin_num, float conversion_factor,
     return fm;
 }
 
-uint flow_meter_volume(flow_meter fm){
+float flow_meter_volume(flow_meter fm){
     return fm->pulse_count * fm->conversion_factor;
 }
 
 float flow_meter_rate(flow_meter fm){
     discrete_derivative_add_value(fm->flow_rate, fm->pulse_count);
-    return discrete_derivative_read(fm->flow_rate) * fm->conversion_factor;
+    // discrete_derivatives are in units/ms. Scale by 1000 to get units/s
+    return 1000.0 * discrete_derivative_read(fm->flow_rate) * fm->conversion_factor;
 }
 
 void flow_meter_zero(flow_meter fm){

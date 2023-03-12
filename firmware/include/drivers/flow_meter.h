@@ -49,7 +49,7 @@ flow_meter flow_meter_setup(uint8_t pin_num, float conversion_factor,
  * \param fm Flow meter to read volume from.
  * \return Volume since last zero point based on the conversion factor.
  */
-uint flow_meter_volume(flow_meter fm);
+float flow_meter_volume(flow_meter fm);
 
 /**
  * \brief Returns the current flowrate of the sensor.
