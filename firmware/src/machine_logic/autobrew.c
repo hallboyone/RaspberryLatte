@@ -13,8 +13,8 @@
 #include "machine_logic/autobrew.h"
 #include <stdlib.h>
 typedef struct _autobrew_leg {
-    pid_data_t pump_setpoint_start;          /**< \brief Setpoint at start of leg. */
-    pid_data_t pump_setpoint_delta;           /**< \brief Change in Setpoint over leg. If constant, set to 0. */
+    pid_data pump_setpoint_start;          /**< \brief Setpoint at start of leg. */
+    pid_data pump_setpoint_delta;           /**< \brief Change in Setpoint over leg. If constant, set to 0. */
     uint32_t timeout_us;                  /**< \brief Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
     
     autobrew_fun fun;                     /**< \brief Void function to call if FUNCTION_CALL leg. */
@@ -73,7 +73,7 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
         }
 
         // If setpoint has linear change, compute current value and indicate change.
-        pid_data_t current_setpoint = leg->pump_setpoint_start;
+        pid_data current_setpoint = leg->pump_setpoint_start;
         if(leg->pump_setpoint_delta != 0){ // Set pump setpoint
             state->pump_setting_changed = true;
             float percent_complete = 1;
@@ -116,8 +116,8 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
     return PICO_ERROR_NONE;
 }
 
-int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pid_data_t pump_starting_setpoint, 
-                                    pid_data_t pump_ending_setpoint, pid ctrl, uint32_t timeout_us, 
+int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pid_data pump_starting_setpoint, 
+                                    pid_data pump_ending_setpoint, pid ctrl, uint32_t timeout_us, 
                                     autobrew_trigger trigger){
     if(r->_num_legs <= leg_idx) return PICO_ERROR_INVALID_ARG;
 

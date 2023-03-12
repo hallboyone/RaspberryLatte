@@ -64,14 +64,14 @@ static autobrew_routine autobrew_plan;
 /**
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
  */
-static pid_data_t read_boiler_thermo_mC(){
+static pid_data read_boiler_thermo_mC(){
     return 1000*lmt01_read_float(&thermo);
 }
 
 /**
  * \brief Helper function that tracks and returns the scale's flowrate
 */
-static pid_data_t read_pump_flowrate_ml_ms(){
+static pid_data read_pump_flowrate_ml_ms(){
     return ulka_pump_get_flow_ul_s(pump);
 }
 

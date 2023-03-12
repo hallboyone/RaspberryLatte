@@ -57,6 +57,7 @@
         "feedforward",
         "flowrate",
         "fram",
+        "fxpt",
         "gpio",
         "leds",
         "mbar",

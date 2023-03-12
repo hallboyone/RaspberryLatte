@@ -60,9 +60,9 @@ int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, uint16_t ticks_to_u
  * If the pump is locked, this is ignored and 0% power is applied.
  * 
  * \param p A previously setup pump struct to write the power to
- * \param percent_power A percent power between 0 and 100 inclusive. Values out or range are clipped.
+ * \param power_percent A percent power between 0 and 100 inclusive. Values out or range are clipped.
  */
-void ulka_pump_pwr_percent(ulka_pump p, uint8_t percent_power);
+void ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent);
 
 /**
  * \brief Turns the pump off.

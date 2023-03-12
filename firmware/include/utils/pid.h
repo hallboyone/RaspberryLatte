@@ -48,10 +48,10 @@
 #define PID_NO_WINDUP_LB INT32_MIN  /**< Small value used to indicate no windup lower bound */
 #define PID_NO_WINDUP_UB INT32_MAX  /**< Large value used to indicate no windup upper bound */
 
-/** \brief Integer type of sensor measurements in PID library */
-typedef int32_t pid_data_t;
+/** \brief Sensor measurements in PID library */
+typedef float pid_data;
 /** \brief Integer type of timestamps in PID library */
-typedef int64_t pid_time_t;
+typedef uint32_t pid_time;
 /** \brief Opaque type defining a discrete derivative with configurable time-window and update frequency */
 typedef struct discrete_derivative_s* discrete_derivative;
 /** \brief Opaque type defining a discrete integral with configurable windup bounds */
@@ -71,7 +71,7 @@ typedef struct {
  * \brief Typedef of pointer to function taking no parameters but returning float. Used to gather
  * sensor data.
  */
-typedef pid_data_t (*sensor_getter)();
+typedef pid_data (*sensor_getter)();
 
 /**
  * \brief Typedef of pointer to function that takes a float and applies it to some plant. Used to
@@ -83,12 +83,12 @@ typedef void (*input_setter)(float);
  * \brief Struct containing a data value and the time (in milliseconds since boot) the value was read
  */
 typedef struct {
-    pid_time_t t; /**< Time associated with datapoint */
-    pid_data_t v; /**< Value associated with datapoint */
+    pid_time t; /**< Time associated with datapoint */
+    pid_data v; /**< Value associated with datapoint */
 } datapoint;
 
 /** \brief Helper function returning the milliseconds since booting */
-pid_time_t ms_since_boot();
+pid_time ms_since_boot();
 
 /**
  * \brief Allocate memory for discrete_derivative and initialize.
@@ -146,8 +146,9 @@ void discrete_derivative_add_datapoint(discrete_derivative d, const datapoint p)
  * \param d The discrete_derivative object that the point will be added to
  * \param v Value of a new reading.
  */
-void discrete_derivative_add_value(discrete_derivative d, const pid_data_t v);
+void discrete_derivative_add_value(discrete_derivative d, const pid_data v);
 
+void discrete_derivative_print(discrete_derivative d);
 /**
  * \brief  Allocate memory for discrete_integral and initialize.
  *
@@ -156,7 +157,7 @@ void discrete_derivative_add_value(discrete_derivative d, const pid_data_t v);
  * 
  * \returns Newly created discrete_integral object.
  */
-discrete_integral discrete_integral_setup(const pid_data_t lower_bound, const pid_data_t upper_bound);
+discrete_integral discrete_integral_setup(const pid_data lower_bound, const pid_data upper_bound);
 
 /**
  * \brief Helper function that returns the value of the integral's sum field.
@@ -165,7 +166,7 @@ discrete_integral discrete_integral_setup(const pid_data_t lower_bound, const pi
  *
  * \returns Value of integral: i->sum. 0 if only 0 or 1 point so far.
  */
-pid_data_t discrete_integral_read(const discrete_integral i);
+pid_data discrete_integral_read(const discrete_integral i);
 
 /**
  * \brief Compute the area under the curve since the last time this function was called and add to
@@ -206,8 +207,8 @@ void discrete_integral_deinit(discrete_integral i);
  * \param derivative_filter_span_ms The length of time in ms over which to compute the average slope.
  */
 pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter feedforward_sensor, 
-              input_setter plant, const uint16_t time_between_ticks_ms, const pid_data_t windup_lb, 
-              const pid_data_t windup_ub, const uint derivative_filter_span_ms);
+              input_setter plant, const uint16_t time_between_ticks_ms, const pid_data windup_lb, 
+              const pid_data windup_ub, const uint derivative_filter_span_ms);
 
 /**
  * \brief Update the PID controller's setpoint.
@@ -215,7 +216,7 @@ pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter fe
  * \param controller The pid object whose setpoint will be updated.
  * \param setpoint The new setpoint of the pid object
  */
-void pid_update_setpoint(pid controller, const pid_data_t setpoint);
+void pid_update_setpoint(pid controller, const pid_data setpoint);
 
 /**
  * \brief If the minimum time between ticks has elapsed, run one loop of the controller. This requires reading the sensor,
@@ -233,7 +234,7 @@ float pid_tick(pid controller);
  * 
  * \return True if at setpoint. False otherwise.
  */
-bool pid_at_setpoint(const pid controller, const pid_data_t tol);
+bool pid_at_setpoint(const pid controller, const pid_data tol);
 
 /**
  * \brief Reset the internal fields of the PID controller
