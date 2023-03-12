@@ -1,18 +1,11 @@
 #include <stdio.h>
 
 #include "machine_logic/espresso_machine.h"
-#include "utils/pid.h"
 #include "machine_logic/machine_settings.h"
 #include "pinout.h"
 
 #define S_TO_US 1000000
 #define MS_TO_US 1000
-
-const float data [] = {
-    0.00,0.96,1.90,2.76,3.64,4.44,5.15,5.89,6.59,7.09,
-    7.58,7.98,8.42,8.74,9.06,9.28,9.41,9.64,9.82,9.78,
-    9.80,9.80,9.77,9.57,9.45,9.11,8.76,8.47,8.07,7.67,
-    7.24,6.69,6.06,5.40,4.73,3.99,3.28,2.36,1.44,0.39};
 
 int main(){
     // Setup UART
