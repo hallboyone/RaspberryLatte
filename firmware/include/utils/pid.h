@@ -148,7 +148,16 @@ void discrete_derivative_add_datapoint(discrete_derivative d, const datapoint p)
  */
 void discrete_derivative_add_value(discrete_derivative d, const pid_data v);
 
-void discrete_derivative_print(discrete_derivative d);
+/**
+ * \brief Print the current internal state of the discrete_derivative.
+ * 
+ * Internal state of the derivative remains unchanged, unlike when the value
+ * is read which removes old points.
+ * 
+ * \param d The discrete_derivative object to print.
+*/
+void discrete_derivative_print(const discrete_derivative d);
+
 /**
  * \brief  Allocate memory for discrete_integral and initialize.
  *
@@ -192,6 +201,13 @@ void discrete_integral_reset(discrete_integral i);
  * \param i The discrete_integral object that will be deleted.
  */
 void discrete_integral_deinit(discrete_integral i);
+
+/**
+ * \brief Print the current internal state of the discrete_integral.
+ * 
+ * \param i The discrete_integral object to print.
+*/
+void discrete_integral_print(const discrete_integral i);
 
 /**
  * \brief Configure a PID controller. Sets the appropriate parameters in internal sum and slope objects.

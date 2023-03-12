@@ -23,7 +23,8 @@
 #define DISCRETE_DERIVATIVE_SHIFT_AT_VAL (0x1<<24)-1
 
 typedef int32_t pid_data_fxpt_t;
-typedef int64_t data_sum_t;
+typedef int64_t pid_data_sum_fxpt_t;
+
 typedef struct {
     pid_time t;    /**< Time associated with datapoint */
     pid_data_fxpt_t v; /**< Integer value associated with datapoint */
@@ -37,17 +38,17 @@ typedef struct {
  * fit.
  */
 typedef struct discrete_derivative_s{
-    uint16_t filter_span_ms; /**< The amount of the data series in ms that the slope will be fitted to. */
-    uint16_t sample_rate_ms; /**< The minimal length of time between datapoints. */
-    datapoint_fxpt * data;     /**< Circular buffer representing the recent datapoints. */
-    datapoint_fxpt origin;     /**< The current origin of the data. As data/time grows, the origin will be shifted. */
-    uint16_t buf_len;        /**< The max number of datapoints the data can hold. */
-    uint16_t num_el;         /**< Number of datapoints in buffer. */
-    uint16_t start_idx;      /**< The index of the first datapoint in array. */
-    data_sum_t sum_v;          /**< The sum of the values in the current datapoints */
-    data_sum_t sum_t;          /**< The sum of the times in the current datapoints */
-    data_sum_t sum_vt;         /**< The sum of the value/time product in the current datapoints */
-    data_sum_t sum_tt;         /**< The sum of the time squared in the current datapoints */
+    uint16_t filter_span_ms;     /**< The amount of the data series in ms that the slope will be fitted to. */
+    uint16_t sample_rate_ms;     /**< The minimal length of time between datapoints. */
+    datapoint_fxpt * data;       /**< Circular buffer representing the recent datapoints. */
+    datapoint_fxpt origin;       /**< The current origin of the data. As data/time grows, the origin will be shifted. */
+    uint16_t buf_len;            /**< The max number of datapoints the data can hold. */
+    uint16_t num_el;             /**< Number of datapoints in buffer. */
+    uint16_t start_idx;          /**< The index of the first datapoint in array. */
+    pid_data_sum_fxpt_t sum_v;   /**< The sum of the values in the current datapoints */
+    pid_data_sum_fxpt_t sum_t;   /**< The sum of the times in the current datapoints */
+    pid_data_sum_fxpt_t sum_vt;  /**< The sum of the value/time product in the current datapoints */
+    pid_data_sum_fxpt_t sum_tt;  /**< The sum of the time squared in the current datapoints */
 } discrete_derivative_;
 
 /**
@@ -59,17 +60,18 @@ typedef struct discrete_derivative_s{
  * points have been passed to it.
  */
 typedef struct discrete_integral_s{
-    pid_data sum;         /**< The current area under the curve. */
-    pid_data lower_bound; /**< The lower bound on the area under the curve. Useful for anti-windup. */
-    pid_data upper_bound; /**< The upper bound on the area under the curve. Useful for anti-windup. */
-    datapoint prev_p;       /**< The previous datapoint. Updated each time the integral is ticked. */
+    pid_data_sum_fxpt_t sum;         /**< The current area under the curve. */
+    pid_data_sum_fxpt_t lower_bound; /**< The lower bound on the area under the curve. Useful for anti-windup. */
+    pid_data_sum_fxpt_t upper_bound; /**< The upper bound on the area under the curve. Useful for anti-windup. */
+    datapoint_fxpt prev_p;           /**< The previous datapoint. Updated each time the integral is ticked. */
+    bool init_point_added;
 } discrete_integral_;
 
 /**
  * \brief Struct representing a PID object.
  */
 typedef struct pid_s{
-    pid_data setpoint;                /**< The current setpoint the PID is regulating to. */
+    pid_data setpoint;                  /**< The current setpoint the PID is regulating to. */
     pid_gains K;                        /**< The gains of the PID controller. */
     sensor_getter read_fb;              /**< The sensor function. */
     sensor_getter read_ff;              /**< The sensor providing feedforward values. */
@@ -92,7 +94,7 @@ inline pid_time ms_since_boot(){
  * \param offset The number of datapoints after the starting index to return.
  * \return A pointer to the datapoint in the circular array.
  */
-static inline datapoint_fxpt * _discrete_derivative_dp(const discrete_derivative d, const uint16_t offset){
+static inline datapoint_fxpt * _discrete_derivative_get_dp(const discrete_derivative d, const uint16_t offset){
     return &d->data[(d->start_idx + offset) % d->buf_len];
 }
 
@@ -103,7 +105,7 @@ static inline datapoint_fxpt * _discrete_derivative_dp(const discrete_derivative
  * \return A pointer to the next open space in the circular array.
  */
 static inline datapoint_fxpt * _discrete_derivative_next_dp(const discrete_derivative d){
-    return _discrete_derivative_dp(d, d->num_el);
+    return _discrete_derivative_get_dp(d, d->num_el);
 }
 
 /**
@@ -113,16 +115,28 @@ static inline datapoint_fxpt * _discrete_derivative_next_dp(const discrete_deriv
  * \return A pointer to the datapoint in the circular array. NULL if no datapoints.
  */
 static inline datapoint_fxpt * _discrete_derivative_latest_dp(const discrete_derivative d){
-    return (d->num_el>0) ? _discrete_derivative_dp(d, d->num_el - 1) : NULL;
+    return (d->num_el>0) ? _discrete_derivative_get_dp(d, d->num_el - 1) : NULL;
 }
 
-/** \brief Remove the point in the buffer indicated by the starting index. */
+/** \brief Run the math to convert value and time sums to slope of best fit. 
+ * \param d The discrete_derivative to read.
+*/
+static inline float _discrete_derivative_compute_slope(const discrete_derivative d){
+    return (float)(d->sum_vt*d->num_el - (d->sum_t)*(d->sum_v))/(1000.0*(float)(d->sum_tt*d->num_el - (d->sum_t)*(d->sum_t)));
+}
+
+/** \brief Remove the point in the buffer indicated by the starting index. 
+ * 
+ * Updates the internal summations, starting index, and number of elements.
+ * 
+ * \param d The discrete_derivative to remove the starting point from.
+*/
 static inline void _discrete_derivative_remove_start_point(discrete_derivative d){
     if(d->num_el > 0){
         d->sum_v -= d->data[d->start_idx].v;
         d->sum_t -= d->data[d->start_idx].t;
-        d->sum_vt -= (data_sum_t)d->data[d->start_idx].t*(data_sum_t)d->data[d->start_idx].v;
-        d->sum_tt -= (data_sum_t)d->data[d->start_idx].t*(data_sum_t)d->data[d->start_idx].t;
+        d->sum_vt -= (pid_data_sum_fxpt_t)d->data[d->start_idx].t*(pid_data_sum_fxpt_t)d->data[d->start_idx].v;
+        d->sum_tt -= (pid_data_sum_fxpt_t)d->data[d->start_idx].t*(pid_data_sum_fxpt_t)d->data[d->start_idx].t;
 
         d->start_idx = (d->start_idx+1) % d->buf_len;
         d->num_el -= 1;
@@ -184,14 +198,14 @@ static inline void _discrete_derivative_add_point(discrete_derivative d, const d
     // Add new values to summations
     d->sum_v += p.v;
     d->sum_t += p.t;
-    d->sum_vt += (data_sum_t)(p.t)*(data_sum_t)(p.v);
-    d->sum_tt += (data_sum_t)(p.t)*(data_sum_t)(p.t);
+    d->sum_vt += (pid_data_sum_fxpt_t)(p.t)*(pid_data_sum_fxpt_t)(p.v);
+    d->sum_tt += (pid_data_sum_fxpt_t)(p.t)*(pid_data_sum_fxpt_t)(p.t);
 
     d->num_el += 1;
 }
 
 /**
- * \brief Shift the time and value data to the origin to avoid overflow.
+ * \brief Shift the time and value data to the origin to avoid overflow (if needed).
  * 
  * \param d Discrete Derivative tht will be shifted.
  */
@@ -206,8 +220,8 @@ static void _discrete_derivative_shift_data(discrete_derivative d){
         // Shift linear summations and re-init quadratic terms
         d->origin.t += shift_amount.t;
         d->origin.v += shift_amount.v;
-        d->sum_t -= (data_sum_t)shift_amount.t*(d->num_el);
-        d->sum_v -= (data_sum_t)shift_amount.v*(d->num_el);
+        d->sum_t -= (pid_data_sum_fxpt_t)shift_amount.t*(d->num_el);
+        d->sum_v -= (pid_data_sum_fxpt_t)shift_amount.v*(d->num_el);
         d->sum_vt = 0;
         d->sum_tt = 0;
 
@@ -216,8 +230,8 @@ static void _discrete_derivative_shift_data(discrete_derivative d){
             const uint idx = (d->start_idx + i) % d->buf_len;
             d->data[idx].t -= shift_amount.t;
             d->data[idx].v -= shift_amount.v;
-            d->sum_vt += (data_sum_t)(d->data[idx].t)*(data_sum_t)(d->data[idx].v);
-            d->sum_tt += (data_sum_t)(d->data[idx].t)*(data_sum_t)(d->data[idx].t);
+            d->sum_vt += (pid_data_sum_fxpt_t)(d->data[idx].t)*(pid_data_sum_fxpt_t)(d->data[idx].v);
+            d->sum_tt += (pid_data_sum_fxpt_t)(d->data[idx].t)*(pid_data_sum_fxpt_t)(d->data[idx].t);
         }
     }
 }
@@ -253,7 +267,7 @@ void discrete_derivative_deinit(discrete_derivative d) {
 float discrete_derivative_read(discrete_derivative d) {
     _discrete_derivative_remove_old_points(d, ms_since_boot() - d->origin.t);
     if (d->num_el < 2) return 0;
-    return (float)(d->sum_vt*d->num_el - (d->sum_t)*(d->sum_v))/(1000.0*(float)(d->sum_tt*d->num_el - (d->sum_t)*(d->sum_t)));
+    return _discrete_derivative_compute_slope(d);
 }
 
 void discrete_derivative_add_datapoint(discrete_derivative d, const datapoint p) {
@@ -273,7 +287,7 @@ void discrete_derivative_add_value(discrete_derivative d, const pid_data v){
     discrete_derivative_add_datapoint(d, dp);
 }
 
-void discrete_derivative_print(discrete_derivative d){
+void discrete_derivative_print(const discrete_derivative d){
    printf("Discrete Derivative: %p\n"
           "    Slope: %0.3f\n"
           "    Buffer: %d/%d from %d\n"
@@ -283,7 +297,7 @@ void discrete_derivative_print(discrete_derivative d){
           "        T : %lld\n"
           "        VT: %lld\n"
           "        TT: %lld\n\n", 
-          d, discrete_derivative_read(d), d->num_el, d->buf_len, d->start_idx, 
+          d, _discrete_derivative_compute_slope(d), d->num_el, d->buf_len, d->start_idx, 
           d->origin.v, d->origin.t, d->sum_v, d->sum_t, d->sum_vt, d->sum_tt);
 }
 
@@ -291,32 +305,43 @@ discrete_integral discrete_integral_setup(const pid_data lower_bound, const pid_
     discrete_integral i = malloc(sizeof(discrete_integral_));
     discrete_integral_reset(i);
     // scale by 2 since the average values are summed, to be divided once when read.
-    i->lower_bound = 2*lower_bound;
-    i->upper_bound = 2*upper_bound;
+    i->lower_bound = 2000*lower_bound;
+    i->upper_bound = 2000*upper_bound;
     return i;
 }
 
 pid_data discrete_integral_read(const discrete_integral i) { 
-    return i->sum/2.0;
+    return i->sum/2000.0;
 }
 
 void discrete_integral_add_datapoint(discrete_integral i, datapoint p) {
-    if (i->prev_p.t != -1) {
-        i->sum += (p.v + i->prev_p.v) * (p.t - i->prev_p.t);
+    const datapoint_fxpt p_fxpt = {.v = 1000*p.v, .t = p.t};
+    if (i->init_point_added) {
+        i->sum += (p_fxpt.v + i->prev_p.v) * (p_fxpt.t - i->prev_p.t);
         i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
         i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
     }
-    i->prev_p = p;
+    i->init_point_added = true;
+    i->prev_p = p_fxpt;
 }
 
 void discrete_integral_reset(discrete_integral i) {
-    i->prev_p.t = -1;
+    i->init_point_added = false;
+    i->prev_p.t = 0;
     i->prev_p.v = 0;
     i->sum = 0;
 }
 
 void discrete_integral_deinit(discrete_integral i){
     free(i);
+}
+
+void discrete_integral_print(const discrete_integral i){
+    printf("Discrete Integral: %p\n"
+          "    Initalized: %d\n"
+          "    Bounds: (%0.3f,%0.3f)\n"
+          "    Area: %0.3f\n\n", 
+          i, i->init_point_added,  i->lower_bound/2000.0, i->upper_bound/2000.0, discrete_integral_read(i));
 }
 
 pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter feedforward_sensor, 
@@ -332,7 +357,7 @@ pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter fe
     controller->_next_tick_time = get_absolute_time();
 
     controller->err_sum = discrete_integral_setup(windup_lb, windup_ub);
-    controller->err_slope = discrete_derivative_setup(derivative_filter_span_ms, time_between_ticks_ms/2);
+    controller->err_slope = discrete_derivative_setup(derivative_filter_span_ms, time_between_ticks_ms);
 
     return controller;
 }
@@ -347,11 +372,18 @@ float pid_tick(pid controller){
         const datapoint new_reading = {.t = ms_since_boot(), .v = controller->read_fb()};
         const datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
-        discrete_integral_add_datapoint(controller->err_sum, new_err);
-        discrete_derivative_add_datapoint(controller->err_slope, new_reading);
-        
-        const pid_data e_sum   = (controller->K.i == 0 ? 0 : discrete_integral_read(controller->err_sum));
-        const pid_data e_slope = (controller->K.d == 0 ? 0 : discrete_derivative_read(controller->err_slope));
+        pid_data e_sum = 0;
+        if (controller->K.i != 0){
+            discrete_integral_add_datapoint(controller->err_sum, new_err);
+            e_sum = discrete_integral_read(controller->err_sum);
+        }
+
+        pid_data e_slope = 0;
+        if (controller->K.d != 0){
+            discrete_derivative_add_datapoint(controller->err_slope, new_reading);
+            e_slope = discrete_integral_read(controller->err_sum);
+        }
+
         const pid_data ff = (controller->read_ff != NULL ? controller->read_ff() : 0);
 
         float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
