@@ -40,7 +40,7 @@ typedef struct flow_meter_s* flow_meter;
  * \param sample_dwell_time_ms The minimum duration between samples.
  * \return A new flow_meter object on success. NULL on error.  
  */
-flow_meter flow_meter_setup(uint8_t pin_num, uint16_t conversion_factor, 
+flow_meter flow_meter_setup(uint8_t pin_num, float conversion_factor, 
                             uint16_t filter_span_ms, uint16_t sample_dwell_time_ms);
 
 /**

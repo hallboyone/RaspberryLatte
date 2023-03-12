@@ -17,7 +17,7 @@
 /** \brief Structure managing a single flowmeter. */
 typedef struct flow_meter_s {
     uint8_t pin;                   /**< \brief The GPIO attached to the flow meter's signal. */
-    uint conversion_factor;        /**< \brief Factor converting pulse counts to volume. */
+    float conversion_factor;        /**< \brief Factor converting pulse counts to volume. */
     uint pulse_count;              /**< \brief Number of pulses since last zero. */
     discrete_derivative flow_rate; /**< \brief Derivative structure for tracking the flow rate in pulse/ms. */
 } flow_meter_;
@@ -36,7 +36,7 @@ static void _flow_meter_callback(uint gpio, uint32_t event, void* data){
     discrete_derivative_add_value(fm->flow_rate, fm->pulse_count);
 }
 
-flow_meter flow_meter_setup(uint8_t pin_num, uint16_t conversion_factor, 
+flow_meter flow_meter_setup(uint8_t pin_num, float conversion_factor, 
                             uint16_t filter_span_ms, uint16_t sample_dwell_time_ms){
     flow_meter fm = malloc(sizeof(flow_meter_));
 

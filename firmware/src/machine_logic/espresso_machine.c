@@ -64,15 +64,15 @@ static autobrew_routine autobrew_plan;
 /**
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
  */
-static pid_data read_boiler_thermo_mC(){
-    return 1000*lmt01_read_float(&thermo);
+static pid_data read_boiler_thermo_C(){
+    return lmt01_read_float(&thermo);
 }
 
 /**
  * \brief Helper function that tracks and returns the scale's flowrate
 */
 static pid_data read_pump_flowrate_ml_ms(){
-    return ulka_pump_get_flow_ul_s(pump);
+    return ulka_pump_get_pressure_bar(pump);
 }
 
 /**
@@ -247,8 +247,8 @@ static void espresso_machine_update_pump(){
     // Update Pump States
     _state.pump.pump_lock     = ulka_pump_is_locked(pump);
     _state.pump.power_level   = ulka_pump_get_pwr(pump);
-    _state.pump.flowrate_ml_s = ulka_pump_get_flow_ul_s(pump);
-    _state.pump.pressure_bar  = ulka_pump_get_pressure_mbar(pump);
+    _state.pump.flowrate_ml_s = ulka_pump_get_flow_ml_ms(pump);
+    _state.pump.pressure_bar  = ulka_pump_get_pressure_bar(pump);
 }
 
 /**
@@ -322,7 +322,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
-    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_mC, &read_pump_flowrate_ml_ms, 
+    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ml_ms, 
               &apply_boiler_input, 100, 0, 175, 1000);
 
     // Setup the LED binary output
