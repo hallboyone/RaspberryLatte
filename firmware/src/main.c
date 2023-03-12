@@ -18,28 +18,6 @@ int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
 
-    // int64_t time_sum_1 = 0;
-    // int64_t time_sum_2 = 0;
-
-    // discrete_derivative d_der = discrete_derivative_setup(4, 1);
-    // discrete_integral d_int = discrete_integral_setup(-50.0, 50.5);
-    // absolute_time_t next_loop_time;
-    // for(int i = 2020; i < 2060; i++){
-    //     const datapoint dp = {.v=data[i-2020], .t=i};
-    //     absolute_time_t t = get_absolute_time();
-    //     discrete_derivative_add_datapoint(d_der, dp);
-    //     time_sum_1 += absolute_time_diff_us(t, get_absolute_time());
-
-    //     t = get_absolute_time();
-    //     discrete_integral_add_datapoint(d_int, dp);
-    //     time_sum_2 += absolute_time_diff_us(t, get_absolute_time());
-
-    //     if ((i-2020)%5==4){
-    //         discrete_derivative_print(d_der);
-    //         discrete_integral_print(d_int);
-    //     } 
-    // }
-    // printf("%0.4f\n%0.4f\n", (float)time_sum_1/40.0, (float)time_sum_2/40.0);
     espresso_machine_viewer espresso_machine;
     if(espresso_machine_setup(&espresso_machine)){
         return 1;
