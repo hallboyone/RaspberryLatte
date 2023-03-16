@@ -28,7 +28,7 @@
 #include "utils/pid.h"
 
 /** \brief Function prototype that will be called during a function call leg. */
-typedef int (*autobrew_fun)();
+typedef void (*autobrew_fun)();
 
 /** \brief Function prototype for an ending trigger. Used to terminate a leg prior to the timeout. */
 typedef bool (*autobrew_trigger)();
