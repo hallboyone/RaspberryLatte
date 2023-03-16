@@ -80,7 +80,8 @@ typedef struct pid_s{
     discrete_integral err_sum;          /**< A discrete_integral tracking the sum of the error. */
     uint16_t min_time_between_ticks_ms; /**< The minimum time, in ms, between ticks. If time hasn't elapsed, the previous input is returned. */
     absolute_time_t _next_tick_time;    /**< Timestamp used to track the earliest time that the system can be ticked again. */
-    float last_input;                   /**< Saves the last computed input between while dwelling between ticks. */
+    float last_u;                       /**< Saves the last computed input between while dwelling between ticks. */
+    float bias;                         /**< A static bias term. */
 } pid_;
 
 inline pid_time ms_since_boot(){
@@ -317,7 +318,7 @@ pid_data discrete_integral_read(const discrete_integral i) {
 void discrete_integral_add_datapoint(discrete_integral i, datapoint p) {
     const datapoint_fxpt p_fxpt = {.v = 1000*p.v, .t = p.t};
     if (i->init_point_added) {
-        i->sum += (p_fxpt.v + i->prev_p.v) * (p_fxpt.t - i->prev_p.t);
+        i->sum += (pid_data_sum_fxpt_t)(p_fxpt.v + i->prev_p.v) * ((pid_data_sum_fxpt_t)p_fxpt.t - (pid_data_sum_fxpt_t)i->prev_p.t);
         i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
         i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
     }
@@ -354,6 +355,7 @@ pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter fe
     controller->apply_input = plant;
     controller->min_time_between_ticks_ms = time_between_ticks_ms;
     controller->setpoint = 0;
+    controller->bias = 0;
     controller->_next_tick_time = get_absolute_time();
 
     controller->err_sum = discrete_integral_setup(windup_lb, windup_ub);
@@ -381,22 +383,26 @@ float pid_tick(pid controller){
         pid_data e_slope = 0;
         if (controller->K.d != 0){
             discrete_derivative_add_datapoint(controller->err_slope, new_reading);
-            e_slope = discrete_integral_read(controller->err_sum);
+            e_slope = discrete_derivative_read(controller->err_slope);
         }
 
         const pid_data ff = (controller->read_ff != NULL ? controller->read_ff() : 0);
 
-        float input = (controller->K.p)*new_err.v + (controller->K.i)*e_sum + (controller->K.d)*e_slope + (controller->K.f)*ff;
+        const float u_p = (controller->K.p)*new_err.v;
+        const float u_i = (controller->K.i)*e_sum;
+        const float u_d = (controller->K.d)*e_slope;
+        const float u_ff = (controller->K.f)*ff;
+        float input = u_p + u_i + u_d + u_ff + controller->bias;
         
         #ifdef PID_PRINT_DEBUG_MESSAGES
-        printf("%07ld - %07ld - %07ld - %07ld - %07ld - %0.2f\n", new_reading.v, new_err.v, e_sum, e_slope, ff, input);
+        printf("%0.3f, %0.3f, %0.3f, %0.3f, %0.3f, %0.3f\n", new_reading.v, u_p, u_i, u_d, u_ff, input);
         #endif
 
         if(controller->apply_input != NULL) controller->apply_input(input);
-        controller->last_input = input;
+        controller->last_u = input;
         return input;
     }
-    return controller->last_input;
+    return controller->last_u;
 }
 
 bool pid_at_setpoint(const pid controller, const pid_data tol){
@@ -407,6 +413,12 @@ bool pid_at_setpoint(const pid controller, const pid_data tol){
 void pid_reset(pid controller){
     discrete_derivative_reset(controller->err_slope);
     discrete_integral_reset(controller->err_sum);
+}
+
+void pid_reset_to(pid controller, float bias){
+    discrete_derivative_reset(controller->err_slope);
+    discrete_integral_reset(controller->err_sum);
+    controller->bias = bias;
 }
 
 void pid_deinit(pid controller){

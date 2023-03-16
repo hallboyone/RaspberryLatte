@@ -260,6 +260,14 @@ bool pid_at_setpoint(const pid controller, const pid_data tol);
 void pid_reset(pid controller);
 
 /**
+ * \brief Reset the controller and add bias term.
+ * 
+ * \param controller The pid object to reset
+ * \param bias The bias applied to the controller after reset.
+ */
+void pid_reset_to(pid controller, float bias);
+
+/**
  * \brief Destroy the internal fields of the PID controller (frees memory)
  * 
  * \param controller The pid object to destroy
