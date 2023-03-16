@@ -368,6 +368,10 @@ void pid_update_setpoint(pid controller, const pid_data setpoint){
     controller->setpoint = setpoint;
 }
 
+void pid_update_bias(pid controller, float bias){
+    controller->bias = bias;
+}
+
 float pid_tick(pid controller){
     if(absolute_time_diff_us(get_absolute_time(), controller->_next_tick_time) < 0){
         controller->_next_tick_time = delayed_by_ms(get_absolute_time(), controller->min_time_between_ticks_ms);
@@ -413,12 +417,6 @@ bool pid_at_setpoint(const pid controller, const pid_data tol){
 void pid_reset(pid controller){
     discrete_derivative_reset(controller->err_slope);
     discrete_integral_reset(controller->err_sum);
-}
-
-void pid_reset_to(pid controller, float bias){
-    discrete_derivative_reset(controller->err_slope);
-    discrete_integral_reset(controller->err_sum);
-    controller->bias = bias;
 }
 
 void pid_deinit(pid controller){

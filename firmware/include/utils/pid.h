@@ -235,6 +235,14 @@ pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter fe
 void pid_update_setpoint(pid controller, const pid_data setpoint);
 
 /**
+ * \brief Set the controller's internal bias
+ * 
+ * \param controller The pid object to reset
+ * \param bias The bias applied to the controller after reset.
+ */
+void pid_update_bias(pid controller, float bias);
+
+/**
  * \brief If the minimum time between ticks has elapsed, run one loop of the controller. This requires reading the sensor,
  * updating the sum and slope terms, computing the input, and applying it to the plant (if not NULL). 
  * 
@@ -258,14 +266,6 @@ bool pid_at_setpoint(const pid controller, const pid_data tol);
  * \param controller The pid object to reset
  */
 void pid_reset(pid controller);
-
-/**
- * \brief Reset the controller and add bias term.
- * 
- * \param controller The pid object to reset
- * \param bias The bias applied to the controller after reset.
- */
-void pid_reset_to(pid controller, float bias);
 
 /**
  * \brief Destroy the internal fields of the PID controller (frees memory)
