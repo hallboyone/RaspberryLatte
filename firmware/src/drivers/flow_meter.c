@@ -64,6 +64,7 @@ float flow_meter_volume(flow_meter fm){
 }
 
 float flow_meter_rate(flow_meter fm){
+    // Values are only added when pulse is read. Add value here to go to zero when no pulses happen.
     discrete_derivative_add_value(fm->flow_rate, fm->pulse_count);
     // discrete_derivatives are in units/ms. Scale by 1000 to get units/s
     return 1000.0 * discrete_derivative_read(fm->flow_rate) * fm->conversion_factor;

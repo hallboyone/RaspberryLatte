@@ -101,9 +101,9 @@ uint8_t ulka_pump_get_pwr(ulka_pump p);
  * Requires configuring an internal flow sensor using \ref ulka_pump_setup_flow_meter.
  * 
  * \param p A previously setup pump struct with a configured flow meter.
- * \return the current flow rate in ul/s if the flow meter is configured. Else 0.
+ * \return the current flow rate in ml/s if the flow meter is configured. Else 0.
  */
-float ulka_pump_get_flow_ml_ms(ulka_pump p);
+float ulka_pump_get_flow_ml_s(ulka_pump p);
 
 /**
  * \brief Return the pressure of the pump.
