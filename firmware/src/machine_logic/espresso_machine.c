@@ -7,7 +7,7 @@
  * \date 2022-12-09
  */
 
-#define DISABLE_BOILER
+//#define DISABLE_BOILER
 
 #include "machine_logic/espresso_machine.h"
 
@@ -17,7 +17,6 @@
 
 #include "machine_logic/autobrew.h"
 #include "machine_logic/machine_settings.h"
-
 
 #include "drivers/nau7802.h"
 #include "drivers/lmt01.h"
@@ -34,10 +33,10 @@
 const float PID_GAIN_P = 0.05;
 const float PID_GAIN_I = 0.00175;
 const float PID_GAIN_D = 0.0005;
-const float PID_GAIN_F = 0.05;
+const float PID_GAIN_F = 0.00005;
 
 const float    SCALE_CONVERSION_MG = -0.152710615479;
-const uint16_t FLOW_CONVERSION_UL = 500; /**< Microliters per pulse of pump flow sensor. */
+const float FLOW_CONVERSION_UL = 0.5; /**< ml per pulse of pump flow sensor. */
 
 static espresso_machine_state _state = {.pump.pump_lock = true}; 
 
@@ -59,6 +58,13 @@ static const machine_settings*   settings;
 /** Autobrew and control objects */
 static pid         heater_pid;
 static pid         flow_pid;
+typedef enum {RESET_SCALE = 0,
+              PREINF_RAMP,
+              PREINF_ON,
+              PREPARE_FLOW,
+              FLOW_CTRL,
+              NUM_LEGS} AUTOBREW_LEGS;
+
 static autobrew_routine autobrew_plan;
 
 /**
@@ -71,8 +77,8 @@ static pid_data read_boiler_thermo_C(){
 /**
  * \brief Helper function that tracks and returns the scale's flowrate
 */
-static pid_data read_pump_flowrate_ml_ms(){
-    return ulka_pump_get_pressure_bar(pump);
+static pid_data read_pump_flowrate_ul_s(){
+    return 1000.0*ulka_pump_get_flow_ml_s(pump);
 }
 
 /**
@@ -94,8 +100,8 @@ static bool scale_at_output(){
 /**
  * \brief Helper function to zero the scale. Used by the autobrew routine. 
  */
-static int zero_scale(){
-    return nau7802_zero(&scale);
+static void zero_scale(){
+    nau7802_zero(&scale);
 }
 
 /**
@@ -110,6 +116,16 @@ static inline bool is_ac_on(){
     return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
 }
 
+/** \brief Resets the flow-control PID and sets its bias */
+static inline void flow_pid_reset(){
+    pid_reset(flow_pid);
+}
+
+/** \brief Returns true if system is under moderate (2.5 bars) pressure */
+static inline bool system_under_pressure(){
+    return ulka_pump_get_pressure_bar(pump) > 2.5;
+}
+
 /**
  * \brief Setup the autobrew routine using the latest machine settings.
  * 
@@ -119,39 +135,17 @@ static inline bool is_ac_on(){
  * on. 
  */
 static void espresso_machine_autobrew_setup(){
-    uint32_t preinf_ramp_dur;
-    uint32_t preinf_on_dur;
-    uint8_t preinf_pwr = *settings->autobrew.preinf_power;
-    if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.preinf_on_time){
-        // Ramp and then run for remaining time
-        preinf_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
-        preinf_on_dur = (*settings->autobrew.preinf_on_time-(*settings->autobrew.preinf_ramp_time))*100000UL;
-    } else {
-        // Ramp for the full time
-        preinf_ramp_dur = *settings->autobrew.preinf_on_time*100000UL;
-        preinf_on_dur = 0;
-    }
+    const uint32_t preinf_ramp_dur = *settings->autobrew.preinf_ramp_time * 100000UL;
+    const uint32_t preinf_on_dur   = *settings->autobrew.preinf_timeout * 1000000UL;
+    const uint8_t  preinf_pwr      = *settings->autobrew.preinf_power;
+    const uint32_t brew_on_dur     = *settings->autobrew.timeout * 1000000UL;
+    const uint32_t brew_flow       = *settings->autobrew.flow * 10UL;
 
-    uint32_t brew_ramp_dur;
-    uint32_t brew_on_dur;
-    uint8_t brew_pwr = *settings->brew.power;
-    if(*settings->autobrew.preinf_ramp_time <= *settings->autobrew.timeout){
-        // Ramp and then run for remaining time
-        brew_ramp_dur = *settings->autobrew.preinf_ramp_time*100000UL;
-        brew_on_dur = (*settings->autobrew.timeout*10-(*settings->autobrew.preinf_ramp_time))*100000UL;
-    } else {
-        // Ramp for the full time
-        brew_ramp_dur = *settings->autobrew.timeout*1000000UL;
-        brew_on_dur = 0;
-    }
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_RAMP, 0,          preinf_pwr, NULL,     preinf_ramp_dur, NULL);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_ON,   preinf_pwr, preinf_pwr, NULL,     preinf_on_dur,   &system_under_pressure);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, FLOW_CTRL,   brew_flow,  brew_flow,  flow_pid, brew_on_dur,     &scale_at_output);
 
-    uint32_t preinf_off_time = *settings->autobrew.preinf_off_time*100000UL;
-
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 1, 0,          preinf_pwr, NULL,    0*preinf_ramp_dur, NULL);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 2, preinf_pwr, preinf_pwr, NULL,    0*preinf_on_dur,   NULL);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 3, 0,          0,          NULL,    0*preinf_off_time, NULL);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 4, 0,          0,          NULL,    0*brew_ramp_dur,   &scale_at_output);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, 5, 1000,       1000,       flow_pid, brew_on_dur,     &scale_at_output);
+    pid_update_bias(flow_pid, preinf_pwr);
 }
 
 /**
@@ -247,7 +241,7 @@ static void espresso_machine_update_pump(){
     // Update Pump States
     _state.pump.pump_lock     = ulka_pump_is_locked(pump);
     _state.pump.power_level   = ulka_pump_get_pwr(pump);
-    _state.pump.flowrate_ml_s = ulka_pump_get_flow_ml_ms(pump);
+    _state.pump.flowrate_ml_s = read_pump_flowrate_ul_s();
     _state.pump.pressure_bar  = ulka_pump_get_pressure_bar(pump);
 }
 
@@ -274,7 +268,7 @@ static void espresso_machine_update_boiler(){
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
     #else
-    pid_tick(&heater_pid);
+    pid_tick(heater_pid);
     #endif
 
     _state.boiler.temperature = lmt01_read(&thermo);
@@ -314,15 +308,16 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     settings = machine_settings_setup(&mem);
 
     // Setup the autobrew first leg that does not depend on machine settings
-    autobrew_routine_setup(&autobrew_plan, 6);
-    autobrew_setup_function_call_leg(&autobrew_plan, 0, 0, &zero_scale);
-    const pid_gains flow_K = {.p = 0.001, .i = 0.00001, .d = 0, .f = 0};
-    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ml_ms, NULL, NULL, 50, 0, 100000000, 0);
+    autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
+    autobrew_setup_function_call_leg(&autobrew_plan, RESET_SCALE, 0, &zero_scale);
+    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 15, &flow_pid_reset);
+    const pid_gains flow_K = {.p = 0.0125, .i = 0.00002, .d = 0, .f = 0};
+    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 25, 0, 5000000, 100);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
-    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ml_ms, 
+    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
               &apply_boiler_input, 100, 0, 175, 1000);
 
     // Setup the LED binary output
