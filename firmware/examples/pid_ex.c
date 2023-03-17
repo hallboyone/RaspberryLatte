@@ -1,14 +1,13 @@
 #include "pid.h"
 
-float sensor_read_float();
+pid_data_t sample_sensor();
 
-void plant_apply_float(float u);
+void sample_plant(float u);
 
 int main(){
-    pid_ctrl boiler_ctrl = {.setpoint = 95, .K = {.p = 0.05, .i = 0.0015, .d = 0.0005}, 
-                        .sensor = &sensor_read_float, .plant = &plant_apply_float,
-                        .min_time_between_ticks_ms = 100};
-    pid_init(&boiler_ctrl, 0, 100, 0);
+    pid_gains K = = {.p = 0.05, .i = 0.0015, .d = 0.0005};
+    pid_ctrl ctrl;
+    pid_setup(&ctrl, K, &sample_sensor, NULL, &sample_plant, 100, 0, 100, 500);
 
     while(true) pid_tick(&boiler_ctrl);
 }

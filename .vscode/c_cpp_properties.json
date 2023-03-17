@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${PICO_SDK_PATH}/**",
-                "${workspaceFolder}/firmware/include/**"
+                "${workspaceFolder}/firmware/include/**",
+                "${PICO_SDK_PATH}/src/common/pico_stdlib/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

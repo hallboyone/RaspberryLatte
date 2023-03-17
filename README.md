@@ -14,8 +14,15 @@ A full stack suite to add smarts to a single boiler espresso machine using a Ras
 - **Low Cost:** The cost should be minimized. The base hardware should be less than $100.
 - **Discreet Appearance:** External parts, which would typically be 3D printed, should be minimized. Furthermore, the design should not require any external displays. In other words, the finished product should be discreet and not *look* like a DIY IoT device. 
 
+## Features
+### Autobrew Routines with Flow Control
+Automatically run user configured brew routines. These will regulate the pump's power so that a desired flow rate is maintained over the course of the shot.
 
-## Description
+<p align="center">
+  <img src="docs/Assets/shot_profile.png" height="300">
+</p>
+
+## Project Architecture 
 
 This project can be thought of in several layers. 
 ### Hardware Level

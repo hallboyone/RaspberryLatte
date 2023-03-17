@@ -46,6 +46,7 @@ typedef machine_setting temp_dC;     /**< \brief Temperature value. Divide by 10
 typedef machine_setting duration_ds; /**< \brief Duration length. Divide by 10 to get seconds */
 typedef machine_setting duration_s;  /**< \brief Duration length in seconds */
 typedef machine_setting power_per;   /**< \brief Power level as percentage */
+typedef machine_setting flow_ul_ds;  /**< \brief Flow in microliters per second */
 typedef machine_setting weight_dg;   /**< \brief Weight value. Divide by 10 to get g */
 
 /** \brief The settings associated with the steam mode */
@@ -65,18 +66,18 @@ typedef struct {
  * */
 typedef struct {
     temp_dC *   temp;  /**< The target temperature when brewing */ 
-    power_per * power; /**< The pump power when brewing */
+    power_per * power; /**< The pump power when brewing */ 
     weight_dg * dose;  /**< Weight of grounds used when brewing */
     weight_dg * yield; /**< Weight of espresso to brew */
 } machine_settings_brew;
 
 /** \brief The settings associated with the auto mode */
 typedef struct {
-    duration_ds * preinf_on_time;   /**< Length of time to soak puck during pre-infuse */
-    duration_ds * preinf_off_time;  /**< Length of time to let puck soak during pre-infuse */
+    duration_s *  preinf_timeout;   /**< Length of time to soak puck during pre-infuse */
     power_per *   preinf_power;     /**< The power of the pre-infuse routine */
-    duration_ds * preinf_ramp_time; /**< The time, in ds of the linear ramp to target power*/
-    duration_s *  timeout;          /**< The length of time to attempt to reach yield*/
+    duration_ds * preinf_ramp_time; /**< The time, in ds of the linear ramp to target power */
+    flow_ul_ds *  flow;             /**< The target flow rate during the main brew leg */
+    duration_s *  timeout;          /**< The length of time to attempt to reach yield */
 } machine_settings_auto;
 
 /** \brief Full espresso machine settings. 
@@ -101,7 +102,7 @@ const machine_settings * machine_settings_setup(mb85_fram * mem);
 /** \brief Get a const pointer to internal settings structure
  * \returns A const pointer to the global settings structure or NULL if not setup. 
 */
-const machine_settings * machine_settings_acquire();
+machine_settings * machine_settings_acquire();
 
 /**
  * \brief Navigates the internal setting's tree and updates values accordingly

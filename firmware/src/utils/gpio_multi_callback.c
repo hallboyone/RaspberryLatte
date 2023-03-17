@@ -104,4 +104,5 @@ int gpio_multi_callback_clear(uint8_t gpio){
     free(_callbacks[gpio].callbacks);
     _callbacks[gpio].callbacks = NULL;
     _callbacks[gpio].num_cb = 0;
+    return PICO_ERROR_NONE;
 }
