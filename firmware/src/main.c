@@ -1,4 +1,4 @@
-//#define PRINT_MACHINE_STATUS_OVER_UART
+#define PRINT_MACHINE_STATUS_OVER_UART
 
 #ifdef PRINT_MACHINE_STATUS_OVER_UART
 #include <stdio.h>
@@ -21,21 +21,17 @@ int main(){
     const uint64_t loop_period_us = 10 * MS_TO_US;
 
     #ifdef PRINT_MACHINE_STATUS_OVER_UART
-    // Message rate limiter
-    absolute_time_t next_msg_time = get_absolute_time();
-    const uint64_t msg_period_us = 200 * MS_TO_US;
+    const uint16_t ticks_per_message = 20;
+    uint32_t num_ticks = 0;
     #endif
-    
+
     while(true){
         next_loop_time = make_timeout_time_us(loop_period_us);
 
-        // Update the machine
-        espresso_machine_tick();
-
         #ifdef PRINT_MACHINE_STATUS_OVER_UART
+        num_ticks += 1;
         // Print status periodically 
-        if(absolute_time_diff_us(get_absolute_time(), next_msg_time) < 0){
-            next_msg_time = make_timeout_time_us(msg_period_us);
+        if(num_ticks%ticks_per_message == 0){
             if(espresso_machine->switches.ac_switch){
                 const uint32_t timestamp_ms = to_ms_since_boot(get_absolute_time());
                 printf("%07d,%0.2f,%0.2f,%03d,%0.3f,%0.3f\n",
@@ -48,6 +44,9 @@ int main(){
             }
         }
         #endif
+
+        // Update the machine
+        espresso_machine_tick();
 
         sleep_until(next_loop_time);
     }
