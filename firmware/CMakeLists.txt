@@ -22,8 +22,7 @@ target_sources(RaspberryLattePico
                PRIVATE src/utils/binary_output.c
                PRIVATE src/utils/binary_input.c
                PRIVATE src/utils/phasecontrol.c
-               PRIVATE src/utils/gpio_irq_timestamp.c
-               PRIVATE src/utils/fixed_point.c)
+               PRIVATE src/utils/gpio_irq_timestamp.c)
 
 set_source_files_properties(
   src/machine_logic/espresso_machine.c
@@ -32,7 +31,6 @@ set_source_files_properties(
   src/drivers/flow_meter.c
   src/utils/pid.c
   src/utils/gpio_multi_callback.c
-  src/utils/fixed_point.c
   PROPERTIES
   COMPILE_FLAGS "-Wall -Wextra"
 )
