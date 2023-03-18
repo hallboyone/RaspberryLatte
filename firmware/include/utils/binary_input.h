@@ -11,8 +11,6 @@
  * this complexity into \ref binary_input objects. These structures are setup and then
  * read as needed. The debouncing and muxing is handled automatically.
  * 
- * \todo Replace with multi-gpio interrupts when implemented. 
- * 
  * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)

@@ -24,7 +24,7 @@ typedef struct binary_input_s {
     bool * pin_states; /**< \brief Pin state after adjusting for inversion and any debouncing */
     bool muxed;        /**< \brief Flag indicating if the input is muxed (pins read as binary numer). */
     bool inverted;     /**< \brief Flag indicating if the wiring requires the pins to be inverted. */
-    uint64_t debounce_us;  /**< \brief Length of time a binary input must remain constant before switching */
+    int64_t debounce_us;  /**< \brief Length of time a binary input must remain constant before switching */
 } binary_input_;
 
 /**
@@ -112,5 +112,7 @@ int binary_input_read(binary_input b) {
 }
 
 void binary_input_deinit(binary_input b){
+    free(b->pins);
+    free(b->pin_states);
     free(b);
 }

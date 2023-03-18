@@ -31,6 +31,7 @@ set_source_files_properties(
   src/drivers/flow_meter.c
   src/utils/pid.c
   src/utils/gpio_multi_callback.c
+  src/utils/binary_input.c
   PROPERTIES
   COMPILE_FLAGS "-Wall -Wextra"
 )
