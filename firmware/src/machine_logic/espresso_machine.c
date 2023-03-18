@@ -165,7 +165,7 @@ static void espresso_machine_update_switches(){
         _state.switches.ac_switch_changed = 0;
     }
 
-    const bool new_pump_switch = binary_input_read(&pump_switch);
+    const bool new_pump_switch = binary_input_read(pump_switch);
     if(_state.switches.pump_switch != new_pump_switch){
         _state.switches.pump_switch_changed = (_state.switches.pump_switch ? -1 : 1);
         _state.switches.pump_switch = new_pump_switch;
@@ -173,7 +173,7 @@ static void espresso_machine_update_switches(){
         _state.switches.pump_switch_changed = 0;
     }
 
-    const int new_mode_switch = binary_input_read(&mode_dial);
+    const int new_mode_switch = binary_input_read(mode_dial);
     if(_state.switches.mode_dial != new_mode_switch){
         _state.switches.mode_dial_changed = (_state.switches.mode_dial > new_mode_switch ? -1 : 1);
         _state.switches.mode_dial = new_mode_switch;
@@ -328,8 +328,8 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
 
-    binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, false, false);
-    binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, 75000, false, true);
+    pump_switch = binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, false, false);
+    mode_dial = binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, 75000, false, true);
 
     // Setup the pump
     pump = ulka_pump_setup(AC_0CROSS_PIN, PUMP_OUT_PIN, AC_0CROSS_SHIFT, ZEROCROSS_EVENT_RISING);

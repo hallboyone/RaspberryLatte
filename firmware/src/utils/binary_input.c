@@ -16,6 +16,18 @@
 #include "utils/gpio_irq_timestamp.h"
 
 /**
+ * \brief Data related to a binary input. Handles multithrow switches and allows for muxed hardware.
+ */
+typedef struct binary_input_s {
+    uint8_t num_pins;  /**< \brief How many GPIO pins are used in binary input. */
+    uint8_t* pins;     /**< \brief Array of pin numbers used in binary input. */
+    bool * pin_states; /**< \brief Pin state after adjusting for inversion and any debouncing */
+    bool muxed;        /**< \brief Flag indicating if the input is muxed (pins read as binary numer). */
+    bool inverted;     /**< \brief Flag indicating if the wiring requires the pins to be inverted. */
+    uint64_t debounce_us;  /**< \brief Length of time a binary input must remain constant before switching */
+} binary_input_;
+
+/**
  * \brief Check if binary input is bouncing.
  * 
  * The input is bouncing if any of its pins have changed within the last debounce_us
@@ -26,7 +38,7 @@
  * \param b Configured binary input
  * \return True if input is bouncing. False if it is not.
  */
-static bool _binary_input_bouncing(binary_input * b){
+static bool _binary_input_bouncing(binary_input b){
     if(b->debounce_us == 0) return false;
     for(uint8_t p_idx = 0; p_idx < b->num_pins; p_idx++){
         const uint8_t p = b->pins[p_idx];
@@ -41,7 +53,7 @@ static bool _binary_input_bouncing(binary_input * b){
  * 
  * \param b Pointer to binary_input object that will be updated.
  */
-static inline void _binary_input_update_pin_states(binary_input * b){
+static inline void _binary_input_update_pin_states(binary_input b){
     if (!_binary_input_bouncing(b)){
         for(uint8_t p_idx = 0; p_idx < b->num_pins; p_idx++){
             uint8_t p = b->pins[p_idx];
@@ -51,7 +63,9 @@ static inline void _binary_input_update_pin_states(binary_input * b){
     }
 }
 
-void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, binary_input_pull_dir pull_dir, uint debounce_us, bool invert, bool muxed){
+binary_input binary_input_setup(uint8_t num_pins, const uint8_t * pins, binary_input_pull_dir pull_dir, uint debounce_us, bool invert, bool muxed){
+    binary_input b = malloc(sizeof(binary_input_));
+
     // Copy data into b.
     b->num_pins    = num_pins;
     b->pins        = (uint8_t*)malloc(sizeof(uint8_t) * num_pins);
@@ -75,9 +89,11 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
             gpio_irq_timestamp_setup(b->pins[p], GPIO_IRQ_EDGE_FALL | GPIO_IRQ_EDGE_RISE);
         }
     }
+
+    return b;
 }
 
-int binary_input_read(binary_input * b) {
+int binary_input_read(binary_input b) {
     _binary_input_update_pin_states(b);
     if (b->muxed) {
         uint8_t pin_mask = 0;
@@ -93,4 +109,8 @@ int binary_input_read(binary_input * b) {
         }
         return 0;
     }
+}
+
+void binary_input_deinit(binary_input b){
+    free(b);
 }
