@@ -31,7 +31,7 @@
 #include "utils/pid.h"
 
 const float PID_GAIN_P = 0.05;
-const float PID_GAIN_I = 0.00175;
+const float PID_GAIN_I = 0.00000175;
 const float PID_GAIN_D = 0.0005;
 const float PID_GAIN_F = 0.00005;
 
@@ -272,6 +272,7 @@ static void espresso_machine_update_boiler(){
     #endif
 
     _state.boiler.temperature = lmt01_read(&thermo);
+    _state.boiler.power_level = heater._duty_cycle;
 }
 
 /**
@@ -318,7 +319,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
-              &apply_boiler_input, 100, 0, 175, 1000);
+              &apply_boiler_input, 100, 0, 175000, 1000);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
