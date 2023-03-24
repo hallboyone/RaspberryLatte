@@ -58,5 +58,7 @@ uint8_t slow_pwm_set_duty(slow_pwm * s, uint8_t duty){
 }
 
 uint8_t slow_pwm_set_float_duty(slow_pwm * s, float u){
-    return slow_pwm_set_duty(s, (s->_num_increments-1)*u);
+    if(u < 0.0) u = 0.0;
+    else if (u > 1.0) u = 1.0;
+    return slow_pwm_set_duty(s, (uint8_t)(u*(s->_num_increments-1)));
 }
