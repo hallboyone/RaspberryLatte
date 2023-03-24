@@ -34,10 +34,11 @@ int main(){
         if(num_ticks%ticks_per_message == 0){
             if(espresso_machine->switches.ac_switch){
                 const uint32_t timestamp_ms = to_ms_since_boot(get_absolute_time());
-                printf("%07d,%0.2f,%0.2f,%03d,%0.3f,%0.3f\n",
+                printf("%07d,%0.2f,%0.2f,%d,%03d,%0.3f,%0.3f\n",
                 timestamp_ms,
                 espresso_machine->boiler.setpoint/16.,
                 espresso_machine->boiler.temperature/16.,
+                espresso_machine->boiler.power_level,
                 espresso_machine->pump.power_level,
                 espresso_machine->pump.flowrate_ml_s,
                 espresso_machine->pump.pressure_bar);
