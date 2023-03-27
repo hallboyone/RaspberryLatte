@@ -69,6 +69,11 @@ binary_input binary_input_setup(uint8_t num_pins, const uint8_t * pins, binary_i
  */
 int binary_input_read(binary_input b);
 
+/**
+ * \brief Free memory storing passed in binary_input object
+ * 
+ * \param b Binary input object to deinit
+*/
 void binary_input_deinit(binary_input b);
 
 #endif

@@ -216,25 +216,25 @@ static void espresso_machine_update_pump(){
         // If the pump is locked, switched off, or in steam mode
         autobrew_routine_reset(&autobrew_plan);
         ulka_pump_off(pump);
-        binary_output_put(&solenoid, 0, 0);
+        binary_output_put(solenoid, 0, 0);
 
     } else if (MODE_HOT == _state.switches.mode_dial){
         ulka_pump_pwr_percent(pump, *settings->hot.power);
-        binary_output_put(&solenoid, 0, 0);
+        binary_output_put(solenoid, 0, 0);
 
     } else if (MODE_MANUAL == _state.switches.mode_dial){
         ulka_pump_pwr_percent(pump, *settings->brew.power);
-        binary_output_put(&solenoid, 0, 1);
+        binary_output_put(solenoid, 0, 1);
 
     } else if (MODE_AUTO ==_state.switches.mode_dial){
         if(!autobrew_routine_tick(&autobrew_plan)){
-            binary_output_put(&solenoid, 0, 1);
+            binary_output_put(solenoid, 0, 1);
             if(autobrew_plan.state.pump_setting_changed){
                 ulka_pump_pwr_percent(pump, autobrew_plan.state.pump_setting);
             }
         } else {
             ulka_pump_off(pump);
-            binary_output_put(&solenoid, 0, 0);
+            binary_output_put(solenoid, 0, 0);
         }
     }
 
@@ -289,11 +289,11 @@ static void espresso_machine_update_leds(){
         const bool led2 = _state.switches.ac_switch 
                           && !_state.switches.pump_switch 
                           && nau7802_at_val_mg(&scale, *settings->brew.dose *100);
-        binary_output_put(&leds, 0, led0);
-        binary_output_put(&leds, 1, led1);
-        binary_output_put(&leds, 2, led2);
+        binary_output_put(leds, 0, led0);
+        binary_output_put(leds, 1, led1);
+        binary_output_put(leds, 2, led2);
     } else {
-        binary_output_mask(&leds, settings->ui_mask);
+        binary_output_mask(leds, settings->ui_mask);
     }
 }
 
@@ -323,7 +323,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
-    binary_output_setup(&leds, led_pins, 3);
+    leds = binary_output_setup(led_pins, 3);
 
     // Setup the binary inputs for pump switch and mode dial.
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
@@ -338,7 +338,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup solenoid as a binary output
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
-    binary_output_setup(&solenoid, solenoid_pin, 1);
+    solenoid = binary_output_setup(solenoid_pin, 1);
 
     // Setup nau7802
     nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);

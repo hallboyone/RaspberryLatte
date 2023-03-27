@@ -21,13 +21,8 @@
 
 #include "pico/stdlib.h"
 
-/**
- * \brief Struct containing information for a single output block.
- */
-typedef struct {
-    uint8_t num_pins; /**< The number of pins in output block. */
-    uint8_t * pins;   /**< Pointer to array of pin numbers for output block. */
-} binary_output;
+/** \brief Opaque object defining a binary output. */
+typedef struct binary_output_s* binary_output;
 
 /**
  * \brief Setup a bank of binary outputs with 1 or more pins.
@@ -35,8 +30,10 @@ typedef struct {
  * \param b Pointer to binary_output object that will be setup.
  * \param pins Pointer to an array of GPIO pin numbers.
  * \param num_pins The number of pins for the binary output.
+ * 
+ * \returns New binary_output object.
  */
-void binary_output_setup(binary_output * b, const uint8_t * pins, const uint8_t num_pins);
+binary_output binary_output_setup(const uint8_t * pins, const uint8_t num_pins);
 
 /**
  * \brief Write val to the specified GPIO pin.
@@ -47,7 +44,7 @@ void binary_output_setup(binary_output * b, const uint8_t * pins, const uint8_t 
  * 
  * \returns True if operation was successful. False else.
  */
-int binary_output_put(binary_output * b, uint8_t idx, bool val);
+int binary_output_put(binary_output b, uint8_t idx, bool val);
 
 /**
  * \brief Write the bits of mask to the outputs in the binary_output block b.
@@ -57,6 +54,14 @@ int binary_output_put(binary_output * b, uint8_t idx, bool val);
  * 
  * \returns True if operation was successful. False else.
  */
-int binary_output_mask(binary_output * b, uint mask);
+int binary_output_mask(binary_output b, uint mask);
+
+/**
+ * \brief Free memory storing passed in binary_output object
+ * 
+ * \param b Binary output object to deinit
+*/
+void binary_output_deinit(binary_output b);
+
 #endif
 /** \} */
