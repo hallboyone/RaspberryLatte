@@ -32,6 +32,8 @@ set_source_files_properties(
   src/utils/pid.c
   src/utils/gpio_multi_callback.c
   src/utils/binary_input.c
+  src/utils/binary_output.c
+  src/utils/phasecontrol.c
   PROPERTIES
   COMPILE_FLAGS "-Wall -Wextra"
 )
