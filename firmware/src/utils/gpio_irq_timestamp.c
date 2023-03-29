@@ -10,12 +10,15 @@
 
 #include "utils/gpio_irq_timestamp.h"
 #include "utils/gpio_multi_callback.h"
+#include "utils/macros.h"
 
 static absolute_time_t _timestamps [32];
 static uint32_t _events [32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static void gpio_irq_timestamp_cb(uint gpio, uint32_t event, void* data){
+    UNUSED(event);
+    UNUSED(data);
     _timestamps[gpio] = get_absolute_time();
 }
 

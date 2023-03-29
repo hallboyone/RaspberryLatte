@@ -208,6 +208,9 @@ int nau7802_zero(nau7802 * scale){
     if(nau7802_read_raw(scale, &scale->origin)!= I2C_BUS_SUCCESS){
         return PICO_ERROR_GENERIC;
     }
+    else{
+        return PICO_ERROR_NONE;
+    }
 }
 
 bool nau7802_at_val_mg(nau7802 * scale, int val){
@@ -280,4 +283,5 @@ int nau7802_setup(nau7802 * scale, i2c_inst_t * nau7802_i2c, float conversion_fa
     while(scale->origin == 0){
         nau7802_zero(scale);
     }
+    return PICO_ERROR_NONE;
 }

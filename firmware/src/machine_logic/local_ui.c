@@ -138,6 +138,6 @@ bool local_ui_is_action_folder(local_ui_folder * folder){
 
 bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id){
     const uint8_t level = _local_ui_folder_level(f);
-    const folder_id id_mask = ~(~(0)<<(4*level));
+    const folder_id id_mask = ~(~((folder_id)0)<<(4*level));
     return f->id == (id & id_mask);
 }

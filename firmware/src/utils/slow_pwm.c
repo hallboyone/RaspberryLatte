@@ -8,6 +8,7 @@
  */
 
 #include "utils/slow_pwm.h"
+#include "utils/macros.h"
 
 /**
  * @brief Callback for alarm to turn off the heater pin
@@ -17,6 +18,7 @@
  * @return int64_t New alarm interval or 0 if no alarm desired (always 0)
  */
 int64_t _turn_off(alarm_id_t id, void *user_data) {
+    UNUSED(id);
     slow_pwm * s = (slow_pwm*)user_data;
     gpio_put(s->_pwm_pin, 0);
     return 0;
@@ -30,6 +32,7 @@ int64_t _turn_off(alarm_id_t id, void *user_data) {
  * @return int64_t New alarm after this many microseconds. Always PWM_PERIOD_MS*1000
  */
 int64_t _start_period(alarm_id_t id, void *user_data){
+    UNUSED(id);
     slow_pwm * s = (slow_pwm*)user_data;
     if(s->_duty_cycle < s->_num_increments-1){ // if _duty_cycle < number of increments, schedule off timer
         add_alarm_in_ms((s->_period_ms/s->_num_increments)*(s->_duty_cycle), _turn_off, s, true);

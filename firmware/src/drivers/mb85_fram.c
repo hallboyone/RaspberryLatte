@@ -64,7 +64,7 @@ static void mb85_fram_resize_buf(mb85_fram * dev){
     if(dev->var_buf_len == dev->num_vars){
         mb85_fram_remote_var * old_var_buf = dev->vars;
         dev->vars = (mb85_fram_remote_var*)malloc(2*dev->var_buf_len*sizeof(mb85_fram_remote_var));
-        memcmp(dev->vars, old_var_buf, dev->num_vars*sizeof(mb85_fram_remote_var));
+        memcpy(dev->vars, old_var_buf, dev->num_vars*sizeof(mb85_fram_remote_var));
         dev->var_buf_len *= 2;
     }
 }

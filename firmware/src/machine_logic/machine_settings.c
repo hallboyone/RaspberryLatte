@@ -205,7 +205,7 @@ static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
     if (local_ui_id_in_subtree(&folder_settings, id)){
         // Settings
         const int8_t deltas [] = {-10, 1, 10};
-        const setting_id ms_id = _machine_settings_folder_to_setting(id);
+        const int8_t ms_id = _machine_settings_folder_to_setting(id);
         if (ms_id == -1) return true;
 
         // Add delta and clip if needed
@@ -326,6 +326,7 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
             }
         }
     }
+    return PICO_ERROR_NONE;
 }
 
 
@@ -340,10 +341,10 @@ int machine_settings_print(){
         "Brew temp          : %0.2fC\n"
         "Hot temp           : %0.2fC\n"
         "Steam temp         : %0.2fC\n"
-        "Preinfuse power    : %d\%\n"
-        "Brew power         : %d\%\n"
-        "Hot power          : %d\%\n"
-        "Flow rate          : %d\%\n\n",
+        "Preinfuse power    : %d%%\n"
+        "Brew power         : %d%%\n"
+        "Hot power          : %d%%\n"
+        "Flow rate          : %d%%\n\n",
         *_ms_struct.autobrew.preinf_timeout,
         *_ms_struct.autobrew.timeout,
         *_ms_struct.autobrew.preinf_ramp_time/10.,

@@ -48,7 +48,8 @@
         "mb85_fram.h": "c",
         "gpio_irq_timestamp.h": "c",
         "flow_meter.h": "c",
-        "machine_settings.h": "c"
+        "machine_settings.h": "c",
+        "macros.h": "c"
     },
     "cSpell.words": [
         "ABSP",
