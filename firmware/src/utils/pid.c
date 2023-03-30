@@ -82,6 +82,8 @@ typedef struct pid_s{
     absolute_time_t _next_tick_time;    /**< Timestamp used to track the earliest time that the system can be ticked again. */
     float last_u;                       /**< Saves the last computed input between while dwelling between ticks. */
     float bias;                         /**< A static bias term. */
+    float u_lb;                         /**< The smallest allowed input. */  
+    float u_ub;                         /**< The largest allowed input. */
 } pid_;
 
 inline pid_time ms_since_boot(){
@@ -305,13 +307,13 @@ void discrete_derivative_print(const discrete_derivative d){
 discrete_integral discrete_integral_setup(const pid_data lower_bound, const pid_data upper_bound){
     discrete_integral i = malloc(sizeof(discrete_integral_));
     discrete_integral_reset(i);
-    // scale by 2 since the average values are summed, to be divided once when read.
-    i->lower_bound = 2000*lower_bound;
-    i->upper_bound = 2000*upper_bound;
+    discrete_integral_set_bounds(i, lower_bound, upper_bound);
     return i;
 }
 
 pid_data discrete_integral_read(const discrete_integral i) { 
+    i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
+    i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
     return i->sum/2000.0;
 }
 
@@ -319,11 +321,15 @@ void discrete_integral_add_datapoint(discrete_integral i, datapoint p) {
     const datapoint_fxpt p_fxpt = {.v = 1000*p.v, .t = p.t};
     if (i->init_point_added) {
         i->sum += (pid_data_sum_fxpt_t)(p_fxpt.v + i->prev_p.v) * ((pid_data_sum_fxpt_t)p_fxpt.t - (pid_data_sum_fxpt_t)i->prev_p.t);
-        i->sum = (i->sum < i->lower_bound ? i->lower_bound : i->sum);
-        i->sum = (i->sum > i->upper_bound ? i->upper_bound : i->sum);
     }
     i->init_point_added = true;
     i->prev_p = p_fxpt;
+}
+
+void discrete_integral_set_bounds(discrete_integral i, const pid_data lower_bound, const pid_data upper_bound){
+    // scale by 2 since the average values are summed, to be divided once when read.
+    i->lower_bound = 2000*lower_bound;
+    i->upper_bound = 2000*upper_bound;
 }
 
 void discrete_integral_reset(discrete_integral i) {
@@ -346,8 +352,8 @@ void discrete_integral_print(const discrete_integral i){
 }
 
 pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter feedforward_sensor, 
-              input_setter plant, const uint16_t time_between_ticks_ms, const pid_data windup_lb, 
-              const pid_data windup_ub, const uint derivative_filter_span_ms){
+              input_setter plant, float u_lb, float u_ub, const uint16_t time_between_ticks_ms, 
+              const uint derivative_filter_span_ms){
     pid controller = malloc(sizeof(pid_));
     controller->K = K;
     controller->read_fb = feedback_sensor;
@@ -356,9 +362,11 @@ pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter fe
     controller->min_time_between_ticks_ms = time_between_ticks_ms;
     controller->setpoint = 0;
     controller->bias = 0;
+    controller->u_lb = u_lb;
+    controller->u_ub = u_ub;
     controller->_next_tick_time = get_absolute_time();
 
-    controller->err_sum = discrete_integral_setup(windup_lb, windup_ub);
+    controller->err_sum = discrete_integral_setup(PID_NO_WINDUP_LB, PID_NO_WINDUP_UB);
     controller->err_slope = discrete_derivative_setup(derivative_filter_span_ms, time_between_ticks_ms);
 
     return controller;
@@ -378,26 +386,37 @@ float pid_tick(pid controller){
         const datapoint new_reading = {.t = ms_since_boot(), .v = controller->read_fb()};
         const datapoint new_err = {.t = new_reading.t, .v = controller->setpoint - new_reading.v};
 
+        // Compute proportional, bias, and ff terms
+        const pid_data ff = (controller->read_ff != NULL ? controller->read_ff() : 0);
+        const float u_p = (controller->K.p)*new_err.v;
+        const float u_b = controller->bias;
+        const float u_ff = (controller->K.f)*ff;
+
+        // Compute integral term
         pid_data e_sum = 0;
         if (controller->K.i != 0){
+            // Set integral bounds so they don't overshoot input limit
+            discrete_integral_set_bounds(controller->err_sum, 
+            (controller->u_lb - u_p - u_b - u_ff)/controller->K.i, 
+            (controller->u_ub - u_p - u_b - u_ff)/controller->K.i);
             discrete_integral_add_datapoint(controller->err_sum, new_err);
             e_sum = discrete_integral_read(controller->err_sum);
         }
+        const float u_i = (controller->K.i)*e_sum;
 
+        // Compute derivative term
         pid_data e_slope = 0;
         if (controller->K.d != 0){
             discrete_derivative_add_datapoint(controller->err_slope, new_reading);
             e_slope = discrete_derivative_read(controller->err_slope);
         }
-
-        const pid_data ff = (controller->read_ff != NULL ? controller->read_ff() : 0);
-
-        const float u_p = (controller->K.p)*new_err.v;
-        const float u_i = (controller->K.i)*e_sum;
         const float u_d = (controller->K.d)*e_slope;
-        const float u_ff = (controller->K.f)*ff;
-        float input = u_p + u_i + u_d + u_ff + controller->bias;
         
+        // Sum and clip input
+        float input = u_p + u_i + u_d + u_ff + u_b;
+        input = (input < controller->u_lb ? controller->u_lb : input);
+        input = (input > controller->u_ub ? controller->u_ub : input);
+
         #ifdef PID_PRINT_DEBUG_MESSAGES
         printf("%0.3f, %0.3f, %0.3f, %0.3f, %0.3f, %0.3f\n", new_reading.v, u_p, u_i, u_d, u_ff, input);
         #endif
