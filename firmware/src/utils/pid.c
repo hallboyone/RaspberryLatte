@@ -307,9 +307,7 @@ void discrete_derivative_print(const discrete_derivative d){
 discrete_integral discrete_integral_setup(const pid_data lower_bound, const pid_data upper_bound){
     discrete_integral i = malloc(sizeof(discrete_integral_));
     discrete_integral_reset(i);
-    // scale by 2 since the average values are summed, to be divided once when read.
-    i->lower_bound = 2000*lower_bound;
-    i->upper_bound = 2000*upper_bound;
+    discrete_integral_set_bounds(i, lower_bound, upper_bound);
     return i;
 }
 
@@ -329,6 +327,7 @@ void discrete_integral_add_datapoint(discrete_integral i, datapoint p) {
 }
 
 void discrete_integral_set_bounds(discrete_integral i, const pid_data lower_bound, const pid_data upper_bound){
+    // scale by 2 since the average values are summed, to be divided once when read.
     i->lower_bound = 2000*lower_bound;
     i->upper_bound = 2000*upper_bound;
 }

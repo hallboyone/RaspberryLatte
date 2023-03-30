@@ -191,7 +191,7 @@ void discrete_integral_add_datapoint(discrete_integral i, const datapoint p);
 /**
  * \brief Update the windup bounds on the integral.
  * 
- * \param i The discrete_integral object whose bounds will be updated.
+ * \param i The discrete_integral object that will be updated.
  * \param lower_bound The minimum value returned by discrete_integral_read.
  * \param upper_bound The maximum value returned by discrete_integral_read.
 */
