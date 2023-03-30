@@ -317,13 +317,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     autobrew_setup_function_call_leg(&autobrew_plan, RESET_SCALE, 0, &zero_scale);
     autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 15, &flow_pid_reset);
     const pid_gains flow_K = {.p = FLOW_PID_GAIN_P, .i = FLOW_PID_GAIN_I, .d = FLOW_PID_GAIN_D, .f = FLOW_PID_GAIN_F};
-    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 25, 0, 2500000, 100);
+    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 0, 100, 25, 100);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
-              &apply_boiler_input, 100, 0, 175000, 1000);
+              &apply_boiler_input, 0, 1, 100, 1000);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
