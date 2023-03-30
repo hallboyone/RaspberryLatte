@@ -30,10 +30,14 @@
 #include "utils/i2c_bus.h"
 #include "utils/pid.h"
 
-const float PID_GAIN_P = 0.05;
-const float PID_GAIN_I = 0.00000175;
-const float PID_GAIN_D = 0.0005;
-const float PID_GAIN_F = 0.00005;
+const float BOILER_PID_GAIN_P = 0.05;
+const float BOILER_PID_GAIN_I = 0.00000175;
+const float BOILER_PID_GAIN_D = 0.0005;
+const float BOILER_PID_GAIN_F = 0.00005;
+const float FLOW_PID_GAIN_P = 0.0125;
+const float FLOW_PID_GAIN_I = 0.00004;
+const float FLOW_PID_GAIN_D = 0.0;
+const float FLOW_PID_GAIN_F = 0.0;
 
 const float    SCALE_CONVERSION_MG = -0.152710615479;
 const float FLOW_CONVERSION_UL = 0.5; /**< ml per pulse of pump flow sensor. */
@@ -121,9 +125,9 @@ static inline void flow_pid_reset(){
     pid_reset(flow_pid);
 }
 
-/** \brief Returns true if system is under moderate (2.5 bars) pressure */
+/** \brief Returns true if system is under moderate (3 bars) pressure */
 static inline bool system_under_pressure(){
-    return ulka_pump_get_pressure_bar(pump) > 2.5;
+    return ulka_pump_get_pressure_bar(pump) > 3.0;
 }
 
 /**
@@ -312,12 +316,12 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
     autobrew_setup_function_call_leg(&autobrew_plan, RESET_SCALE, 0, &zero_scale);
     autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 15, &flow_pid_reset);
-    const pid_gains flow_K = {.p = 0.0125, .i = 0.00002, .d = 0, .f = 0};
-    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 25, 0, 5000000, 100);
+    const pid_gains flow_K = {.p = FLOW_PID_GAIN_P, .i = FLOW_PID_GAIN_I, .d = FLOW_PID_GAIN_D, .f = FLOW_PID_GAIN_F};
+    flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 25, 0, 2500000, 100);
 
     // Setup heater as a slow_pwm object
     slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
-    const pid_gains boiler_K = {.p = PID_GAIN_P, .i = PID_GAIN_I, .d = PID_GAIN_D, .f = PID_GAIN_F};
+    const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
               &apply_boiler_input, 100, 0, 175000, 1000);
 
