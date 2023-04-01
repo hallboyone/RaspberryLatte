@@ -59,7 +59,7 @@ static int64_t _start_period(alarm_id_t id, void *user_data){
 }
 
 slow_pwm slow_pwm_setup(uint8_t pwm_pin, uint period_ms, uint8_t num_increments){
-    slow_pwm s = malloc(sizeof(slow_pwm));
+    slow_pwm s = malloc(sizeof(slow_pwm_));
 
     s->pwm_pin = pwm_pin;
     gpio_init(s->pwm_pin);
