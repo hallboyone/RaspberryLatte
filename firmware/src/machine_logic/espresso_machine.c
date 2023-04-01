@@ -91,7 +91,7 @@ static pid_data read_pump_flowrate_ul_s(){
  * \param u Output for the boiler. 1 is full on, 0 is full off.
  */
 static void apply_boiler_input(float u){
-    slow_pwm_set_float_duty(&heater, u);
+    slow_pwm_set_float_duty(heater, u);
 }
 
 /** 
@@ -276,7 +276,7 @@ static void espresso_machine_update_boiler(){
     #endif
 
     _state.boiler.temperature = lmt01_read(&thermo);
-    _state.boiler.power_level = heater._duty_cycle;
+    _state.boiler.power_level = slow_pwm_get_duty(heater);
 }
 
 /**
@@ -320,7 +320,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 0, 100, 25, 100);
 
     // Setup heater as a slow_pwm object
-    slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
+    heater = slow_pwm_setup(HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
               &apply_boiler_input, 0, 1, 100, 1000);
