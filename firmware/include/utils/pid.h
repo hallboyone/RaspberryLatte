@@ -189,6 +189,15 @@ pid_data discrete_integral_read(const discrete_integral i);
 void discrete_integral_add_datapoint(discrete_integral i, const datapoint p);
 
 /**
+ * \brief Update the windup bounds on the integral.
+ * 
+ * \param i The discrete_integral object that will be updated.
+ * \param lower_bound The minimum value returned by discrete_integral_read.
+ * \param upper_bound The maximum value returned by discrete_integral_read.
+*/
+void discrete_integral_set_bounds(discrete_integral i, const pid_data lower_bound, const pid_data upper_bound);
+
+/**
  * \brief Reset integral object. Sum is set to 0 and clear previous datapoint.
  *
  * \param i The discrete_integral object that will be cleared.
@@ -217,14 +226,14 @@ void discrete_integral_print(const discrete_integral i);
  * \param feedback_sensor Sensor used for feedback control
  * \param feedforward_sensor Sensor used for feedforward control
  * \param plant Plant that the control input is applied to
+ * \param u_lb The minimum value the input can have.
+ * \param u_ub The maximum value the input can have.
  * \param time_between_ticks_ms Minimum length of time between ticks.
- * \param windup_lb The minimum value the error sum can have.
- * \param windup_ub The maximum value the error sum can have.
  * \param derivative_filter_span_ms The length of time in ms over which to compute the average slope.
  */
 pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter feedforward_sensor, 
-              input_setter plant, const uint16_t time_between_ticks_ms, const pid_data windup_lb, 
-              const pid_data windup_ub, const uint derivative_filter_span_ms);
+              input_setter plant, float u_lb, float u_ub, const uint16_t time_between_ticks_ms, 
+              const uint derivative_filter_span_ms);
 
 /**
  * \brief Update the PID controller's setpoint.
