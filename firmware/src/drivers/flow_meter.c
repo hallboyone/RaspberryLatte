@@ -32,8 +32,8 @@ typedef struct flow_meter_s {
  * \param data pointer to flow_meter associated with GPIO number
  */
 static void _flow_meter_callback(uint gpio, uint32_t event, void* data){
-    UNUSED(gpio);
-    UNUSED(event);
+    UNUSED_PARAMETER(gpio);
+    UNUSED_PARAMETER(event);
     flow_meter fm = (flow_meter)data;
     fm->pulse_count += 1;
     discrete_derivative_add_value(fm->flow_rate, fm->pulse_count);

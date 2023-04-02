@@ -32,7 +32,7 @@ typedef struct value_flasher_s {
  * \return int64_t microseconds to next callback or 0 if value_flasher has ended.
  */
 static int64_t _value_flasher_callback(alarm_id_t id, void *user_data){
-    UNUSED(id);
+    UNUSED_PARAMETER(id);
     
     value_flasher vf = (value_flasher)user_data;
     

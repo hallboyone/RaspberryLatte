@@ -17,8 +17,8 @@ static uint32_t _events [32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 static void gpio_irq_timestamp_cb(uint gpio, uint32_t event, void* data){
-    UNUSED(event);
-    UNUSED(data);
+    UNUSED_PARAMETER(event);
+    UNUSED_PARAMETER(data);
     _timestamps[gpio] = get_absolute_time();
 }
 

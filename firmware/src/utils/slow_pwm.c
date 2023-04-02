@@ -33,7 +33,7 @@ typedef struct slow_pwm_s{
  * @return int64_t New alarm interval or 0 if no alarm desired (always 0)
  */
 static int64_t _turn_off(alarm_id_t id, void *user_data) {
-    UNUSED(id);
+    UNUSED_PARAMETER(id);
     slow_pwm s = (slow_pwm)user_data;
     gpio_put(s->pwm_pin, 0);
     return 0;
@@ -47,7 +47,7 @@ static int64_t _turn_off(alarm_id_t id, void *user_data) {
  * @return int64_t New alarm after this many microseconds. Always PWM_PERIOD_MS*1000
  */
 static int64_t _start_period(alarm_id_t id, void *user_data){
-    UNUSED(id);
+    UNUSED_PARAMETER(id);
     slow_pwm s = (slow_pwm)user_data;
     if(s->duty_cycle < s->num_increments-1){ // if duty_cycle < number of increments, schedule off timer
         s->off_alarm = add_alarm_in_ms((s->period_ms/s->num_increments)*(s->duty_cycle), _turn_off, s, true);

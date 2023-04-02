@@ -57,7 +57,7 @@ static const uint16_t _timeouts_us[128] =
  * \brief Alarm callback writing 0 to the output GPIO to disable SSR or other switch.
  */
 static int64_t _phasecontrol_set_output_low(int32_t alarm_num, void * data){
-  UNUSED(alarm_num);
+  UNUSED_PARAMETER(alarm_num);
   gpio_put(((phasecontrol_*)data)->out_pin, 0);
   return 0;
 }
@@ -66,7 +66,7 @@ static int64_t _phasecontrol_set_output_low(int32_t alarm_num, void * data){
  * \brief Alarm callback writing 1 to the output GPIO to trigger SSR or other switch.
  */
 static int64_t _phasecontrol_set_output_high(int32_t alarm_num, void * data){
-  UNUSED(alarm_num);
+  UNUSED_PARAMETER(alarm_num);
   gpio_put(((phasecontrol_*)data)->out_pin, 1);
   return 0;
 }
@@ -76,7 +76,7 @@ static int64_t _phasecontrol_set_output_high(int32_t alarm_num, void * data){
  * of off (after 0.75 a period).
  */
 static void _phasecontrol_switch_scheduler(uint gpio, uint32_t events, void * data){
-  UNUSED(events);
+  UNUSED_PARAMETER(events);
   volatile phasecontrol_ * p = (phasecontrol_*)data;
   const uint64_t cur_time = time_us_64();
   if(p->zerocross_time + PERIOD_0_75 < cur_time){

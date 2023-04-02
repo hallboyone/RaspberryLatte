@@ -4,4 +4,4 @@
  * 
  * From an answer here: https://stackoverflow.com/questions/3599160/how-can-i-suppress-unused-parameter-warnings-in-c
  */
-#define UNUSED(x) (void)(x)
+#define UNUSED_PARAMETER(x) (void)(x)
