@@ -28,6 +28,7 @@ static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = NUM_SETTINGS * sizeof(machi
 
 /** \brief Pointer to FRAM memory IC object where settings are stored */
 static mb85_fram * _mem = NULL;
+
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
 
@@ -291,6 +292,9 @@ const machine_settings * machine_settings_setup(mb85_fram * mem){
         }
         _machine_settings_link();
         _machine_settings_setup_local_ui();
+
+        // Create value_flasher object
+        _setting_flasher = value_flasher_setup(0, 750, &_ms_struct.ui_mask);
     }
     return &_ms_struct;
 }
@@ -303,13 +307,13 @@ machine_settings * machine_settings_acquire(){
 int machine_settings_update(bool reset, bool select, uint8_t val){
     if (reset){
         local_ui_go_to_root(&settings_modifier);
-        value_flasher_end(&_setting_flasher);
+        value_flasher_end(_setting_flasher);
         _ms_struct.ui_mask = 0;
     } else if (select){
         if (val == 3){
             // Return to root
             local_ui_go_to_root(&settings_modifier);
-            value_flasher_end(&_setting_flasher);
+            value_flasher_end(_setting_flasher);
             _ms_struct.ui_mask = 0;
         } else {
             local_ui_enter_subfolder(&settings_modifier, 2 - val);
@@ -318,10 +322,11 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
             if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
                 local_ui_id_in_subtree(&folder_settings, id)){
                 // If entered action settings folder, start value flasher
-                value_flasher_setup(&_setting_flasher, _ms[_machine_settings_folder_to_setting(id)], 750, &_ms_struct.ui_mask);
+                 value_flasher_update(_setting_flasher, _ms[_machine_settings_folder_to_setting(id)]);
+                 value_flasher_start(_setting_flasher);
             } else {
                 // else in nav folder. Display id.
-                value_flasher_end(&_setting_flasher);
+                value_flasher_end(_setting_flasher);
                 _ms_struct.ui_mask = settings_modifier.cur_folder->rel_id;
             }
         }
