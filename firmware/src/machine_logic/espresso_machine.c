@@ -75,7 +75,7 @@ static autobrew_routine autobrew_plan;
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
  */
 static pid_data read_boiler_thermo_C(){
-    return lmt01_read_float(&thermo);
+    return lmt01_read_float(thermo);
 }
 
 /**
@@ -275,7 +275,7 @@ static void espresso_machine_update_boiler(){
     pid_tick(heater_pid);
     #endif
 
-    _state.boiler.temperature = lmt01_read(&thermo);
+    _state.boiler.temperature = lmt01_read(thermo);
     _state.boiler.power_level = slow_pwm_get_duty(heater);
 }
 
@@ -348,7 +348,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
-    lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
+    thermo = lmt01_setup(0, LMT01_DATA_PIN);
 
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
