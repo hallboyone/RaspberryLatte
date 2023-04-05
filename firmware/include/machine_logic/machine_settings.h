@@ -15,7 +15,7 @@
  *  
  *  The library also handles the modification of settings. This is accomplished with the
  *  ::machine_settings_update function. This function takes a reset and select flags and a integer 
- *  value. The reset key is like pressing the escape key and the select is like pressing return. 
+ *  value. The reset key is like pressing the escape key, and the select is like pressing return. 
  *  Finally, the integer value is like highlighting one of four values to select. An example 
  *  sequence that would adjust the brew temp by +2C is (Settings + RET) -> (Temp + RET) -> 
  *  (Brew + RET) -> (+1C + RET) -> (+1C + RET) -> (ESC). When adjusting any value, it is displayed 
@@ -97,7 +97,7 @@ typedef struct {
  * \param mem A pointer to an initalized mb85_fram structure.
  * \returns A const pointer to the global settings structure or NULL on error. 
 */
-const machine_settings * machine_settings_setup(mb85_fram * mem);
+const machine_settings * machine_settings_setup(mb85_fram mem);
 
 /** \brief Get a const pointer to internal settings structure
  * \returns A const pointer to the global settings structure or NULL if not setup. 

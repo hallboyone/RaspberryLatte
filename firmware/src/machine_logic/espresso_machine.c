@@ -20,7 +20,6 @@
 
 #include "drivers/nau7802.h"
 #include "drivers/lmt01.h"
-#include "drivers/mb85_fram.h"
 #include "drivers/ulka_pump.h"
 
 #include "utils/gpio_irq_timestamp.h"
@@ -54,7 +53,6 @@ static binary_output       solenoid;
 static slow_pwm            heater;
 static lmt01               thermo; 
 static nau7802             scale;
-static mb85_fram           mem;
 static ulka_pump           pump;
 
 static const machine_settings*   settings;
@@ -308,9 +306,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     i2c_bus_setup(bus, 100000, I2C_SCL_PIN, I2C_SDA_PIN);
 
-    mb85_fram_setup(&mem, bus, 0x00, NULL);
-
-    settings = machine_settings_setup(&mem);
+    settings = machine_settings_setup(mb85_fram_setup(bus, 0x00, NULL));
 
     // Setup the autobrew first leg that does not depend on machine settings
     autobrew_routine_setup(&autobrew_plan, NUM_LEGS);

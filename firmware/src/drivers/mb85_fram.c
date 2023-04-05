@@ -14,6 +14,22 @@
 
 #define MB85_DEVICE_CODE 0b1010000
 
+/** \brief Struct used internally to manage links with remote vars. */
+typedef struct {
+    uint8_t * local_addr;  /**< Pointer to local memory address holding local copy*/
+    reg_addr remote_addr;  /**< Starting address of variable copy */
+    uint16_t num_bytes;    /**< Number of bytes in memory object */
+} mb85_fram_remote_var;
+
+/** \brief Struct representing a single FRAM IC. */
+typedef struct mb85_fram_s {
+    i2c_inst_t * bus;            /**< I2C bus the chip is attached to */
+    dev_addr addr;               /**< Value of address pins on MB85 device */
+    mb85_fram_remote_var * vars; /**< Array of all remote vars linked to device */
+    uint16_t num_vars;           /**< Number of vars linked to device */
+    uint16_t var_buf_len;        /**< Size of vars buffer */
+} mb85_fram_;
+
 /** \brief Read value from MB85 device over I2C 
  * 
  * \param dev Initalized MB85 device to read from.
@@ -23,7 +39,7 @@
  * 
  * \returns 0 on success. I2C_BUS error code on failure.
 */
-static int mb85_fram_i2c_read(mb85_fram * dev, reg_addr mem_addr, uint16_t len, uint8_t * dst){
+static int mb85_fram_i2c_read(mb85_fram dev, reg_addr mem_addr, uint16_t len, uint8_t * dst){
     return i2c_bus_read_bytes(dev->bus, dev->addr, mem_addr, 2, len, dst);
 }
 
@@ -36,7 +52,7 @@ static int mb85_fram_i2c_read(mb85_fram * dev, reg_addr mem_addr, uint16_t len, 
  * 
  * \returns 0 on success. I2C_BUS error code on failure.
 */
-static int mb85_fram_i2c_write(mb85_fram * dev, reg_addr mem_addr, uint16_t len, uint8_t * src){
+static int mb85_fram_i2c_write(mb85_fram dev, reg_addr mem_addr, uint16_t len, uint8_t * src){
     return i2c_bus_write_bytes(dev->bus, dev->addr, mem_addr, 2, len, src);
 }
 
@@ -47,7 +63,7 @@ static int mb85_fram_i2c_write(mb85_fram * dev, reg_addr mem_addr, uint16_t len,
  * 
  * \returns Pointer to internal variable structure if a match is found. Else, returns NULL.
 */
-static mb85_fram_remote_var * mb85_fram_find_var(mb85_fram * dev, void * var){
+static mb85_fram_remote_var * mb85_fram_find_var(mb85_fram dev, void * var){
     uint8_t * var_addr = (uint8_t*)var;
     uint16_t var_idx = 0;
     for(var_idx = 0; var_idx < dev->num_vars; var_idx++){
@@ -60,17 +76,21 @@ static mb85_fram_remote_var * mb85_fram_find_var(mb85_fram * dev, void * var){
  * 
  * \param dev Initalized MB85 device struct.
 */
-static void mb85_fram_resize_buf(mb85_fram * dev){
+static void mb85_fram_resize_buf(mb85_fram dev){
     if(dev->var_buf_len == dev->num_vars){
         mb85_fram_remote_var * old_var_buf = dev->vars;
         dev->vars = (mb85_fram_remote_var*)malloc(2*dev->var_buf_len*sizeof(mb85_fram_remote_var));
         memcpy(dev->vars, old_var_buf, dev->num_vars*sizeof(mb85_fram_remote_var));
+        free(old_var_buf);
         dev->var_buf_len *= 2;
     }
 }
 
-int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_pins, uint8_t * init_val){
-    if (address_pins > 7) return PICO_ERROR_INVALID_ARG;
+mb85_fram mb85_fram_setup(i2c_inst_t * nau7802_i2c, dev_addr address_pins, uint8_t * init_val){
+    if (address_pins > 7) return NULL;
+
+    mb85_fram dev = malloc(sizeof(mb85_fram_));
+    
     dev->addr = MB85_DEVICE_CODE | address_pins;
     dev->bus = nau7802_i2c;
     if(!i2c_bus_is_connected(dev->bus, dev->addr)) return PICO_ERROR_IO;
@@ -83,10 +103,10 @@ int mb85_fram_setup(mb85_fram * dev, i2c_inst_t * nau7802_i2c, dev_addr address_
         mb85_fram_set_all(dev, *init_val);
     }
 
-    return PICO_ERROR_NONE;
+    return dev;
 }
 
-uint16_t mb85_fram_get_max_addr(mb85_fram * dev){
+uint16_t mb85_fram_get_max_addr(mb85_fram dev){
     uint32_t size_options [7] = {1<<9, 1<<11, 1<<13, 1<<14, 1<<15, 1<<16, 1<<17};
 
     // Save byte 0
@@ -111,7 +131,7 @@ uint16_t mb85_fram_get_max_addr(mb85_fram * dev){
     return 0;
 }
 
-int mb85_fram_set_all(mb85_fram * dev, uint8_t value){
+int mb85_fram_set_all(mb85_fram dev, uint8_t value){
     uint32_t cap = mb85_fram_get_max_addr(dev) + 1;
 
     // By setting the values 256 registers at a time, the runtime is dramatically reduced.
@@ -125,7 +145,7 @@ int mb85_fram_set_all(mb85_fram * dev, uint8_t value){
     return PICO_ERROR_NONE;
 }
 
-int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16_t num_bytes, mb85_fram_init_dir init_from_fram){
+int mb85_fram_link_var(mb85_fram dev, void * var, reg_addr remote_addr, uint16_t num_bytes, mb85_fram_init_dir init_from_fram){
     mb85_fram_resize_buf(dev);
     dev->vars[dev->num_vars].local_addr = (uint8_t*)var;
     dev->vars[dev->num_vars].remote_addr = remote_addr;
@@ -140,7 +160,7 @@ int mb85_fram_link_var(mb85_fram * dev, void * var, reg_addr remote_addr, uint16
     }
 }
 
-int mb85_fram_unlink_var(mb85_fram * dev, void * var){
+int mb85_fram_unlink_var(mb85_fram dev, void * var){
     for (uint16_t i = 0; i < dev->num_vars; i++){
         if (dev->vars[i].local_addr == var){
             // Shift all remaining elements left by 1 space to overwrite unlinked var
@@ -154,15 +174,20 @@ int mb85_fram_unlink_var(mb85_fram * dev, void * var){
     return PICO_ERROR_NONE;
 }
 
-int mb85_fram_load(mb85_fram * dev, void * var){
+int mb85_fram_load(mb85_fram dev, void * var){
     mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
     if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
     return mb85_fram_i2c_read(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
 }
 
-int mb85_fram_save(mb85_fram * dev, void * var){
+int mb85_fram_save(mb85_fram dev, void * var){
     mb85_fram_remote_var * var_s = mb85_fram_find_var(dev, var);
     if(var_s == NULL) return PICO_ERROR_INVALID_ARG;
     return mb85_fram_i2c_write(dev, var_s->remote_addr, var_s->num_bytes, (uint8_t*)var);
+}
+
+void mb85_fram_deinit(mb85_fram dev){
+    free(dev->vars);
+    free(dev);
 }
 /** @} */

@@ -27,7 +27,7 @@ static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
 static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = NUM_SETTINGS * sizeof(machine_setting);
 
 /** \brief Pointer to FRAM memory IC object where settings are stored */
-static mb85_fram * _mem = NULL;
+static mb85_fram _mem = NULL;
 
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
@@ -280,7 +280,7 @@ static void _machine_settings_setup_local_ui(){
     local_ui_add_subfolder(&folder_presets_profile_c,     &folder_presets_profile_c_2,            "Preset 9 (save, load)",  &_machine_settings_folder_callback);
 }
 
-const machine_settings * machine_settings_setup(mb85_fram * mem){
+const machine_settings * machine_settings_setup(mb85_fram mem){
     if(_mem == NULL){
         _mem = mem;
         if(mb85_fram_link_var(_mem, &_ms, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM)){
@@ -338,18 +338,18 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     printf(
-        "Preinfuse timeout  : %ds\n"
-        "Brew timeout       : %ds\n"
-        "Ramp length        : %0.2fs\n"
-        "Dose               : %0.2fg\n"
-        "Yield              : %0.2fg\n"
-        "Brew temp          : %0.2fC\n"
-        "Hot temp           : %0.2fC\n"
-        "Steam temp         : %0.2fC\n"
+        "Preinfuse timeout  : %d s\n"
+        "Brew timeout       : %d s\n"
+        "Ramp length        : %0.2f s\n"
+        "Dose               : %0.2f g\n"
+        "Yield              : %0.2f g\n"
+        "Brew temp          : %0.2f C\n"
+        "Hot temp           : %0.2f C\n"
+        "Steam temp         : %0.2f C\n"
         "Preinfuse power    : %d%%\n"
         "Brew power         : %d%%\n"
         "Hot power          : %d%%\n"
-        "Flow rate          : %d%%\n\n",
+        "Flow rate          : %0.2f ml/s\n\n",
         *_ms_struct.autobrew.preinf_timeout,
         *_ms_struct.autobrew.timeout,
         *_ms_struct.autobrew.preinf_ramp_time/10.,
@@ -361,7 +361,7 @@ int machine_settings_print(){
         *_ms_struct.autobrew.preinf_power,
         *_ms_struct.brew.power,
         *_ms_struct.hot.power,
-        *_ms_struct.autobrew.flow*10);
+        *_ms_struct.autobrew.flow/100.0);
     return PICO_ERROR_NONE;
 }
 
