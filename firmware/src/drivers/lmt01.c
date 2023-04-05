@@ -18,10 +18,10 @@
  * \brief Structure for interfacing with a single LMT01 sensor.
  */
 typedef struct lmt01_s{
-    PIO _pio;         /**< The PIO instance running the program reading the LMT01 sensor. */
-    uint _sm;         /**< The state machine instance running the program reading the LMT01 sensor. */
-    uint8_t _dat_pin; /**< The GPIO pin attached to the LMT01 signal. */
-    int _latest_temp; /**< The most recent temp read by the sensor. */
+    PIO _pio;         /**< \brief The PIO instance running the program reading the LMT01 sensor. */
+    uint _sm;         /**< \brief The state machine instance running the program reading the LMT01 sensor. */
+    uint8_t _dat_pin; /**< \brief The GPIO pin attached to the LMT01 signal. */
+    int _latest_temp; /**< \brief The most recent temp read by the sensor. */
 } lmt01_;
 
 static const int PULSE_COUNTS [21] = { 
