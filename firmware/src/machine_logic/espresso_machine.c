@@ -96,14 +96,14 @@ static void apply_boiler_input(float u){
  * \brief Returns true if scale is greater than or equal to the current output. 
  */
 static bool scale_at_output(){
-    return nau7802_at_val_mg(&scale, *settings->brew.yield*100);
+    return nau7802_at_val_mg(scale, *settings->brew.yield*100);
 }
 
 /**
  * \brief Helper function to zero the scale. Used by the autobrew routine. 
  */
 static void zero_scale(){
-    nau7802_zero(&scale);
+    nau7802_zero(scale);
 }
 
 /**
@@ -179,7 +179,7 @@ static void espresso_machine_update_switches(){
     if(_state.switches.mode_dial != new_mode_switch){
         _state.switches.mode_dial_changed = (_state.switches.mode_dial > new_mode_switch ? -1 : 1);
         _state.switches.mode_dial = new_mode_switch;
-        nau7802_zero(&scale);
+        nau7802_zero(scale);
     } else {
         _state.switches.mode_dial_changed = 0;
     }
@@ -290,7 +290,7 @@ static void espresso_machine_update_leds(){
         const bool led1 = _state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5);
         const bool led2 = _state.switches.ac_switch 
                           && !_state.switches.pump_switch 
-                          && nau7802_at_val_mg(&scale, *settings->brew.dose *100);
+                          && nau7802_at_val_mg(scale, *settings->brew.dose *100);
         binary_output_put(leds, 0, led0);
         binary_output_put(leds, 1, led1);
         binary_output_put(leds, 2, led2);
@@ -341,7 +341,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     solenoid = binary_output_setup(solenoid_pin, 1);
 
     // Setup nau7802
-    nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);
+    scale = nau7802_setup(bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
     thermo = lmt01_setup(0, LMT01_DATA_PIN);
