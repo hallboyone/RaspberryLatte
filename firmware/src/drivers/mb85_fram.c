@@ -93,7 +93,7 @@ mb85_fram mb85_fram_setup(i2c_inst_t * nau7802_i2c, dev_addr address_pins, uint8
     
     dev->addr = MB85_DEVICE_CODE | address_pins;
     dev->bus = nau7802_i2c;
-    if(!i2c_bus_is_connected(dev->bus, dev->addr)) return PICO_ERROR_IO;
+    if(!i2c_bus_is_connected(dev->bus, dev->addr)) return NULL;
 
     dev->var_buf_len = 16;
     dev->vars = (mb85_fram_remote_var*)malloc(dev->var_buf_len*sizeof(mb85_fram_remote_var));
