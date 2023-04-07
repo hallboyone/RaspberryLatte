@@ -27,7 +27,8 @@ static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
 static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = NUM_SETTINGS * sizeof(machine_setting);
 
 /** \brief Pointer to FRAM memory IC object where settings are stored */
-static mb85_fram * _mem = NULL;
+static mb85_fram _mem = NULL;
+
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
 
@@ -205,7 +206,7 @@ static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
     if (local_ui_id_in_subtree(&folder_settings, id)){
         // Settings
         const int8_t deltas [] = {-10, 1, 10};
-        const setting_id ms_id = _machine_settings_folder_to_setting(id);
+        const int8_t ms_id = _machine_settings_folder_to_setting(id);
         if (ms_id == -1) return true;
 
         // Add delta and clip if needed
@@ -279,7 +280,7 @@ static void _machine_settings_setup_local_ui(){
     local_ui_add_subfolder(&folder_presets_profile_c,     &folder_presets_profile_c_2,            "Preset 9 (save, load)",  &_machine_settings_folder_callback);
 }
 
-const machine_settings * machine_settings_setup(mb85_fram * mem){
+const machine_settings * machine_settings_setup(mb85_fram mem){
     if(_mem == NULL){
         _mem = mem;
         if(mb85_fram_link_var(_mem, &_ms, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM)){
@@ -291,6 +292,9 @@ const machine_settings * machine_settings_setup(mb85_fram * mem){
         }
         _machine_settings_link();
         _machine_settings_setup_local_ui();
+
+        // Create value_flasher object
+        _setting_flasher = value_flasher_setup(0, 750, &_ms_struct.ui_mask);
     }
     return &_ms_struct;
 }
@@ -303,13 +307,13 @@ machine_settings * machine_settings_acquire(){
 int machine_settings_update(bool reset, bool select, uint8_t val){
     if (reset){
         local_ui_go_to_root(&settings_modifier);
-        value_flasher_end(&_setting_flasher);
+        value_flasher_end(_setting_flasher);
         _ms_struct.ui_mask = 0;
     } else if (select){
         if (val == 3){
             // Return to root
             local_ui_go_to_root(&settings_modifier);
-            value_flasher_end(&_setting_flasher);
+            value_flasher_end(_setting_flasher);
             _ms_struct.ui_mask = 0;
         } else {
             local_ui_enter_subfolder(&settings_modifier, 2 - val);
@@ -318,32 +322,34 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
             if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
                 local_ui_id_in_subtree(&folder_settings, id)){
                 // If entered action settings folder, start value flasher
-                value_flasher_setup(&_setting_flasher, _ms[_machine_settings_folder_to_setting(id)], 750, &_ms_struct.ui_mask);
+                 value_flasher_update(_setting_flasher, _ms[_machine_settings_folder_to_setting(id)]);
+                 value_flasher_start(_setting_flasher);
             } else {
                 // else in nav folder. Display id.
-                value_flasher_end(&_setting_flasher);
+                value_flasher_end(_setting_flasher);
                 _ms_struct.ui_mask = settings_modifier.cur_folder->rel_id;
             }
         }
     }
+    return PICO_ERROR_NONE;
 }
 
 
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     printf(
-        "Preinfuse timeout  : %ds\n"
-        "Brew timeout       : %ds\n"
-        "Ramp length        : %0.2fs\n"
-        "Dose               : %0.2fg\n"
-        "Yield              : %0.2fg\n"
-        "Brew temp          : %0.2fC\n"
-        "Hot temp           : %0.2fC\n"
-        "Steam temp         : %0.2fC\n"
-        "Preinfuse power    : %d\%\n"
-        "Brew power         : %d\%\n"
-        "Hot power          : %d\%\n"
-        "Flow rate          : %d\%\n\n",
+        "Preinfuse timeout  : %d s\n"
+        "Brew timeout       : %d s\n"
+        "Ramp length        : %0.2f s\n"
+        "Dose               : %0.2f g\n"
+        "Yield              : %0.2f g\n"
+        "Brew temp          : %0.2f C\n"
+        "Hot temp           : %0.2f C\n"
+        "Steam temp         : %0.2f C\n"
+        "Preinfuse power    : %d%%\n"
+        "Brew power         : %d%%\n"
+        "Hot power          : %d%%\n"
+        "Flow rate          : %0.2f ml/s\n\n",
         *_ms_struct.autobrew.preinf_timeout,
         *_ms_struct.autobrew.timeout,
         *_ms_struct.autobrew.preinf_ramp_time/10.,
@@ -355,7 +361,7 @@ int machine_settings_print(){
         *_ms_struct.autobrew.preinf_power,
         *_ms_struct.brew.power,
         *_ms_struct.hot.power,
-        *_ms_struct.autobrew.flow*10);
+        *_ms_struct.autobrew.flow/100.0);
     return PICO_ERROR_NONE;
 }
 

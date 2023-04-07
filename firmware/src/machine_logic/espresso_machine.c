@@ -20,7 +20,6 @@
 
 #include "drivers/nau7802.h"
 #include "drivers/lmt01.h"
-#include "drivers/mb85_fram.h"
 #include "drivers/ulka_pump.h"
 
 #include "utils/gpio_irq_timestamp.h"
@@ -54,7 +53,6 @@ static binary_output       solenoid;
 static slow_pwm            heater;
 static lmt01               thermo; 
 static nau7802             scale;
-static mb85_fram           mem;
 static ulka_pump           pump;
 
 static const machine_settings*   settings;
@@ -75,7 +73,7 @@ static autobrew_routine autobrew_plan;
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
  */
 static pid_data read_boiler_thermo_C(){
-    return lmt01_read_float(&thermo);
+    return lmt01_read_float(thermo);
 }
 
 /**
@@ -91,21 +89,21 @@ static pid_data read_pump_flowrate_ul_s(){
  * \param u Output for the boiler. 1 is full on, 0 is full off.
  */
 static void apply_boiler_input(float u){
-    slow_pwm_set_float_duty(&heater, u);
+    slow_pwm_set_float_duty(heater, u);
 }
 
 /** 
  * \brief Returns true if scale is greater than or equal to the current output. 
  */
 static bool scale_at_output(){
-    return nau7802_at_val_mg(&scale, *settings->brew.yield*100);
+    return nau7802_at_val_mg(scale, *settings->brew.yield*100);
 }
 
 /**
  * \brief Helper function to zero the scale. Used by the autobrew routine. 
  */
 static void zero_scale(){
-    nau7802_zero(&scale);
+    nau7802_zero(scale);
 }
 
 /**
@@ -169,7 +167,7 @@ static void espresso_machine_update_switches(){
         _state.switches.ac_switch_changed = 0;
     }
 
-    const bool new_pump_switch = binary_input_read(&pump_switch);
+    const bool new_pump_switch = binary_input_read(pump_switch);
     if(_state.switches.pump_switch != new_pump_switch){
         _state.switches.pump_switch_changed = (_state.switches.pump_switch ? -1 : 1);
         _state.switches.pump_switch = new_pump_switch;
@@ -177,11 +175,11 @@ static void espresso_machine_update_switches(){
         _state.switches.pump_switch_changed = 0;
     }
 
-    const int new_mode_switch = binary_input_read(&mode_dial);
+    const int new_mode_switch = binary_input_read(mode_dial);
     if(_state.switches.mode_dial != new_mode_switch){
         _state.switches.mode_dial_changed = (_state.switches.mode_dial > new_mode_switch ? -1 : 1);
         _state.switches.mode_dial = new_mode_switch;
-        nau7802_zero(&scale);
+        nau7802_zero(scale);
     } else {
         _state.switches.mode_dial_changed = 0;
     }
@@ -220,25 +218,25 @@ static void espresso_machine_update_pump(){
         // If the pump is locked, switched off, or in steam mode
         autobrew_routine_reset(&autobrew_plan);
         ulka_pump_off(pump);
-        binary_output_put(&solenoid, 0, 0);
+        binary_output_put(solenoid, 0, 0);
 
     } else if (MODE_HOT == _state.switches.mode_dial){
         ulka_pump_pwr_percent(pump, *settings->hot.power);
-        binary_output_put(&solenoid, 0, 0);
+        binary_output_put(solenoid, 0, 0);
 
     } else if (MODE_MANUAL == _state.switches.mode_dial){
         ulka_pump_pwr_percent(pump, *settings->brew.power);
-        binary_output_put(&solenoid, 0, 1);
+        binary_output_put(solenoid, 0, 1);
 
     } else if (MODE_AUTO ==_state.switches.mode_dial){
         if(!autobrew_routine_tick(&autobrew_plan)){
-            binary_output_put(&solenoid, 0, 1);
+            binary_output_put(solenoid, 0, 1);
             if(autobrew_plan.state.pump_setting_changed){
                 ulka_pump_pwr_percent(pump, autobrew_plan.state.pump_setting);
             }
         } else {
             ulka_pump_off(pump);
-            binary_output_put(&solenoid, 0, 0);
+            binary_output_put(solenoid, 0, 0);
         }
     }
 
@@ -275,8 +273,8 @@ static void espresso_machine_update_boiler(){
     pid_tick(heater_pid);
     #endif
 
-    _state.boiler.temperature = lmt01_read(&thermo);
-    _state.boiler.power_level = heater._duty_cycle;
+    _state.boiler.temperature = lmt01_read(thermo);
+    _state.boiler.power_level = slow_pwm_get_duty(heater);
 }
 
 /**
@@ -292,12 +290,12 @@ static void espresso_machine_update_leds(){
         const bool led1 = _state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5);
         const bool led2 = _state.switches.ac_switch 
                           && !_state.switches.pump_switch 
-                          && nau7802_at_val_mg(&scale, *settings->brew.dose *100);
-        binary_output_put(&leds, 0, led0);
-        binary_output_put(&leds, 1, led1);
-        binary_output_put(&leds, 2, led2);
+                          && nau7802_at_val_mg(scale, *settings->brew.dose *100);
+        binary_output_put(leds, 0, led0);
+        binary_output_put(leds, 1, led1);
+        binary_output_put(leds, 2, led2);
     } else {
-        binary_output_mask(&leds, settings->ui_mask);
+        binary_output_mask(leds, settings->ui_mask);
     }
 }
 
@@ -308,9 +306,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     i2c_bus_setup(bus, 100000, I2C_SCL_PIN, I2C_SDA_PIN);
 
-    mb85_fram_setup(&mem, bus, 0x00, NULL);
-
-    settings = machine_settings_setup(&mem);
+    settings = machine_settings_setup(mb85_fram_setup(bus, 0x00, NULL));
 
     // Setup the autobrew first leg that does not depend on machine settings
     autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
@@ -320,21 +316,21 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 0, 100, 25, 100);
 
     // Setup heater as a slow_pwm object
-    slow_pwm_setup(&heater, HEATER_PWM_PIN, 1260, 64);
+    heater = slow_pwm_setup(HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
               &apply_boiler_input, 0, 1, 100, 1000);
 
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
-    binary_output_setup(&leds, led_pins, 3);
+    leds = binary_output_setup(led_pins, 3);
 
     // Setup the binary inputs for pump switch and mode dial.
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
 
-    binary_input_setup(&pump_switch, 1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, false, false);
-    binary_input_setup(&mode_dial, 2, mode_select_gpio, BINARY_INPUT_PULL_UP, 75000, false, true);
+    pump_switch = binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, false, false);
+    mode_dial = binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, 75000, false, true);
 
     // Setup the pump
     pump = ulka_pump_setup(AC_0CROSS_PIN, PUMP_OUT_PIN, AC_0CROSS_SHIFT, ZEROCROSS_EVENT_RISING);
@@ -342,13 +338,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup solenoid as a binary output
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};
-    binary_output_setup(&solenoid, solenoid_pin, 1);
+    solenoid = binary_output_setup(solenoid_pin, 1);
 
     // Setup nau7802
-    nau7802_setup(&scale, bus, SCALE_CONVERSION_MG);
+    scale = nau7802_setup(bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
-    lmt01_setup(&thermo, 0, LMT01_DATA_PIN);
+    thermo = lmt01_setup(0, LMT01_DATA_PIN);
 
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);

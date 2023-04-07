@@ -71,7 +71,7 @@ ulka_pump ulka_pump_setup(uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocr
     p->locked = true;
     p->power_percent = 0;
     p->flow_ml_s = NULL;
-    phasecontrol_setup((&p->driver), zerocross_pin, out_pin, zerocross_shift_us, zerocross_event);
+    p->driver = phasecontrol_setup(zerocross_pin, out_pin, zerocross_shift_us, zerocross_event);
     return p;
 }
 
@@ -86,7 +86,7 @@ void ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
     if(!p->locked){
         const uint8_t max_power = ulka_pump_power_to_get_pressure(p, 9.5);
         p->power_percent = (power_percent > max_power ? max_power : power_percent);
-        phasecontrol_set_duty_cycle(&(p->driver), _percent_to_power_lut[p->power_percent]);
+        phasecontrol_set_duty_cycle(p->driver, _percent_to_power_lut[p->power_percent]);
     }
 }
 
@@ -128,6 +128,7 @@ bool ulka_pump_is_locked(ulka_pump p){
 
 void ulka_pump_deinit(ulka_pump p){
     if(p->flow_ml_s != NULL) flow_meter_deinit(p->flow_ml_s);
+    phasecontrol_deinit(p->driver);
     free(p);
 }
 /** @} */
