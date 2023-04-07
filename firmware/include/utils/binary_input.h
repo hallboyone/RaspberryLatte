@@ -11,8 +11,6 @@
  * this complexity into \ref binary_input objects. These structures are setup and then
  * read as needed. The debouncing and muxing is handled automatically.
  * 
- * \todo Replace with multi-gpio interrupts when implemented. 
- * 
  * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
@@ -29,17 +27,8 @@
 /** \brief Enumeration of the different pull options (up, down, and none) */
 typedef enum {BINARY_INPUT_PULL_UP, BINARY_INPUT_PULL_DOWN, BINARY_INPUT_PULL_NONE} binary_input_pull_dir;
 
-/**
- * \brief Data related to a binary input. Handles multithrow switches and allows for muxed hardware.
- */
-typedef struct {
-    uint8_t num_pins;  /**< \brief How many GPIO pins are used in binary input. */
-    uint8_t* pins;     /**< \brief Array of pin numbers used in binary input. */
-    bool * pin_states; /**< \brief Pin state after adjusting for inversion and any debouncing */
-    bool muxed;        /**< \brief Flag indicating if the input is muxed (pins read as binary numer). */
-    bool inverted;     /**< \brief Flag indicating if the wiring requires the pins to be inverted. */
-    uint64_t debounce_us;  /**< \brief Length of time a binary input must remain constant before switching */
-} binary_input;
+/** \brief Opaque object defining a binary input. */
+typedef struct binary_input_s* binary_input;
 
 /**
  * \brief Create a binary input with the indicated number of throws. 
@@ -55,7 +44,6 @@ typedef struct {
  * The input can also be debounced. This will only register changes to the input after
  * it has remained constant for some debounce time.
  *
- * \param b Pointer to binary_input stuct that will store information for binary input.
  * \param num_pins The number of pins for the binary input.
  * \param pins Pointer to an array of GPIO pin numbers of length num_pins.
  * \param pull_dir Input pull direction.
@@ -63,8 +51,10 @@ typedef struct {
  * DEBOUNCE LOGIC, NO OTHER GPIO INTERRUPTS SHOULD BE USED!  
  * \param invert Flag indicating if the pins should be inverted. 
  * \param muxed True if digital inputs are muxed (e.g. 4 throw muxed into 2 pins)
+ * 
+ * \return New binary_input object.
  */
-void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins, binary_input_pull_dir pull_dir, uint debounce_us, bool invert, bool muxed);
+binary_input binary_input_setup(uint8_t num_pins, const uint8_t * pins, binary_input_pull_dir pull_dir, uint debounce_us, bool invert, bool muxed);
 
 /**
  * \brief Reads the requested binary_input.
@@ -77,7 +67,15 @@ void binary_input_setup(binary_input * b, uint8_t num_pins, const uint8_t * pins
  * 0 if no pin is found). If switch is muxed, then the the state of the pins are encoded into a 
  * uint8_t mask (i.e, second of three pins active, 010 returned).
  */
-int binary_input_read(binary_input * b);
+int binary_input_read(binary_input b);
+
+/**
+ * \brief Free memory storing passed in binary_input object
+ * 
+ * \param b Binary input object to deinit
+*/
+void binary_input_deinit(binary_input b);
+
 #endif
 
 /** /} */

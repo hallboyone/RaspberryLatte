@@ -10,6 +10,18 @@
 
 #include "drivers/nau7802.h"
 
+#include <stdlib.h>
+
+typedef struct nau7802_s{
+    i2c_inst_t * bus;
+    float conversion_factor_mg;
+    uint32_t latest_val;            /**< Last ADC reading */
+    uint32_t origin;   
+} nau7802_;
+
+static const uint8_t MAX_SETUP_ATTEMPTS = 10;
+static const uint CALIBRATION_TIMEOUT_US = 1000000;
+
 const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */
 
 #define REG_PU_CTRL  0x0   /**< NAU7802 register address: Power-up control */
@@ -77,23 +89,33 @@ const bit_range BITS_PGA_CAP     = {.from = 7, .to = 7, .in_reg = REG_PWR_CTRL, 
 
 const bit_range BITS_REVISION_ID = {.from = 0, .to = 3, .in_reg = REG_DEV_REV, .reg_addr_len = 1};
 
-int nau7802_read_reg(nau7802 * scale, const reg_addr reg_idx, uint8_t len, uint8_t * dst){
-    return i2c_bus_read_bytes(scale->bus, _nau7802_addr, reg_idx, 1, len, dst);
-}
-
-int nau7802_write_reg(nau7802 * scale, const reg_addr reg_idx, uint8_t len, uint8_t * src){
-    return i2c_bus_write_bytes(scale->bus, _nau7802_addr, reg_idx, 1, len, src);
-}
-
-int nau7802_read_bits(nau7802 * scale, const bit_range bits, uint8_t * dst){
+/**
+ * \brief Read the bits in reg idx specified by bit_range bits into dst.
+ * 
+ * \param scale   Pointer to previously setup scale object
+ * \param bits A bit_range struct indicating the register address and bits to read.
+ * \param dst A pointer to the target location where the bits are stored.
+ * 
+ * \return NAU7802_SUCCESS if successful and an error code otherwise. 
+ */
+static int nau7802_read_bits(nau7802 scale, const bit_range bits, uint8_t * dst){
     return i2c_bus_read_bits(scale->bus, _nau7802_addr, bits, dst);
 }
 
-int nau7802_write_bits(nau7802 * scale, const bit_range bits, uint8_t val){
+/**
+ * \brief Write a val to specific bits in reg idx specified by bit_range bits.
+ * 
+ * \param scale   Pointer to previously setup scale object
+ * \param bits A bit_range struct indicating the register address and bits to read.
+ * \param val A pointer to the value that will be written to the bits. 
+ * 
+ * \return NAU7802_SUCCESS if successful and an error code otherwise. 
+ */
+static int nau7802_write_bits(nau7802 scale, const bit_range bits, uint8_t val){
     return i2c_bus_write_bits(scale->bus, _nau7802_addr, bits, val);
 }
 
-int nau7802_reset(nau7802 * scale){
+int nau7802_reset(nau7802 scale){
     int result = nau7802_write_bits(scale, BITS_RESET, 1);
     if(result != I2C_BUS_SUCCESS){
         return result;
@@ -103,7 +125,7 @@ int nau7802_reset(nau7802 * scale){
     return result;
 }
 
-bool nau7802_is_ready(nau7802 * scale){
+bool nau7802_is_ready(nau7802 scale){
     uint8_t ready_bit = 0;
     if(nau7802_read_bits(scale, BITS_READY, &ready_bit) != I2C_BUS_SUCCESS){
         return false;
@@ -111,7 +133,7 @@ bool nau7802_is_ready(nau7802 * scale){
     return ready_bit;
 }
 
-bool nau7802_wait_till_ready_ms(nau7802 * scale, uint timeout){
+bool nau7802_wait_till_ready_ms(nau7802 scale, uint timeout){
     uint64_t end_time = 1000*timeout + time_us_64();
     while(!nau7802_is_ready(scale)){
         if (time_us_64() > end_time) return false;
@@ -119,50 +141,50 @@ bool nau7802_wait_till_ready_ms(nau7802 * scale, uint timeout){
     return true;
 }
 
-int nau7802_set_analog_power_supply(nau7802 * scale, avdd_src source){
+int nau7802_set_analog_power_supply(nau7802 scale, avdd_src source){
     return nau7802_write_bits(scale, BITS_AVDD_S, source);
 }
 
-int nau7802_set_digital_power(nau7802 * scale, pwr_setting on_off){
+int nau7802_set_digital_power(nau7802 scale, pwr_setting on_off){
     return nau7802_write_bits(scale, BITS_PWR_UP_D, on_off);
 }
 
-int nau7802_set_analog_power(nau7802 * scale, pwr_setting on_off){
+int nau7802_set_analog_power(nau7802 scale, pwr_setting on_off){
     return nau7802_write_bits(scale, BITS_PWR_UP_A, on_off);
 }
 
-int nau7802_set_conversions(nau7802 * scale, conversion_setting on_off){
+int nau7802_set_conversions(nau7802 scale, conversion_setting on_off){
     return nau7802_write_bits(scale, BITS_CS, on_off);
 }
 
-int nau7802_set_gain(nau7802 * scale, gain g){
+int nau7802_set_gain(nau7802 scale, gain g){
     return nau7802_write_bits(scale, BITS_GAIN, g);
 }
 
-int nau7802_set_ldo_voltage(nau7802 * scale, ldo_voltage v){
+int nau7802_set_ldo_voltage(nau7802 scale, ldo_voltage v){
     return nau7802_write_bits(scale, BITS_VLDO, v);
 }
 
-int nau7802_set_ldo_mode(nau7802 * scale, ldo_mode mode){
+int nau7802_set_ldo_mode(nau7802 scale, ldo_mode mode){
     return nau7802_write_bits(scale, BITS_LDO_MODE, mode);
 }
 
-int nau7802_set_chopper_clock(nau7802 * scale, chp_clk val){
+int nau7802_set_chopper_clock(nau7802 scale, chp_clk val){
     return nau7802_write_bits(scale, BITS_REG_CHPS, val);
 }
 
-int nau7802_set_pga_filter(nau7802 * scale, pga_setting off_on){
+int nau7802_set_pga_filter(nau7802 scale, pga_setting off_on){
     return nau7802_write_bits(scale, BITS_PGA_CAP, off_on);
 }
 
-int nau7802_calibrate(nau7802 * scale){
+int nau7802_calibrate(nau7802 scale){
     nau7802_write_bits(scale, BITS_CALS, 1);
 
-    uint64_t end_time = 1000000 + time_us_64();
+    const uint64_t timeout = CALIBRATION_TIMEOUT_US + time_us_64();
     uint8_t buf = 1;
     while(buf){
         sleep_ms(1);
-        if (time_us_64() > end_time) return false;
+        if (time_us_64() > timeout) return false;
         nau7802_read_bits(scale, BITS_CALS, &buf);
     }
 
@@ -171,7 +193,7 @@ int nau7802_calibrate(nau7802 * scale){
     else return 0;
 }
 
-bool nau7802_data_ready(nau7802 * scale){
+bool nau7802_data_ready(nau7802 scale){
     uint8_t is_ready = 0;
     int result = nau7802_read_bits(scale, BITS_CR, &is_ready);
     if(result != I2C_BUS_SUCCESS) return false;
@@ -179,9 +201,9 @@ bool nau7802_data_ready(nau7802 * scale){
     return is_ready;
 }
 
-int nau7802_read_raw(nau7802 * scale, uint32_t * dst){
+int nau7802_read_raw(nau7802 scale, uint32_t * dst){
     if (nau7802_data_ready(scale)){
-        int result = nau7802_read_reg(scale, REG_ADCO_B2, 3, (uint8_t*)dst);
+        int result = i2c_bus_read_bytes(scale->bus, _nau7802_addr, REG_ADCO_B2, 1, 3, (uint8_t*)dst);
         if(result != I2C_BUS_SUCCESS) return result;
 
         uint32_t b0 = ((*dst)&0xFF0000);
@@ -195,7 +217,7 @@ int nau7802_read_raw(nau7802 * scale, uint32_t * dst){
     return I2C_BUS_SUCCESS;
 }
 
-int nau7802_read_mg(nau7802 * scale){
+int nau7802_read_mg(nau7802 scale){
     uint32_t val;
     if(nau7802_read_raw(scale, &val)!= I2C_BUS_SUCCESS){
         return 0;
@@ -204,13 +226,16 @@ int nau7802_read_mg(nau7802 * scale){
     return scale->conversion_factor_mg*((int)val-(int)scale->origin);
 }
 
-int nau7802_zero(nau7802 * scale){
+int nau7802_zero(nau7802 scale){
     if(nau7802_read_raw(scale, &scale->origin)!= I2C_BUS_SUCCESS){
         return PICO_ERROR_GENERIC;
     }
+    else{
+        return PICO_ERROR_NONE;
+    }
 }
 
-bool nau7802_at_val_mg(nau7802 * scale, int val){
+bool nau7802_at_val_mg(nau7802 scale, int val){
     return nau7802_read_mg(scale) >= val;
 }
 
@@ -219,7 +244,7 @@ bool nau7802_at_val_mg(nau7802 * scale, int val){
  * 
  * \returns PICO_OK if setup successfully. Else returns error code.
  */
-static int _nau7802_setup(nau7802 * scale){
+static int _nau7802_setup(nau7802 scale){
     if(!i2c_bus_is_connected(scale->bus, _nau7802_addr)){
         return PICO_ERROR_GENERIC;
     }
@@ -263,21 +288,28 @@ static int _nau7802_setup(nau7802 * scale){
     return PICO_OK;
 }
 
-int nau7802_setup(nau7802 * scale, i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
+nau7802 nau7802_setup(i2c_inst_t * nau7802_i2c, float conversion_factor_mg){
+    nau7802 scale = malloc(sizeof(nau7802_));
+
     scale->bus = nau7802_i2c;
     scale->conversion_factor_mg = conversion_factor_mg;
     scale->latest_val = 0;
     scale->origin = 0;
 
     // Try to setup scale up to ten times.
-    for(int i = 0; i<10; i++){
+    for(int i = 0; i < MAX_SETUP_ATTEMPTS; i++){
         if(_nau7802_setup(scale) == PICO_ERROR_NONE) break;
-        if(i==9){
-            return PICO_ERROR_GENERIC;
+        if(i == MAX_SETUP_ATTEMPTS-1){
+            return NULL;
         } 
     }
 
     while(scale->origin == 0){
         nau7802_zero(scale);
     }
+    return scale;
+}
+
+void nau7802_deinit(nau7802 scale){
+    free(scale);
 }

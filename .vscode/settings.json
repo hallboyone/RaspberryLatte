@@ -48,13 +48,23 @@
         "mb85_fram.h": "c",
         "gpio_irq_timestamp.h": "c",
         "flow_meter.h": "c",
-        "machine_settings.h": "c"
+        "machine_settings.h": "c",
+        "macros.h": "c"
     },
     "cSpell.words": [
         "ABSP",
+        "ADCO",
         "autobrew",
+        "AVDD",
+        "BGPCP",
+        "BOPGA",
+        "CALS",
+        "CHPS",
+        "CRSD",
         "datapoint",
         "datapoints",
+        "DRDY",
+        "ENOB",
         "feedforward",
         "flowrate",
         "fram",
@@ -63,6 +73,9 @@
         "leds",
         "mbar",
         "Microliters",
+        "Nuvoton",
+        "OBUF",
+        "OSCS",
         "phasecontrol",
         "PICO",
         "pinout",
@@ -72,6 +85,7 @@
         "setpoints",
         "subfolders",
         "ULKA",
+        "VLDO",
         "ZEROCROSS"
     ],
 }

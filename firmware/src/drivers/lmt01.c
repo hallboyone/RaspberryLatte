@@ -10,7 +10,19 @@
 #include "drivers/lmt01.h"
 #include "lmt01.pio.h"
 
+#include <stdlib.h>
+
 #include "hardware/clocks.h"
+
+/**
+ * \brief Structure for interfacing with a single LMT01 sensor.
+ */
+typedef struct lmt01_s{
+    PIO _pio;         /**< \brief The PIO instance running the program reading the LMT01 sensor. */
+    uint _sm;         /**< \brief The state machine instance running the program reading the LMT01 sensor. */
+    uint8_t _dat_pin; /**< \brief The GPIO pin attached to the LMT01 signal. */
+    int _latest_temp; /**< \brief The most recent temp read by the sensor. */
+} lmt01_;
 
 static const int PULSE_COUNTS [21] = { 
     26, 181, 338, 494, 651, 808,
@@ -87,7 +99,7 @@ static inline int _lmt01_pulse_to_temp(const int pulse_count){
  * \param l The \ref lmt01 structure that will be attached to the PIO program.
  * \param offset The offset into the current PIO memory in which to load the program. 
  */
-static inline void _lmt01_program_init(lmt01 * l, uint offset) {
+static inline void _lmt01_program_init(lmt01 l, uint offset) {
     // Setup dat_pin
     pio_sm_set_consecutive_pindirs(l->_pio, l->_sm, l->_dat_pin, 1, false);
     pio_gpio_init(l->_pio, l->_dat_pin);
@@ -108,18 +120,9 @@ static inline void _lmt01_program_init(lmt01 * l, uint offset) {
     pio_sm_set_enabled(l->_pio, l->_sm, true);
 }
 
-int lmt01_read(lmt01 * l){
-    while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
-        l->_latest_temp = _lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm));
-    }
-    return l->_latest_temp;
-}
+lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin){
+    lmt01 l = malloc(sizeof(lmt01_));
 
-float lmt01_read_float(lmt01 * l){
-    return lmt01_read(l)/16.;
-}
-
-void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
     l->_dat_pin = dat_pin;
 
     // Load pio program into memory
@@ -132,4 +135,20 @@ void lmt01_setup(lmt01 * l, uint8_t pio_num, uint8_t dat_pin){
         // Wait till a valid temperature is measured
         lmt01_read(l);
     }
+    return l;
+}
+
+int lmt01_read(lmt01 l){
+    while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
+        l->_latest_temp = _lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm));
+    }
+    return l->_latest_temp;
+}
+
+float lmt01_read_float(lmt01 l){
+    return lmt01_read(l)/16.;
+}
+
+void lmt01_deinit(lmt01 l){
+    free(l);
 }
