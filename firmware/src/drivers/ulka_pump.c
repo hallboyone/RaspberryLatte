@@ -82,12 +82,14 @@ int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, float ml_per_tick){
     return (p->flow_ml_s == NULL ? PICO_ERROR_GENERIC : PICO_ERROR_NONE);
 }
 
-void ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
+uint8_t ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
     if(!p->locked){
         const uint8_t max_power = ulka_pump_power_to_get_pressure(p, 9.5);
         p->power_percent = (power_percent > max_power ? max_power : power_percent);
         phasecontrol_set_duty_cycle(p->driver, _percent_to_power_lut[p->power_percent]);
+        return p->power_percent;
     }
+    return 0;
 }
 
 void ulka_pump_off(ulka_pump p){
