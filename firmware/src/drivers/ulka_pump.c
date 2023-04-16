@@ -14,13 +14,15 @@
 #include "stdlib.h"
 #include <stdio.h>
 
+#include "utils/macros.h"
+
 #define ULKA_PUMP_FLOW_FILTER_SPAN_MS 2005
 #define ULKA_PUMP_FLOW_SAMPLE_RATE_MS 100
 
 /** \brief Struct containing the fields for the actuation and measurement of a single Ulka pump */
 typedef struct ulka_pump_s {
     phasecontrol driver;   /**< \brief Phase-control object responsible for switching pump's SSR. */
-    flow_meter flow_ml_s; /**< \brief Flow meter measuring the current flow rate through the pump in ul/ms. */
+    flow_meter flow_ml_s;  /**< \brief Flow meter measuring the current flow rate through the pump in ul/ms. */
     bool locked;           /**< \brief Flag indicating if the pump is locked. */
     uint8_t power_percent; /**< \brief The current percent power applied to the pump. */
 } ulka_pump_;
@@ -44,28 +46,6 @@ static const float OFFSET [NUM_LINEAR_REGIONS]    = { 0,      2.6426, 4.0434, 2.
 static const float PUMP_GAIN [NUM_LINEAR_REGIONS] = { 0.4319, 0.0686, 0.0640, 0.1425, 0.1532, 0.1626, 0.0955, 0.0847, 0.1405, 0.1258};
 static const float FLOW_GAIN [NUM_LINEAR_REGIONS] = {-0.6476,-1.0042,-1.2913,-1.5014,-1.5692,-1.6878,-1.6701,-1.6412,-1.6984,-1.6838};
 
-/**
- * \brief Returns the pump power needed to maintain the target pressure.
- * \param p The ulka_pump that should be regulated.
- * \param target_pressure The pressure that is being targeted
- * \returns The pump power required to reach the target pressure, clipped between 0 and 100. 
-*/
-static uint8_t ulka_pump_power_to_get_pressure(ulka_pump p, const float target_pressure){
-    if(p->flow_ml_s == NULL || target_pressure < 0) return 0;
-    
-    const float flowrate = ulka_pump_get_flow_ml_s(p);
-    for(uint i = 0; i < NUM_LINEAR_REGIONS; i++){
-        // Check if the power in each linear region is strong enough to reach flowrate. If it is, then compute
-        // the required power and return.
-        if(OFFSET[i] + PUMP_GAIN[i]*LINEAR_REGION_SPAN*(i+1) + FLOW_GAIN[i]*flowrate > target_pressure){
-            float power = (target_pressure - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
-            return (power < 0 ? 0 : (uint8_t)power);
-        }
-    }
-    // None of the regions are strong enough. Return full strength.
-    return 100;
-}
-
 ulka_pump ulka_pump_setup(uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocross_shift_us, uint8_t zerocross_event){
     ulka_pump p = malloc(sizeof(ulka_pump_));
     p->locked = true;
@@ -84,12 +64,27 @@ int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, float ml_per_tick){
 
 uint8_t ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
     if(!p->locked){
-        const uint8_t max_power = ulka_pump_power_to_get_pressure(p, 9.5);
-        p->power_percent = (power_percent > max_power ? max_power : power_percent);
+        p->power_percent = CLAMP(power_percent, 0, 100);
         phasecontrol_set_duty_cycle(p->driver, _percent_to_power_lut[p->power_percent]);
         return p->power_percent;
     }
     return 0;
+}
+
+uint8_t ulka_pump_prw_for_pressure(ulka_pump p, const float target_pressure_bar){
+    if(p->flow_ml_s == NULL || target_pressure_bar < 0) return ulka_pump_pwr_percent(p, 0);
+    
+    const float flowrate = ulka_pump_get_flow_ml_s(p);
+    for(uint i = 0; i < NUM_LINEAR_REGIONS; i++){
+        // Check if the power in each linear region is strong enough to reach flowrate. If it is, then compute
+        // the required power and return.
+        if(OFFSET[i] + PUMP_GAIN[i]*LINEAR_REGION_SPAN*(i+1) + FLOW_GAIN[i]*flowrate > target_pressure_bar){
+            float power = (target_pressure_bar - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
+            return ulka_pump_pwr_percent(p, (power < 0 ? 0 : (uint8_t)power));
+        }
+    }
+    // None of the regions are strong enough. Return full strength.
+    return ulka_pump_pwr_percent(p, 100);
 }
 
 void ulka_pump_off(ulka_pump p){

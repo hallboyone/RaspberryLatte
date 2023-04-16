@@ -30,6 +30,12 @@
 /** \brief Function prototype that will be called during a function call leg. */
 typedef void (*autobrew_fun)();
 
+/** \brief Function prototype for a function that converts a setpoint to a pump power.
+ * 
+ * An example use case would be calling a PID controller object.
+ */
+typedef uint8_t (*autobrew_get_power)(float);
+
 /** \brief Function prototype for an ending trigger. Used to terminate a leg prior to the timeout. */
 typedef bool (*autobrew_trigger)();
 
@@ -99,8 +105,8 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
  * 
  * \returns PICO_ERROR_NONE if successful. Else, PICO_ERROR_INVALID_ARG if leg_idx is out of range.
  */
-int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pid_data pump_starting_setpoint, 
-                                    pid_data pump_ending_setpoint, pid ctrl, uint32_t timeout_us, 
+int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, float pump_starting_setpoint, 
+                                    float pump_ending_setpoint, autobrew_get_power power_computer, uint32_t timeout_us, 
                                     autobrew_trigger trigger);
 
 /**

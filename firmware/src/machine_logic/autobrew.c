@@ -7,20 +7,20 @@
  * \version 0.2
  * \date 2022-12-05
 */
+#include "machine_logic/autobrew.h"
 
 #include "pico/time.h"
-
-#include "machine_logic/autobrew.h"
 #include <stdlib.h>
+
+#include "utils/macros.h"
 typedef struct _autobrew_leg {
-    pid_data pump_setpoint_start;          /**< \brief Setpoint at start of leg. */
-    pid_data pump_setpoint_delta;           /**< \brief Change in Setpoint over leg. If constant, set to 0. */
-    uint32_t timeout_us;                  /**< \brief Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
-    
-    autobrew_fun fun;                     /**< \brief Void function to call if FUNCTION_CALL leg. */
-    autobrew_trigger trigger;             /**< \brief Function used to trigger the end of a leg. */
-    pid ctrl;                      /**< \brief Controller object used get a pump value to track setpoint. */
-    uint64_t _end_time_us;                /**< \brief End time of leg. Set the first time the leg is ticked*/
+    float pump_setpoint_start;  /**< \brief Setpoint at start of leg. */
+    float pump_setpoint_delta;  /**< \brief Change in Setpoint over leg. If constant, set to 0. */
+    uint32_t timeout_us;           /**< \brief Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
+    autobrew_fun fun;              /**< \brief Void function to call if FUNCTION_CALL leg. */
+    autobrew_trigger trigger;      /**< \brief Function used to trigger the end of a leg. */
+    autobrew_get_power get_power;  /**< \brief Converts floating point setpoint to pump power. If NULL, then setpoint is power. */
+    uint64_t _end_time_us;         /**< \brief End time of leg. Set the first time the leg is ticked*/
 } autobrew_leg;
 
 /**
@@ -35,7 +35,20 @@ static void _autobrew_clear_leg_struct(autobrew_leg * leg){
     leg->_end_time_us = 0;
     leg->fun = NULL;
     leg->trigger = NULL;
-    leg->ctrl = NULL;
+}
+
+/**
+ * \brief Computes the current setpoint given a leg with a endtime, timeout, start power, and delta power.
+*/
+static float _autobrew_get_current_setpoint(autobrew_leg * leg){
+    float current_setpoint = leg->pump_setpoint_start;
+    if(leg->pump_setpoint_delta != 0){
+        float percent_complete = 1;
+        if(leg->_end_time_us > time_us_64()){
+            percent_complete = 1 - (leg->_end_time_us - time_us_64())/(float)leg->timeout_us;
+        }
+        current_setpoint = leg->pump_setpoint_start + percent_complete*leg->pump_setpoint_delta;
+    }
 }
 
 /**
@@ -47,7 +60,6 @@ static void _autobrew_clear_leg_struct(autobrew_leg * leg){
  */
 static void _autobrew_reset_leg(autobrew_leg * leg){
     leg->_end_time_us = 0;
-    if (leg->ctrl != NULL) pid_reset(leg->ctrl);
 }
 
 /**
@@ -69,32 +81,20 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
             leg->_end_time_us = time_us_64() + leg->timeout_us;
             state->pump_setting_changed = true;
         } else {
-            state->pump_setting_changed = false;
+            // Pump only changes after the first tick if setpoint is variable or indirect
+            state->pump_setting_changed = (leg->pump_setpoint_delta != 0) || leg->get_power != NULL;
         }
 
-        // If setpoint has linear change, compute current value and indicate change.
-        pid_data current_setpoint = leg->pump_setpoint_start;
-        if(leg->pump_setpoint_delta != 0){ // Set pump setpoint
-            state->pump_setting_changed = true;
-            float percent_complete = 1;
-            if(leg->_end_time_us > time_us_64()){
-                percent_complete = 1 - (leg->_end_time_us - time_us_64())/(float)leg->timeout_us;
-            }
-            current_setpoint = leg->pump_setpoint_start + percent_complete*leg->pump_setpoint_delta;
-        }
+        // Compute the current setpoint, accounting for linear changes
+        float current_setpoint = _autobrew_get_current_setpoint(leg);
 
-        // Map setpoint to pump power (either raw or through PID)
-        if(leg->ctrl == NULL){
+        // Map setpoint to pump power (either raw or through get_power callback)
+        if(leg->get_power == NULL){
             // No controller. Setpoint is raw controller power
-            state->pump_setting = current_setpoint;
+            state->pump_setting = CLAMP(current_setpoint, 0, 100);
         } else {
-            // PID controller generates pump_setting given setpoint
-            pid_update_setpoint(leg->ctrl, current_setpoint);
-            float raw_input = pid_tick(leg->ctrl);
-            raw_input = (raw_input < 0 ? 0 : raw_input);
-            raw_input = (raw_input > 100 ? 100 : raw_input);
-            state->pump_setting = raw_input;
-            state->pump_setting_changed = true;
+            // External function generates pump_setting given setpoint
+            state->pump_setting = CLAMP(leg->get_power(current_setpoint), 0, 100);
         }
 
         // Compute end condition by .trigger (if available) or timeout.
@@ -116,8 +116,8 @@ int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint
     return PICO_ERROR_NONE;
 }
 
-int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pid_data pump_starting_setpoint, 
-                                    pid_data pump_ending_setpoint, pid ctrl, uint32_t timeout_us, 
+int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, float pump_starting_setpoint, 
+                                    float pump_ending_setpoint, autobrew_get_power power_computer, uint32_t timeout_us, 
                                     autobrew_trigger trigger){
     if(r->_num_legs <= leg_idx) return PICO_ERROR_INVALID_ARG;
 
@@ -126,7 +126,7 @@ int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, pi
     r->_legs[leg_idx].pump_setpoint_delta = pump_ending_setpoint - pump_starting_setpoint;
     r->_legs[leg_idx].trigger = trigger;
     r->_legs[leg_idx].timeout_us = timeout_us;
-    r->_legs[leg_idx].ctrl = ctrl;
+    r->_legs[leg_idx].get_power = power_computer;
     return PICO_ERROR_NONE;
 }
 

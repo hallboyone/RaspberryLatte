@@ -29,15 +29,6 @@
 #include "utils/i2c_bus.h"
 #include "utils/pid.h"
 
-const float BOILER_PID_GAIN_P = 0.05;
-const float BOILER_PID_GAIN_I = 0.00000175;
-const float BOILER_PID_GAIN_D = 0.0005;
-const float BOILER_PID_GAIN_F = 0.00005;
-const float FLOW_PID_GAIN_P = 0.0125;
-const float FLOW_PID_GAIN_I = 0.00004;
-const float FLOW_PID_GAIN_D = 0.0;
-const float FLOW_PID_GAIN_F = 0.0;
-
 const float    SCALE_CONVERSION_MG = -0.152710615479;
 const float FLOW_CONVERSION_UL = 0.5; /**< ml per pulse of pump flow sensor. */
 
@@ -58,29 +49,53 @@ static ulka_pump           pump;
 static const machine_settings*   settings;
 
 /** Autobrew and control objects */
-static pid         heater_pid;
-static pid         flow_pid;
-typedef enum {RESET_SCALE = 0,
-              PREINF_RAMP,
-              PREINF_ON,
-              PREPARE_FLOW,
-              FLOW_CTRL,
+const float BOILER_PID_GAIN_P = 0.05;
+const float BOILER_PID_GAIN_I = 0.00000175;
+const float BOILER_PID_GAIN_D = 0.0005;
+const float BOILER_PID_GAIN_F = 0.00005;
+static pid  heater_pid;
+
+const float FLOW_PID_GAIN_P = 0.0125;
+const float FLOW_PID_GAIN_I = 0.00004;
+const float FLOW_PID_GAIN_D = 0.0;
+const float FLOW_PID_GAIN_F = 0.0;
+static pid  flow_pid;
+
+const float PRESSURE_PID_GAIN_P = 8;
+const float PRESSURE_PID_GAIN_I = 0.0;
+const float PRESSURE_PID_GAIN_D = 0.0;
+const float PRESSURE_PID_GAIN_F = 0.0;
+static pid  pressure_pid;
+typedef enum {PREPARE_AUTOBREW = 0, // Reset all controllers and the scale
+              PREINF_RAMP,          // Ramp up to preinfuse power
+              PREINF_ON,            // Run at the preinfuse power until the system is under pressure or timeout
+              PRESSURE_CTRL,        // Run with regulated pressure until flowrate/output exceeds threshold or timeout
+              FLOW_CTRL,            // Run with regulated flow until output exceeds threshold or timeout
               NUM_LEGS} AUTOBREW_LEGS;
 
 static autobrew_routine autobrew_plan;
 
-/**
- * \brief Helper function for the PID controller. Returns the boiler temp in C.
- */
+/** \brief Helper function for the PID controller. Returns the boiler temp in C. */
 static pid_data read_boiler_thermo_C(){
     return lmt01_read_float(thermo);
 }
 
-/**
- * \brief Helper function that tracks and returns the scale's flowrate
-*/
+/** \brief Helper function that tracks and returns the pumps's flowrate. */
 static pid_data read_pump_flowrate_ul_s(){
     return 1000.0*ulka_pump_get_flow_ml_s(pump);
+}
+
+/** \brief Helper function for pressure PID controller. Returns the pump pressure in bar. */
+static pid_data read_pump_pressure_bar(){
+    return ulka_pump_get_pressure_bar(pump);
+}
+
+static uint8_t get_power_for_pressure(float target_pressure_bar){
+    ulka_pump_prw_for_pressure(pump, target_pressure_bar);
+}
+
+static uint8_t get_power_for_flow(float target_flow_ml_s){
+    pid_tick(flow_pid);
 }
 
 /**
@@ -92,40 +107,31 @@ static void apply_boiler_input(float u){
     slow_pwm_set_float_duty(heater, u);
 }
 
-/** 
- * \brief Returns true if scale is greater than or equal to the current output. 
- */
+/** \brief Reset flow and pressure PIDs and zero scale. */
+static void autobrew_reset_all(){
+    pid_reset(flow_pid);
+    pid_reset(pressure_pid);
+    nau7802_zero(scale);
+}
+
+/** \brief Returns true if scale is greater than or equal to the current output. */
 static bool scale_at_output(){
     return nau7802_at_val_mg(scale, *settings->brew.yield*100);
 }
 
-/**
- * \brief Helper function to zero the scale. Used by the autobrew routine. 
- */
-static void zero_scale(){
-    nau7802_zero(scale);
-}
-
-/**
- * \brief Checks if AC is hot
- * 
- * Looks at the last zerocross time. If not 'too' long ago, then AC is on and function returns true.
- * 
- * \return true AC is on
- * \return false AC is off
- */
-static inline bool is_ac_on(){
-    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
-}
-
-/** \brief Resets the flow-control PID and sets its bias */
-static inline void flow_pid_reset(){
-    pid_reset(flow_pid);
-}
-
 /** \brief Returns true if system is under moderate (3 bars) pressure */
 static inline bool system_under_pressure(){
-    return ulka_pump_get_pressure_bar(pump) > 3.0;
+    const float pressure_threshold = 3; //bar
+    return ulka_pump_get_pressure_bar(pump) > pressure_threshold;
+}
+
+/**
+ * \brief Checks if the last AC zerocross time was within 1 60hz period.
+ * \return True AC is on. False otherwise.
+ */
+static inline bool is_ac_on(){
+    const int64_t period_60hz_us = 1000000/60;
+    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < period_60hz_us);
 }
 
 /**
@@ -145,7 +151,7 @@ static void espresso_machine_autobrew_setup(){
 
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_RAMP, 0,          preinf_pwr, NULL,     preinf_ramp_dur, NULL);
     autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_ON,   preinf_pwr, preinf_pwr, NULL,     preinf_on_dur,   &system_under_pressure);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, FLOW_CTRL,   brew_flow,  brew_flow,  flow_pid, brew_on_dur,     &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, FLOW_CTRL,   brew_flow,  brew_flow,  get_power_for_flow, brew_on_dur,     &scale_at_output);
 
     pid_update_bias(flow_pid, preinf_pwr);
 }
@@ -310,10 +316,12 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup the autobrew first leg that does not depend on machine settings
     autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
-    autobrew_setup_function_call_leg(&autobrew_plan, RESET_SCALE, 0, &zero_scale);
-    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 15, &flow_pid_reset);
+    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_AUTOBREW, 0, &autobrew_reset_all);
     const pid_gains flow_K = {.p = FLOW_PID_GAIN_P, .i = FLOW_PID_GAIN_I, .d = FLOW_PID_GAIN_D, .f = FLOW_PID_GAIN_F};
     flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 0, 100, 25, 100);
+    
+    const pid_gains pressure_K = {.p = PRESSURE_PID_GAIN_P, .i = PRESSURE_PID_GAIN_I, .d = PRESSURE_PID_GAIN_D, .f = PRESSURE_PID_GAIN_F};
+    flow_pid = pid_setup(pressure_K, &read_pump_pressure_bar, NULL, NULL, 0, 100, 50, 100);
 
     // Setup heater as a slow_pwm object
     heater = slow_pwm_setup(HEATER_PWM_PIN, 1260, 64);
