@@ -61,15 +61,11 @@ const float FLOW_PID_GAIN_D = 0.0;
 const float FLOW_PID_GAIN_F = 0.0;
 static pid  flow_pid;
 
-const float PRESSURE_PID_GAIN_P = 8;
-const float PRESSURE_PID_GAIN_I = 0.0;
-const float PRESSURE_PID_GAIN_D = 0.0;
-const float PRESSURE_PID_GAIN_F = 0.0;
-static pid  pressure_pid;
 typedef enum {PREPARE_AUTOBREW = 0, // Reset all controllers and the scale
               PREINF_RAMP,          // Ramp up to preinfuse power
               PREINF_ON,            // Run at the preinfuse power until the system is under pressure or timeout
               PRESSURE_CTRL,        // Run with regulated pressure until flowrate/output exceeds threshold or timeout
+              PREPARE_FLOW,         // Set the flow control bias
               FLOW_CTRL,            // Run with regulated flow until output exceeds threshold or timeout
               NUM_LEGS} AUTOBREW_LEGS;
 
@@ -85,17 +81,13 @@ static pid_data read_pump_flowrate_ul_s(){
     return 1000.0*ulka_pump_get_flow_ml_s(pump);
 }
 
-/** \brief Helper function for pressure PID controller. Returns the pump pressure in bar. */
-static pid_data read_pump_pressure_bar(){
-    return ulka_pump_get_pressure_bar(pump);
-}
-
 static uint8_t get_power_for_pressure(float target_pressure_bar){
-    ulka_pump_prw_for_pressure(pump, target_pressure_bar);
+    return ulka_pump_pressure_to_power(pump, target_pressure_bar);
 }
 
 static uint8_t get_power_for_flow(float target_flow_ml_s){
-    pid_tick(flow_pid);
+    pid_update_setpoint(flow_pid, target_flow_ml_s);
+    return (uint8_t)pid_tick(flow_pid);
 }
 
 /**
@@ -110,8 +102,12 @@ static void apply_boiler_input(float u){
 /** \brief Reset flow and pressure PIDs and zero scale. */
 static void autobrew_reset_all(){
     pid_reset(flow_pid);
-    pid_reset(pressure_pid);
     nau7802_zero(scale);
+}
+
+static void autobrew_set_flow_ctrl_bias(){
+    const float current_power = ulka_pump_get_pwr(pump);
+    pid_update_bias(flow_pid, current_power);
 }
 
 /** \brief Returns true if scale is greater than or equal to the current output. */
@@ -143,17 +139,19 @@ static inline bool is_ac_on(){
  * on. 
  */
 static void espresso_machine_autobrew_setup(){
-    const uint32_t preinf_ramp_dur = *settings->autobrew.preinf_ramp_time * 100000UL;
-    const uint32_t preinf_on_dur   = *settings->autobrew.preinf_timeout * 1000000UL;
-    const uint8_t  preinf_pwr      = *settings->autobrew.preinf_power;
-    const uint32_t brew_on_dur     = *settings->autobrew.timeout * 1000000UL;
-    const uint32_t brew_flow       = *settings->autobrew.flow * 10UL;
+    const uint32_t pi_ramp_dur = *settings->autobrew.preinf_ramp_time * 100000UL;
+    const uint32_t pi_on_dur   = *settings->autobrew.preinf_timeout * 1000000UL;
+    const uint8_t  pi_pwr      = *settings->autobrew.preinf_power;
+    const uint32_t brew_on_dur = *settings->autobrew.timeout * 1000000UL;
+    const uint32_t flowrate    = *settings->autobrew.flow * 10UL;
+    const float    pressure    = 9.0; 
 
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_RAMP, 0,          preinf_pwr, NULL,     preinf_ramp_dur, NULL);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_ON,   preinf_pwr, preinf_pwr, NULL,     preinf_on_dur,   &system_under_pressure);
-    autobrew_setup_linear_setpoint_leg(&autobrew_plan, FLOW_CTRL,   brew_flow,  brew_flow,  get_power_for_flow, brew_on_dur,     &scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_RAMP,   0,        pi_pwr,   NULL,                   pi_ramp_dur, NULL);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PREINF_ON,     pi_pwr,   pi_pwr,   NULL,                   pi_on_dur,   system_under_pressure);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, PRESSURE_CTRL, pressure, pressure, get_power_for_pressure, brew_on_dur, scale_at_output);
+    autobrew_setup_linear_setpoint_leg(&autobrew_plan, FLOW_CTRL,     flowrate, flowrate, get_power_for_flow,     brew_on_dur, scale_at_output);
 
-    pid_update_bias(flow_pid, preinf_pwr);
+    pid_update_bias(flow_pid, pi_pwr);
 }
 
 /**
@@ -317,11 +315,11 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup the autobrew first leg that does not depend on machine settings
     autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
     autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_AUTOBREW, 0, &autobrew_reset_all);
+    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 0, &autobrew_set_flow_ctrl_bias);
+    
+    // Setup flow control PID object
     const pid_gains flow_K = {.p = FLOW_PID_GAIN_P, .i = FLOW_PID_GAIN_I, .d = FLOW_PID_GAIN_D, .f = FLOW_PID_GAIN_F};
     flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, 0, 100, 25, 100);
-    
-    const pid_gains pressure_K = {.p = PRESSURE_PID_GAIN_P, .i = PRESSURE_PID_GAIN_I, .d = PRESSURE_PID_GAIN_D, .f = PRESSURE_PID_GAIN_F};
-    flow_pid = pid_setup(pressure_K, &read_pump_pressure_bar, NULL, NULL, 0, 100, 50, 100);
 
     // Setup heater as a slow_pwm object
     heater = slow_pwm_setup(HEATER_PWM_PIN, 1260, 64);

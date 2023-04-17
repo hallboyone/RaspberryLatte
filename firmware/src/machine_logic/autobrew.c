@@ -14,13 +14,13 @@
 
 #include "utils/macros.h"
 typedef struct _autobrew_leg {
-    float pump_setpoint_start;  /**< \brief Setpoint at start of leg. */
-    float pump_setpoint_delta;  /**< \brief Change in Setpoint over leg. If constant, set to 0. */
-    uint32_t timeout_us;           /**< \brief Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
-    autobrew_fun fun;              /**< \brief Void function to call if FUNCTION_CALL leg. */
-    autobrew_trigger trigger;      /**< \brief Function used to trigger the end of a leg. */
-    autobrew_get_power get_power;  /**< \brief Converts floating point setpoint to pump power. If NULL, then setpoint is power. */
-    uint64_t _end_time_us;         /**< \brief End time of leg. Set the first time the leg is ticked*/
+    float pump_setpoint_start;    /**< \brief Setpoint at start of leg. */
+    float pump_setpoint_delta;    /**< \brief Change in Setpoint over leg. If constant, set to 0. */
+    uint32_t timeout_us;          /**< \brief Maximum duration of the leg in microseconds. Actual length may be shorter if trigger is used.*/
+    autobrew_fun fun;             /**< \brief Void function to call if FUNCTION_CALL leg. */
+    autobrew_trigger trigger;     /**< \brief Function used to trigger the end of a leg. */
+    autobrew_get_power get_power; /**< \brief Converts floating point setpoint to pump power. If NULL, then setpoint is power. */
+    uint64_t _end_time_us;        /**< \brief End time of leg. Set the first time the leg is ticked*/
 } autobrew_leg;
 
 /**
@@ -49,12 +49,14 @@ static float _autobrew_get_current_setpoint(autobrew_leg * leg){
         }
         current_setpoint = leg->pump_setpoint_start + percent_complete*leg->pump_setpoint_delta;
     }
+    return current_setpoint;
 }
 
 /**
- * \brief After a leg is ticked once, an end time is assigned internally. This function clears that end
- * time so it's as if the leg has never been called. If the PID controller is configured, it is also
- * reset.
+ * \brief Reset function leg. 
+ * 
+ * After a leg is ticked once, an end time is assigned internally. This function clears that end
+ * time so it's as if the leg has never been called.
  * 
  * \param leg Pointer to leg that will be reset
  */
@@ -76,24 +78,19 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
         state->pump_setting_changed = true;
         state->finished = true;
     } else { // Linear setpoint leg
-        // If first tick, set the endtime and indicate pump changed. Otherwise, indicate pump unchanged.
-        if(leg->_end_time_us == 0){ 
+        if(leg->_end_time_us == 0){ // If first tick, set the endtime and indicate pump changed.
             leg->_end_time_us = time_us_64() + leg->timeout_us;
             state->pump_setting_changed = true;
-        } else {
-            // Pump only changes after the first tick if setpoint is variable or indirect
+        } else { // Pump only changes after the first tick if setpoint is variable or indirect
             state->pump_setting_changed = (leg->pump_setpoint_delta != 0) || leg->get_power != NULL;
         }
 
         // Compute the current setpoint, accounting for linear changes
         float current_setpoint = _autobrew_get_current_setpoint(leg);
 
-        // Map setpoint to pump power (either raw or through get_power callback)
-        if(leg->get_power == NULL){
-            // No controller. Setpoint is raw controller power
+        if(leg->get_power == NULL){ // No controller. Setpoint is raw controller power
             state->pump_setting = CLAMP(current_setpoint, 0, 100);
-        } else {
-            // External function generates pump_setting given setpoint
+        } else { // External function generates pump_setting given setpoint
             state->pump_setting = CLAMP(leg->get_power(current_setpoint), 0, 100);
         }
 

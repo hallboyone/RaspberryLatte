@@ -71,8 +71,8 @@ uint8_t ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
     return 0;
 }
 
-uint8_t ulka_pump_prw_for_pressure(ulka_pump p, const float target_pressure_bar){
-    if(p->flow_ml_s == NULL || target_pressure_bar < 0) return ulka_pump_pwr_percent(p, 0);
+uint8_t ulka_pump_pressure_to_power(ulka_pump p, const float target_pressure_bar){
+    if(p->flow_ml_s == NULL || target_pressure_bar < 0) return 0;
     
     const float flowrate = ulka_pump_get_flow_ml_s(p);
     for(uint i = 0; i < NUM_LINEAR_REGIONS; i++){
@@ -80,11 +80,11 @@ uint8_t ulka_pump_prw_for_pressure(ulka_pump p, const float target_pressure_bar)
         // the required power and return.
         if(OFFSET[i] + PUMP_GAIN[i]*LINEAR_REGION_SPAN*(i+1) + FLOW_GAIN[i]*flowrate > target_pressure_bar){
             float power = (target_pressure_bar - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
-            return ulka_pump_pwr_percent(p, (power < 0 ? 0 : (uint8_t)power));
+            return CLAMP(power, 0, 100);
         }
     }
     // None of the regions are strong enough. Return full strength.
-    return ulka_pump_pwr_percent(p, 100);
+    return 100;
 }
 
 void ulka_pump_off(ulka_pump p){

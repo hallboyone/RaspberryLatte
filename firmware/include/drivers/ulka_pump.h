@@ -67,12 +67,12 @@ int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, float ml_per_tick);
 uint8_t ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent);
 
 /**
- * \brief Sets the pump power to maintain the target pressure.
- * \param p The ulka_pump that should be regulated.
+ * \brief Converts a target pressure into the required power clipped between 0 and 100.
+ * \param p The ulka_pump object being used
  * \param target_pressure_bar The pressure that is being targeted
  * \returns The pump power required to reach the target pressure, clipped between 0 and 100. 
 */
-uint8_t ulka_pump_prw_for_pressure(ulka_pump p, const float target_pressure_bar)
+uint8_t ulka_pump_pressure_to_power(ulka_pump p, const float target_pressure_bar);
 
 /**
  * \brief Turns the pump off.
