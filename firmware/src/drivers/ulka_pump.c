@@ -109,14 +109,14 @@ float ulka_pump_get_flow_ml_s(ulka_pump p){
 }
 
 float ulka_pump_get_pressure_bar(ulka_pump p){
-    if(p->flow_ml_s == NULL) return 0;
+    if(p->flow_ml_s == NULL || p->power_percent == 0) return 0;
 
-    // Index of the linear region indexed by the percent power
-    const uint8_t active_region = p->power_percent/LINEAR_REGION_SPAN;
-    const float pressure =   OFFSET[active_region] 
-                     + PUMP_GAIN[active_region]*p->power_percent 
-                     + FLOW_GAIN[active_region]*ulka_pump_get_flow_ml_s(p);
-    return (pressure > 0 ? pressure : 0);
+    // Index of the linear region indexed by the percent power (1-10, 11-20, ..., 91-100)
+    const uint8_t active_region = (p->power_percent-1)/LINEAR_REGION_SPAN;
+    const float p_bar = OFFSET[active_region]
+                        + PUMP_GAIN[active_region]*p->power_percent 
+                        + FLOW_GAIN[active_region]*ulka_pump_get_flow_ml_s(p);
+    return (p_bar > 0 ? p_bar : 0);
 }
 
 bool ulka_pump_is_locked(ulka_pump p){
