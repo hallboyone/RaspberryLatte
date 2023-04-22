@@ -170,7 +170,7 @@ static void espresso_machine_autobrew_setup(){
     autobrew_routine * ap = &autobrew_plan;
     autobrew_setup_linear_setpoint_leg(ap, PREINF_RAMP,   0,       pre_pwr, NULL,                   ramp_t, NULL);
     autobrew_setup_linear_setpoint_leg(ap, PREINF_ON,     pre_pwr, pre_pwr, NULL,                   pre_t,  system_under_pressure);
-    autobrew_setup_linear_setpoint_leg(ap, PRESSURE_RAMP, p0_bar,  p_bar,   get_power_for_pressure, ramp_t, NULL);
+    autobrew_setup_linear_setpoint_leg(ap, PRESSURE_RAMP, p0_bar,  p_bar,   get_power_for_pressure, 2*ramp_t, NULL);
     autobrew_setup_linear_setpoint_leg(ap, PRESSURE_CTRL, p_bar,   p_bar,   get_power_for_pressure, brew_t, system_at_flow);
     autobrew_setup_linear_setpoint_leg(ap, FLOW_CTRL,     f_ul_s,  f_ul_s,  get_power_for_flow,     brew_t, scale_at_output);
 }
