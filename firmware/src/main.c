@@ -6,9 +6,6 @@
 
 #include "machine_logic/espresso_machine.h"
 
-#define S_TO_US 1000000
-#define MS_TO_US 1000
-
 int main(){
     // Setup UART
     stdio_uart_init_full(PICO_DEFAULT_UART_INSTANCE, 115200, PICO_DEFAULT_UART_TX_PIN, PICO_DEFAULT_UART_RX_PIN);
@@ -17,8 +14,8 @@ int main(){
     if(espresso_machine_setup(&espresso_machine)) return 1;
 
     // Loop rate limiter
-    absolute_time_t next_loop_time;
-    const uint64_t loop_period_us = 10 * MS_TO_US;
+    absolute_time_t next_loop_time = get_absolute_time();
+    const uint64_t loop_period_ms = 10;
 
     #ifdef PRINT_MACHINE_STATUS_OVER_UART
     const uint16_t ticks_per_message = 20;
@@ -26,7 +23,7 @@ int main(){
     #endif
 
     while(true){
-        next_loop_time = make_timeout_time_us(loop_period_us);
+        next_loop_time = delayed_by_ms(next_loop_time, loop_period_ms);
 
         #ifdef PRINT_MACHINE_STATUS_OVER_UART
         num_ticks += 1;
