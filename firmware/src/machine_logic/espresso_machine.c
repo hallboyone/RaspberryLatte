@@ -162,7 +162,10 @@ static void espresso_machine_update_switches(){
         _state.switches.ac_switch = new_ac_switch;
 
         // If machine has been switched on, rebuild autobrew routine
-        if(new_ac_switch) espresso_machine_autobrew_setup();
+        if(new_ac_switch){
+            espresso_machine_autobrew_setup();
+            pid_reset(heater_pid);
+        }
     } else {
         _state.switches.ac_switch_changed = 0;
     }
@@ -270,11 +273,16 @@ static void espresso_machine_update_boiler(){
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
     #else
-    pid_tick(heater_pid);
+    pid_tick(heater_pid, &_state.boiler.pid_state);
     #endif
 
     _state.boiler.temperature = lmt01_read(thermo);
+    if(_state.boiler.temperature > 1800){
+        slow_pwm_set_duty(heater, 0);
+    }
     _state.boiler.power_level = slow_pwm_get_duty(heater);
+
+    
 }
 
 /**

@@ -67,6 +67,14 @@ typedef struct {
     float f; /**< The feedforward gain. */
 } pid_gains;
 
+typedef struct {
+    float u_p;
+    float u_i;
+    float u_d;
+    float u_ff;
+    float u_bias;
+} pid_viewer;
+
 /**
  * \brief Typedef of pointer to function taking no parameters but returning float. Used to gather
  * sensor data.
@@ -257,7 +265,7 @@ void pid_update_bias(pid controller, float bias);
  * 
  * \param controller The pid object to update.
  */
-float pid_tick(pid controller);
+float pid_tick(pid controller, pid_viewer * viewer);
 
 /**
  * \brief Checks if the plant is at the target setpoint +/- a tolerance

@@ -90,7 +90,7 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
         } else {
             // PID controller generates pump_setting given setpoint
             pid_update_setpoint(leg->ctrl, current_setpoint);
-            float raw_input = pid_tick(leg->ctrl);
+            float raw_input = pid_tick(leg->ctrl, NULL);
             raw_input = (raw_input < 0 ? 0 : raw_input);
             raw_input = (raw_input > 100 ? 100 : raw_input);
             state->pump_setting = raw_input;
