@@ -41,7 +41,7 @@ const float FLOW_PID_GAIN_F = 0.0;
 const float    SCALE_CONVERSION_MG = -0.152710615479;
 const float FLOW_CONVERSION_UL = 0.5; /**< ml per pulse of pump flow sensor. */
 
-static espresso_machine_state _state = {.pump.pump_lock = true}; 
+static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
 
 /** I2C bus connected to RTC, memory, scale ADC, and I2C port */
 static i2c_inst_t *  bus = i2c1;
@@ -68,6 +68,8 @@ typedef enum {RESET_SCALE = 0,
               NUM_LEGS} AUTOBREW_LEGS;
 
 static autobrew_routine autobrew_plan;
+
+static void espresso_machine_e_stop();
 
 /**
  * \brief Helper function for the PID controller. Returns the boiler temp in C.
@@ -276,13 +278,18 @@ static void espresso_machine_update_boiler(){
     pid_tick(heater_pid, &_state.boiler.pid_state);
     #endif
 
-    _state.boiler.temperature = lmt01_read(thermo);
-    if(_state.boiler.temperature > 1800){
+    const int16_t boiler_temp = lmt01_read(thermo);
+    if(_state.boiler.temperature != 0 &&
+       (_state.boiler.temperature - boiler_temp > 16*10 || _state.boiler.temperature - boiler_temp < -16*10)){
+        // If temperature has been set and jumped by +/-10C between readings, something is wrong!
+        espresso_machine_e_stop();
+    } else if(boiler_temp > 16*150){ 
+        // Max temp is 150C. Shut off power.
         slow_pwm_set_duty(heater, 0);
     }
-    _state.boiler.power_level = slow_pwm_get_duty(heater);
 
-    
+    _state.boiler.temperature = boiler_temp;
+    _state.boiler.power_level = slow_pwm_get_duty(heater);
 }
 
 /**
@@ -369,4 +376,17 @@ void espresso_machine_tick(){
     espresso_machine_update_boiler();
     espresso_machine_update_pump();
     espresso_machine_update_leds();
+}
+
+static void espresso_machine_e_stop(){
+    slow_pwm_set_duty(heater, 0);
+    ulka_pump_off(pump);
+    binary_output_mask(solenoid, 0);
+    while(_state.switches.ac_switch){
+        binary_output_mask(leds, 0b111);
+        sleep_ms(200);
+        binary_output_mask(leds, 0b000);
+        sleep_ms(200);
+        espresso_machine_update_switches();
+    }
 }
