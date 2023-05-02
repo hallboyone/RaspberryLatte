@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 
+#include "config/raspberry_latte_config.h"
 #include "pinout.h"
 
 #include "machine_logic/autobrew.h"
@@ -22,6 +23,7 @@
 #include "drivers/lmt01.h"
 #include "drivers/ulka_pump.h"
 
+#include "utils/thermal_runaway_watcher.h"
 #include "utils/gpio_irq_timestamp.h"
 #include "utils/binary_output.h"
 #include "utils/binary_input.h"
@@ -47,6 +49,7 @@ static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperat
 static i2c_inst_t *  bus = i2c1;
 
 /** All the peripheral components for the espresso machine */
+static thermal_runaway_watcher trw;
 static binary_output       leds;
 static binary_input        pump_switch, mode_dial;
 static binary_output       solenoid;
@@ -257,6 +260,20 @@ static void espresso_machine_update_pump(){
  * and ticks its controller.
  */
 static void espresso_machine_update_boiler(){
+    // When switched on, the temp sensor can malfunction. Wait for this to stop
+    if(_state.switches.ac_switch_changed == 1){
+        uint8_t i = 0;
+        const uint8_t num_checks = 50;
+        for(i = 0; i < num_checks; i++){
+            if(lmt01_read(thermo) < 0){
+                break;
+            }
+            sleep_ms(10);
+        }
+        if (i==num_checks){
+            espresso_machine_e_stop();
+        }
+    }
     // Update setpoints
     if(_state.switches.ac_switch){
         if(_state.switches.mode_dial == MODE_STEAM){
@@ -278,18 +295,12 @@ static void espresso_machine_update_boiler(){
     pid_tick(heater_pid, &_state.boiler.pid_state);
     #endif
 
-    const int16_t boiler_temp = lmt01_read(thermo);
-    if(_state.boiler.temperature != 0 &&
-       (_state.boiler.temperature - boiler_temp > 16*10 || _state.boiler.temperature - boiler_temp < -16*10)){
-        // If temperature has been set and jumped by +/-10C between readings, something is wrong!
-        espresso_machine_e_stop();
-    } else if(boiler_temp > 16*150){ 
-        // Max temp is 150C. Shut off power.
-        slow_pwm_set_duty(heater, 0);
-    }
-
-    _state.boiler.temperature = boiler_temp;
+    _state.boiler.temperature = lmt01_read(thermo);
     _state.boiler.power_level = slow_pwm_get_duty(heater);
+
+    if(thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature) < 0){
+        espresso_machine_e_stop();
+    }
 }
 
 /**
@@ -335,7 +346,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
               &apply_boiler_input, 0, 1, 100, 1000);
-
+    trw = thermal_runaway_watcher_setup(THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C,
+                                        THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_16C,
+                                        THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_16C,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_HEAT_16C,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_COOL_16C,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_PERIOD_MS);
+    
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     leds = binary_output_setup(led_pins, 3);
@@ -382,8 +399,9 @@ static void espresso_machine_e_stop(){
     slow_pwm_set_duty(heater, 0);
     ulka_pump_off(pump);
     binary_output_mask(solenoid, 0);
+    const uint8_t error_mask = (thermal_runaway_watcher_state(trw) < 0 ? 1 << (3+thermal_runaway_watcher_state(trw)) : 0b111);
     while(_state.switches.ac_switch){
-        binary_output_mask(leds, 0b111);
+        binary_output_mask(leds, error_mask);
         sleep_ms(200);
         binary_output_mask(leds, 0b000);
         sleep_ms(200);

@@ -1,8 +1,11 @@
-// While heating to a setpoint, the machine must change by the target amount 
-// within the period duration. If it doesn't the heater will be disabled
-#define THERMAL_RUNAWAY_WATCHER_TEMP_CONVERGENCE_PERIOD_S 10
-#define THERMAL_RUNAWAY_WATCHER_TEMP_CONVERGENCE_AMOUNT_C 2
+// Between two temp readings, the temperature must not change by more than this amount.
+#define THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C 10*16
 
-// After settling to a setpoint, the machine will disable the heater if temperature 
-// varies by more than this amount
-#define THERMAL_RUNAWAY_WATCHER_TEMP_HYSTERESIS_LIMIT_C 8 
+// Defines the window over which a change in temperature must be observed while converging to setpoint.
+#define THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_PERIOD_MS 20000
+#define THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_HEAT_16C 2*16
+#define THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_COOL_16C 1*16
+
+// Defines how close to the setpoint counts as convergence and how far counts as divergence
+#define THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_16C 1*16
+#define THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_16C 8*16

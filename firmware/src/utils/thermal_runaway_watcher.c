@@ -15,15 +15,15 @@
 
 typedef struct thermal_runaway_watcher_s {
     thermal_runaway_state state;   /**< \brief The state of the watcher. */
-    uint16_t setpoint;             /**< \brief The latest setpoint of the system. */
-    uint16_t temp;                 /**< \brief The latest temp of the system. */
-    uint16_t temp_max_change;      /**< \brief The maximum the temp can change in a single timestep. */
-    uint16_t temp_convergence_tol; /**< \brief Range around setpoint that counts as converged. */
-    uint16_t temp_divergence_limit;/**< \brief Range around setpoint that must be respected while converged. */
-    uint16_t min_temp_change_heat; /**< \brief The minimum increase in temp during heating within duration. */
-    uint16_t min_temp_change_cool; /**< \brief The minimum decrease in temp during cooling within duration. */
+    int16_t setpoint;             /**< \brief The latest setpoint of the system. */
+    int16_t temp;                 /**< \brief The latest temp of the system. */
+    int16_t temp_max_change;      /**< \brief The maximum the temp can change in a single timestep. */
+    int16_t temp_convergence_tol; /**< \brief Range around setpoint that counts as converged. */
+    int16_t temp_divergence_limit;/**< \brief Range around setpoint that must be respected while converged. */
+    int16_t min_temp_change_heat; /**< \brief The minimum increase in temp during heating within duration. */
+    int16_t min_temp_change_cool; /**< \brief The minimum decrease in temp during cooling within duration. */
     uint32_t min_temp_change_time; /**< \brief The duration for the temp to satisfy it's min-response constraint. */
-    uint16_t temp_change_target;   /**< \brief The target the temperature is trying to cross. */       
+    int16_t temp_change_target;   /**< \brief The target the temperature is trying to cross. */       
     absolute_time_t temp_change_timer_end; /**< \brief End of temp-change window*/  
 } thermal_runaway_watcher_;
 
@@ -45,12 +45,16 @@ thermal_runaway_watcher thermal_runaway_watcher_setup(uint16_t temp_max_change,
     return trw;
 }
 
-thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, uint16_t setpoint, uint16_t temp){
+thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, uint16_t setpoint, int16_t temp){
     if (setpoint == 0){
         trw->state = TRS_OFF;
     } 
     // If not in error state
     else if (trw->state >= 0){
+        if (trw->setpoint == 0){
+            // When machine is switched on, go ahead and manually set temp
+            trw->temp = temp;
+        }
         if ((trw->state == TRS_HEATING || trw->state == TRS_COOLING) && _temp_change_timer_expired(trw)){
             // Passed timeout while heating or cooling
             trw->state = TRS_ERROR_FAILED_TO_CONVERGE;
@@ -106,7 +110,7 @@ void thermal_runaway_watcher_deinit(thermal_runaway_watcher trw){
 #define NUM_TEST_POINTS 32
 
 typedef struct {
-    uint16_t temp;
+    int16_t temp;
     uint16_t setpoint;
     uint32_t delay;
     thermal_runaway_state state;
