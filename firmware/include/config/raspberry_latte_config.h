@@ -1,3 +1,9 @@
+/**
+ * Length of time after powering on that the boiler and pump remain inactive. Let's transient voltages 
+ * settle out before activating the machine.
+ */
+#define AC_SETTLING_TIME_MS 500
+
 // Between two temp readings, the temperature must not change by more than this amount.
 #define THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C 10*16
 
