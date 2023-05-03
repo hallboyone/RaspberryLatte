@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 
+#include "config/raspberry_latte_config.h"
 #include "pinout.h"
 
 #include "machine_logic/autobrew.h"
@@ -22,6 +23,7 @@
 #include "drivers/lmt01.h"
 #include "drivers/ulka_pump.h"
 
+#include "utils/thermal_runaway_watcher.h"
 #include "utils/gpio_irq_timestamp.h"
 #include "utils/binary_output.h"
 #include "utils/binary_input.h"
@@ -35,14 +37,16 @@ const float FLOW_CONVERSION_UL      = 0.5; /**< ml per pulse of pump flow sensor
 const float PREINF_END_PRESSURE_BAR = 3.0;
 const float BREW_PRESSURE_BAR       = 9.0;
 
-static espresso_machine_state _state = {.pump.pump_lock = true}; 
+static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
 
 /** I2C bus connected to RTC, memory, scale ADC, and I2C port */
 static i2c_inst_t * bus = i2c1;
 
 /** All the peripheral components for the espresso machine */
+static thermal_runaway_watcher trw;
 static binary_output leds;
 static binary_input  pump_switch, mode_dial;
+static absolute_time_t     ac_switched_on_time;
 static binary_output solenoid;
 static slow_pwm      heater;
 static lmt01         thermo; 
@@ -74,6 +78,8 @@ typedef enum {PREPARE_AUTOBREW = 0, // Reset all controllers and the scale
               NUM_LEGS} AUTOBREW_LEGS;
 
 static autobrew_routine autobrew_plan;
+
+static void espresso_machine_e_stop();
 
 /**
  * \brief Checks if the last AC zerocross time was within 1 60hz period.
@@ -138,6 +144,12 @@ static uint8_t get_power_for_pressure(float target_pressure_bar){
     return ulka_pump_pressure_to_power(pump, target_pressure_bar);
 }
 
+/** \brief Checks if AC has been on for 200ms so that transient spikes can die out. */
+static inline bool is_ac_settled(){
+    return absolute_time_diff_us(ac_switched_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
+}
+
+
 /** \brief Returns the pump power needed to regulated to the target flow rate.
  * 
  * The flow_ctrl PID object is updated to the new setpoint, ticked, and the current input is returned.
@@ -147,7 +159,7 @@ static uint8_t get_power_for_pressure(float target_pressure_bar){
 */
 static uint8_t get_power_for_flow(float target_flow_ml_s){
     pid_update_setpoint(flow_pid, target_flow_ml_s);
-    return (uint8_t)pid_tick(flow_pid);
+    return (uint8_t)pid_tick(flow_pid, NULL);
 }
 
 /**
@@ -186,8 +198,12 @@ static void espresso_machine_update_switches(){
         _state.switches.ac_switch_changed = (_state.switches.ac_switch ? -1 : 1);
         _state.switches.ac_switch = new_ac_switch;
 
-        // If machine has been switched on, rebuild autobrew routine
-        if(new_ac_switch) espresso_machine_autobrew_setup();
+        // If machine has been switched on...
+        if(new_ac_switch){
+            ac_switched_on_time = get_absolute_time();
+            espresso_machine_autobrew_setup();
+            pid_reset(heater_pid);
+        }
     } else {
         _state.switches.ac_switch_changed = 0;
     }
@@ -230,7 +246,7 @@ static void espresso_machine_update_settings(){
 */
 static void espresso_machine_update_pump(){
     // Lock the pump if AC is off OR pump is on and the mode has changed or it has been locked already.
-    if(!_state.switches.ac_switch 
+    if(!_state.switches.ac_switch || !is_ac_settled() || thermal_runaway_watcher_error(trw)
        || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || ulka_pump_is_locked(pump)))){
         ulka_pump_lock(pump);
     } else {
@@ -278,7 +294,7 @@ static void espresso_machine_update_pump(){
  */
 static void espresso_machine_update_boiler(){
     // Update setpoints
-    if(_state.switches.ac_switch){
+    if(_state.switches.ac_switch && is_ac_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
             _state.boiler.setpoint = 1.6*(*settings->steam.temp);
         } else if(_state.switches.mode_dial == MODE_HOT){
@@ -290,15 +306,22 @@ static void espresso_machine_update_boiler(){
         _state.boiler.setpoint = 0;
     }
 
-    pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
+    _state.boiler.temperature = lmt01_read(thermo);
 
+    if(thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature) < 0){
+        espresso_machine_e_stop(); // Shut down pump and boiler
+        _state.boiler.setpoint = 0;
+    }
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
     #else
-    pid_tick(heater_pid);
+    else {
+        // If no thermal runaway
+        pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
+        pid_tick(heater_pid, &_state.boiler.pid_state);
+    }
     #endif
-
-    _state.boiler.temperature = lmt01_read(thermo);
+    
     _state.boiler.power_level = slow_pwm_get_duty(heater);
 }
 
@@ -311,14 +334,20 @@ static void espresso_machine_update_boiler(){
  */
 static void espresso_machine_update_leds(){
     if(_state.switches.ac_switch){
-        const bool led0 = _state.switches.ac_switch;
-        const bool led1 = _state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5);
-        const bool led2 = _state.switches.ac_switch 
-                          && !_state.switches.pump_switch 
-                          && nau7802_at_val_mg(scale, *settings->brew.dose *100);
-        binary_output_put(leds, 0, led0);
-        binary_output_put(leds, 1, led1);
-        binary_output_put(leds, 2, led2);
+        uint8_t led_state = 0;
+        if(thermal_runaway_watcher_error(trw)){
+            // If errored out, flash error state
+            const uint LED_TOGGLE_PERIOD_MS = 512;
+            if (to_ms_since_boot(get_absolute_time())%LED_TOGGLE_PERIOD_MS > (LED_TOGGLE_PERIOD_MS/2)){
+                led_state = (1 << (3+thermal_runaway_watcher_state(trw)));
+            }
+        } else {
+            led_state = (_state.switches.ac_switch) << 2|
+                        (_state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5)) << 1 |
+                        (_state.switches.ac_switch && !_state.switches.pump_switch 
+                        && nau7802_at_val_mg(scale, *settings->brew.dose *100)) << 0;
+        }
+        binary_output_mask(leds, led_state);
     } else {
         binary_output_mask(leds, settings->ui_mask);
     }
@@ -347,7 +376,13 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
               &apply_boiler_input, 0, 1, 100, 1000);
-
+    trw = thermal_runaway_watcher_setup(THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C,
+                                        THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_16C,
+                                        THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_16C,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_HEAT_16C,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_COOL_16C,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_PERIOD_MS);
+    
     // Setup the LED binary output
     const uint8_t led_pins[3] = {LED0_PIN, LED1_PIN, LED2_PIN};
     leds = binary_output_setup(led_pins, 3);
@@ -388,4 +423,10 @@ void espresso_machine_tick(){
     espresso_machine_update_boiler();
     espresso_machine_update_pump();
     espresso_machine_update_leds();
+}
+
+static void espresso_machine_e_stop(){
+    slow_pwm_set_duty(heater, 0);
+    ulka_pump_off(pump);
+    binary_output_mask(solenoid, 0);
 }

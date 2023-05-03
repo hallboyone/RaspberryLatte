@@ -49,7 +49,9 @@
         "gpio_irq_timestamp.h": "c",
         "flow_meter.h": "c",
         "machine_settings.h": "c",
-        "macros.h": "c"
+        "macros.h": "c",
+        "raspberry_latte_config.h": "c",
+        "thermal_runaway_watcher.h": "c"
     },
     "cSpell.words": [
         "ABSP",

@@ -92,6 +92,7 @@ static void _autobrew_leg_tick(autobrew_leg * leg, autobrew_state * state){
             state->pump_setting = CLAMP(current_setpoint, 0, 100);
         } else { // External function generates pump_setting given setpoint
             state->pump_setting = CLAMP(leg->get_power(current_setpoint), 0, 100);
+
         }
 
         // Compute end condition by .trigger (if available) or timeout.
