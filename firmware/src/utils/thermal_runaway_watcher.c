@@ -14,7 +14,7 @@
 #include "config/raspberry_latte_config.h"
 
 typedef struct thermal_runaway_watcher_s {
-    thermal_runaway_state state;   /**< \brief The state of the watcher. */
+    thermal_runaway_state state;  /**< \brief The state of the watcher. */
     int16_t setpoint;             /**< \brief The latest setpoint of the system. */
     int16_t temp;                 /**< \brief The latest temp of the system. */
     int16_t temp_max_change;      /**< \brief The maximum the temp can change in a single timestep. */

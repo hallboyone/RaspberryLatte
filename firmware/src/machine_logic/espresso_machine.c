@@ -52,6 +52,7 @@ static i2c_inst_t *  bus = i2c1;
 static thermal_runaway_watcher trw;
 static binary_output       leds;
 static binary_input        pump_switch, mode_dial;
+static absolute_time_t     ac_switched_on_time;
 static binary_output       solenoid;
 static slow_pwm            heater;
 static lmt01               thermo; 
@@ -123,6 +124,11 @@ static inline bool is_ac_on(){
     return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
 }
 
+/** \brief Checks if AC has been on for 200ms so that transient spikes can die out. */
+static inline bool ac_settled(){
+    return absolute_time_diff_us(ac_switched_on_time, get_absolute_time()) > 200000;
+}
+
 /** \brief Resets the flow-control PID and sets its bias */
 static inline void flow_pid_reset(){
     pid_reset(flow_pid);
@@ -166,8 +172,9 @@ static void espresso_machine_update_switches(){
         _state.switches.ac_switch_changed = (_state.switches.ac_switch ? -1 : 1);
         _state.switches.ac_switch = new_ac_switch;
 
-        // If machine has been switched on, rebuild autobrew routine
+        // If machine has been switched on...
         if(new_ac_switch){
+            ac_switched_on_time = get_absolute_time();
             espresso_machine_autobrew_setup();
             pid_reset(heater_pid);
         }
@@ -213,7 +220,7 @@ static void espresso_machine_update_settings(){
 */
 static void espresso_machine_update_pump(){
     // Lock the pump if AC is off OR pump is on and the mode has changed or it has been locked already.
-    if(!_state.switches.ac_switch 
+    if(!_state.switches.ac_switch || !ac_settled()
        || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || ulka_pump_is_locked(pump)))){
         ulka_pump_lock(pump);
     } else {
@@ -260,22 +267,8 @@ static void espresso_machine_update_pump(){
  * and ticks its controller.
  */
 static void espresso_machine_update_boiler(){
-    // When switched on, the temp sensor can malfunction. Wait for this to stop
-    if(_state.switches.ac_switch_changed == 1){
-        uint8_t i = 0;
-        const uint8_t num_checks = 50;
-        for(i = 0; i < num_checks; i++){
-            if(lmt01_read(thermo) < 0){
-                break;
-            }
-            sleep_ms(10);
-        }
-        if (i==num_checks){
-            espresso_machine_e_stop();
-        }
-    }
     // Update setpoints
-    if(_state.switches.ac_switch){
+    if(_state.switches.ac_switch && ac_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
             _state.boiler.setpoint = 1.6*(*settings->steam.temp);
         } else if(_state.switches.mode_dial == MODE_HOT){
