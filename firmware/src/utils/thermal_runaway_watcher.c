@@ -101,6 +101,10 @@ thermal_runaway_state thermal_runaway_watcher_state(thermal_runaway_watcher trw)
     return trw->state;
 }
 
+bool thermal_runaway_watcher_error(thermal_runaway_watcher trw){
+    return thermal_runaway_watcher_state(trw) < 0;
+}
+
 void thermal_runaway_watcher_deinit(thermal_runaway_watcher trw){
     free(trw);
 }

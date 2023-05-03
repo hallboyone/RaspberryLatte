@@ -62,6 +62,9 @@ thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, 
 */
 thermal_runaway_state thermal_runaway_watcher_state(thermal_runaway_watcher trw);
 
+/** \brief Returns true if thermal runaway has been detected. */
+bool thermal_runaway_watcher_error(thermal_runaway_watcher trw);
+
 /** \brief Destroy the thermal_runaway_watcher object. 
  * \param trw The thermal_runaway_watcher object to destroy.
 */
