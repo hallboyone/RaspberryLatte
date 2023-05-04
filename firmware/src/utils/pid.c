@@ -380,7 +380,7 @@ void pid_update_bias(pid controller, float bias){
     controller->bias = bias;
 }
 
-float pid_tick(pid controller){
+float pid_tick(pid controller, pid_viewer * viewer){
     if(absolute_time_diff_us(get_absolute_time(), controller->_next_tick_time) < 0){
         controller->_next_tick_time = delayed_by_ms(get_absolute_time(), controller->min_time_between_ticks_ms);
         const datapoint new_reading = {.t = ms_since_boot(), .v = controller->read_fb()};
@@ -414,6 +414,13 @@ float pid_tick(pid controller){
         
         // Sum and clip input
         float input = u_p + u_i + u_d + u_ff + u_b;
+        if(viewer != NULL){
+            viewer->u_p = u_p;
+            viewer->u_i = u_i;
+            viewer->u_d = u_d;
+            viewer->u_ff = u_ff;
+            viewer->u_bias = u_b;
+        }
         input = (input < controller->u_lb ? controller->u_lb : input);
         input = (input > controller->u_ub ? controller->u_ub : input);
 

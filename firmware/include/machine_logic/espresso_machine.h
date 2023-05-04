@@ -25,6 +25,8 @@
 #define ESPRESSO_MACHINE_H
 #include "pico/stdlib.h"
 
+#include "utils/pid.h"
+
 /** \brief The different modes of the espresso machine corresponding to the 4P dial */
 enum espresso_machine_modes {MODE_STEAM, MODE_HOT, MODE_MANUAL, MODE_AUTO};
 
@@ -49,6 +51,7 @@ typedef struct {
     uint8_t power_level;  /**< \brief Current power level applied to the boiler. */
     uint16_t error_sum;   /**< \brief Current error sum of the boiler's controller. */
     uint16_t error_slope; /**< \brief Current error slope of the boiler's controller. */
+    pid_viewer pid_state;
 } espresso_machine_boiler_state;
 
 /**
