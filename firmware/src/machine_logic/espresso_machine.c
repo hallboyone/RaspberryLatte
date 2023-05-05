@@ -78,6 +78,10 @@ static inline bool is_ac_on(){
     return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < period_60hz_us);
 }
 
+/** \brief Checks if AC has been on for 200ms so that transient spikes can die out. */
+static inline bool is_ac_settled(){
+    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
+}
 
 /** \brief Helper function for the PID controller. Returns the boiler temp in C. */
 static pid_data read_boiler_thermo_C(){
@@ -131,12 +135,6 @@ static bool system_under_pressure(){
 static uint8_t get_power_for_pressure(float target_pressure_bar){
     return ulka_pump_pressure_to_power(pump, target_pressure_bar);
 }
-
-/** \brief Checks if AC has been on for 200ms so that transient spikes can die out. */
-static inline bool is_ac_settled(){
-    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
-}
-
 
 /** \brief Returns the pump power needed to regulated to the target flow rate.
  * 
