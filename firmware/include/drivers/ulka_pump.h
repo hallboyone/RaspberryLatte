@@ -2,9 +2,11 @@
  * \defgroup ulka_pump Ulka Pump Library
  * \version 0.1
  * 
- * \brief Abstracts the use of Ulka vibratory pumps. Writes percentage power to the pump. If a
- * flow_meter is configured, then the current flow and current pressure can be computed. Note
- * that pressure is computed from flow and may be inaccurate.
+ * \brief Abstracts the use of Ulka vibratory pumps. 
+ * 
+ * Writes percentage power to the pump. If a flow_meter is configured, then the current 
+ * flow and current pressure can be computed. Note that pressure is computed from flow 
+ * and may be inaccurate.
  * 
  * \ingroup drivers
  * @{
