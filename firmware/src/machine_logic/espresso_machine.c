@@ -32,9 +32,6 @@
 #include "utils/pid.h"
 #include "utils/macros.h"
 
-const float PREINF_END_PRESSURE_BAR = 3.0;
-const float BREW_PRESSURE_BAR       = 9.0;
-
 /** An internal variable that collects the current state of the machine. */
 static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
 
@@ -124,7 +121,7 @@ static bool system_at_flow(){
 
 /** \brief Returns true if system is under pressure */
 static bool system_under_pressure(){
-    return ulka_pump_get_pressure_bar(pump) > PREINF_END_PRESSURE_BAR;
+    return ulka_pump_get_pressure_bar(pump) > AUTOBREW_PREINF_END_PRESSURE_BAR;
 }
 
 /** \brief Returns the pump power required to hit target pressure (clipped between 0 and 100).
@@ -167,8 +164,8 @@ static void espresso_machine_autobrew_setup(){
     const uint8_t  pre_pwr = *settings->autobrew.preinf_power;
     const uint32_t brew_t  = *settings->autobrew.timeout * 1000000UL;
     const uint32_t f_ul_s  = *settings->autobrew.flow * 10UL;
-    const float    p0_bar  = PREINF_END_PRESSURE_BAR;
-    const float    p_bar   = BREW_PRESSURE_BAR; 
+    const float    p0_bar  = AUTOBREW_PREINF_END_PRESSURE_BAR;
+    const float    p_bar   = AUTOBREW_BREW_PRESSURE_BAR; 
     
     autobrew_routine * ap = &autobrew_plan;
     autobrew_setup_linear_setpoint_leg(ap, PREINF_RAMP,   0,       pre_pwr, NULL,                   ramp_t, NULL);
