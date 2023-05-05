@@ -31,35 +31,24 @@
 #include "utils/i2c_bus.h"
 #include "utils/pid.h"
 
-const float BOILER_PID_GAIN_P = 0.05;
-const float BOILER_PID_GAIN_I = 0.00000175;
-const float BOILER_PID_GAIN_D = 0.0005;
-const float BOILER_PID_GAIN_F = 0.00005;
-const float FLOW_PID_GAIN_P = 0.0125;
-const float FLOW_PID_GAIN_I = 0.00004;
-const float FLOW_PID_GAIN_D = 0.0;
-const float FLOW_PID_GAIN_F = 0.0;
-
-const float    SCALE_CONVERSION_MG = -0.152710615479;
-const float FLOW_CONVERSION_UL = 0.5; /**< ml per pulse of pump flow sensor. */
-
+/** An internal variable that collects the current state of the machine. */
 static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
 
-/** I2C bus connected to RTC, memory, scale ADC, and I2C port */
+/** I2C bus connected to memory, scale ADC, and I2C port */
 static i2c_inst_t *  bus = i2c1;
 
-/** All the peripheral components for the espresso machine */
-static thermal_runaway_watcher trw;
-static binary_output       leds;
-static binary_input        pump_switch, mode_dial;
-static absolute_time_t     ac_switched_on_time;
-static binary_output       solenoid;
-static slow_pwm            heater;
-static lmt01               thermo; 
-static nau7802             scale;
-static ulka_pump           pump;
+static thermal_runaway_watcher trw;         /**< Watches the boiler state to make sure it's behaving as expected. */
+static binary_output           leds;        /**< The three LEDs indicating to the user the machine's state. */
+static binary_input            pump_switch; /**< Monitors the state of the pump switch. */
+static binary_input            mode_dial;   /**< Monitors the state of the mode dial. */
+static absolute_time_t         ac_on_time;  /**< Records the time of when the machine was switched on. */
+static binary_output           solenoid;    /**< Drives the digital output for the solenoid. */
+static slow_pwm                heater;      /**< PWM signal for the SSR driving the boiler. */
+static lmt01                   thermo;      /**< Boiler thermometer. */
+static nau7802                 scale;       /**< Output scale. */
+static ulka_pump               pump;        /**< The vibratory pump. */
 
-static const machine_settings*   settings;
+static const machine_settings* settings;
 
 /** Autobrew and control objects */
 static pid         heater_pid;
@@ -73,6 +62,7 @@ typedef enum {RESET_SCALE = 0,
 
 static autobrew_routine autobrew_plan;
 
+/** Shuts down the pump and boiler. */
 static void espresso_machine_e_stop();
 
 /**
@@ -126,7 +116,7 @@ static inline bool is_ac_on(){
 
 /** \brief Checks if AC has been on for 200ms so that transient spikes can die out. */
 static inline bool is_ac_settled(){
-    return absolute_time_diff_us(ac_switched_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
+    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
 }
 
 /** \brief Resets the flow-control PID and sets its bias */
@@ -174,7 +164,7 @@ static void espresso_machine_update_switches(){
 
         // If machine has been switched on...
         if(new_ac_switch){
-            ac_switched_on_time = get_absolute_time();
+            ac_on_time = get_absolute_time();
             espresso_machine_autobrew_setup();
             pid_reset(heater_pid);
         }
@@ -346,8 +336,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     // Setup heater as a slow_pwm object
     heater = slow_pwm_setup(HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
-    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, 
-              &apply_boiler_input, 0, 1, 100, 1000);
+    heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, &apply_boiler_input, 0, 1, 100, 1000);
     trw = thermal_runaway_watcher_setup(THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C,
                                         THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_16C,
                                         THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_16C,
@@ -363,12 +352,12 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
     const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
 
-    pump_switch = binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, 10000, false, false);
-    mode_dial = binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, 75000, false, true);
+    pump_switch = binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, PUMP_SWITCH_DEBOUNCE_DURATION_US, false, false);
+    mode_dial = binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, MODE_DIAL_DEBOUNCE_DURATION_US, false, true);
 
     // Setup the pump
     pump = ulka_pump_setup(AC_0CROSS_PIN, PUMP_OUT_PIN, AC_0CROSS_SHIFT, ZEROCROSS_EVENT_RISING);
-    ulka_pump_setup_flow_meter(pump, FLOW_RATE_PIN, FLOW_CONVERSION_UL);
+    ulka_pump_setup_flow_meter(pump, FLOW_RATE_PIN, PULSE_TO_FLOW_CONVERSION_ML);
 
     // Setup solenoid as a binary output
     uint8_t solenoid_pin [1] = {SOLENOID_PIN};

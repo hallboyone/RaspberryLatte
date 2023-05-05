@@ -4,6 +4,20 @@
  */
 #define AC_SETTLING_TIME_MS 500
 
+#define BOILER_PID_GAIN_P 0.05
+#define BOILER_PID_GAIN_I 0.00000175
+#define BOILER_PID_GAIN_D 0.0
+#define BOILER_PID_GAIN_F 0.00005
+#define FLOW_PID_GAIN_P   0.0125
+#define FLOW_PID_GAIN_I   0.00004
+#define FLOW_PID_GAIN_D   0.0
+#define FLOW_PID_GAIN_F   0.0
+
+#define SCALE_CONVERSION_MG -0.152710615479
+
+/** ml per pulse of pump flow sensor. */
+#define PULSE_TO_FLOW_CONVERSION_ML  0.5 
+
 // Between two temp readings, the temperature must not change by more than this amount.
 #define THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C 10*16
 
@@ -15,3 +29,6 @@
 // Defines how close to the setpoint counts as convergence and how far counts as divergence
 #define THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_16C 1*16
 #define THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_16C  8*16
+
+#define PUMP_SWITCH_DEBOUNCE_DURATION_US 10000
+#define MODE_DIAL_DEBOUNCE_DURATION_US 75000
