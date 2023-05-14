@@ -64,8 +64,6 @@ typedef enum {PREPARE_AUTOBREW = 0, // Reset all controllers and the scale
               FLOW_CTRL,            // Run with regulated flow until output exceeds threshold or timeout
               NUM_LEGS} AUTOBREW_LEGS;
 
-static autobrew_routine autobrew_plan;
-
 /** Shuts down the pump and boiler. */
 static void espresso_machine_e_stop();
 
@@ -165,6 +163,9 @@ static void espresso_machine_autobrew_setup(){
     const float    p0_bar  = AUTOBREW_PREINF_END_PRESSURE_BAR;
     const float    p_bar   = AUTOBREW_BREW_PRESSURE_BAR; 
     
+    autobrew_routine_setup();
+    uint8_t pre_inf_ramp = autobrew_add_leg(-1, 0, pre_pwr, ramp_t);
+    autobrew_configure_leg_setup_fun()
     autobrew_routine * ap = &autobrew_plan;
     autobrew_setup_linear_setpoint_leg(ap, PREINF_RAMP,   0,       pre_pwr, NULL,                   ramp_t, NULL);
     autobrew_setup_linear_setpoint_leg(ap, PREINF_ON,     pre_pwr, pre_pwr, NULL,                   pre_t,  system_under_pressure);
