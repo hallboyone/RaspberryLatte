@@ -64,6 +64,14 @@ typedef enum {PREPARE_AUTOBREW = 0, // Reset all controllers and the scale
               FLOW_CTRL,            // Run with regulated flow until output exceeds threshold or timeout
               NUM_LEGS} AUTOBREW_LEGS;
 
+static uint8_t autobrew_trigger_scale;
+static uint8_t autobrew_trigger_pressure;
+static uint8_t autobrew_trigger_flow;
+static uint8_t autobrew_mapping_flow;
+static uint8_t autobrew_mapping_pressure;
+static uint8_t autobrew_setup_zero_scale;
+static uint8_t autobrew_setup_reset_flow_pid;
+
 /** Shuts down the pump and boiler. */
 static void espresso_machine_e_stop();
 
@@ -100,30 +108,30 @@ static pid_data read_pump_flowrate_ul_s(){
     return 1000.0*ulka_pump_get_flow_ml_s(pump);
 }
 
-/** \brief Reset flow and pressure PIDs and zero scale. */
-static void autobrew_zero_scale(){
+/** \brief Zero scale. Helper for autobrew. */
+static void zero_scale(){
     nau7802_zero(scale);
 }
 
 /** \brief Reset flow control and set the bias to the current pump power. */
-static void autobrew_setup_flow_ctrl(){
+static void setup_flow_ctrl(){
     pid_reset(flow_pid);
     pid_update_bias(flow_pid, ulka_pump_get_pwr(pump));
 }
 
 /** \brief Returns true if scale is greater than or equal to the current output. */
-static bool scale_at_output(){
-    return nau7802_at_val_mg(scale, *settings->brew.yield*100);
+static bool scale_at_val(uint16_t val_mg){
+    return nau7802_at_val_mg(scale, val_mg);
 }
 
 /** \brief Returns true if flowrate is greater than target flow */
-static bool system_at_flow(){
-    return 100.0*ulka_pump_get_flow_ml_s(pump) >= *settings->autobrew.flow;
+static bool system_at_flow(uint16_t flow_ul_ds){
+    return 100.0*ulka_pump_get_flow_ml_s(pump) >= flow_ul_ds;
 }
 
 /** \brief Returns true if system is under pressure */
-static bool system_under_pressure(){
-    return ulka_pump_get_pressure_bar(pump) > AUTOBREW_PREINF_END_PRESSURE_BAR;
+static bool system_at_pressure(uint16_t pressure_mbar){
+    return ulka_pump_get_pressure_bar(pump) > (pressure_mbar/1000.);
 }
 
 /** \brief Returns the pump power required to hit target pressure (clipped between 0 and 100).
@@ -159,19 +167,25 @@ static void espresso_machine_autobrew_setup(){
     const uint32_t pre_t   = *settings->autobrew.preinf_timeout * 1000000UL;
     const uint8_t  pre_pwr = *settings->autobrew.preinf_power;
     const uint32_t brew_t  = *settings->autobrew.timeout * 1000000UL;
-    const uint32_t f_ul_s  = *settings->autobrew.flow * 10UL;
-    const float    p0_bar  = AUTOBREW_PREINF_END_PRESSURE_BAR;
-    const float    p_bar   = AUTOBREW_BREW_PRESSURE_BAR; 
+    const uint32_t f_ul_ds = *settings->autobrew.flow;
+    const uint16_t yield   = *settings->brew.yield;
     
-    autobrew_routine_setup();
-    uint8_t pre_inf_ramp = autobrew_add_leg(-1, 0, pre_pwr, ramp_t);
-    autobrew_configure_leg_setup_fun()
-    autobrew_routine * ap = &autobrew_plan;
-    autobrew_setup_linear_setpoint_leg(ap, PREINF_RAMP,   0,       pre_pwr, NULL,                   ramp_t, NULL);
-    autobrew_setup_linear_setpoint_leg(ap, PREINF_ON,     pre_pwr, pre_pwr, NULL,                   pre_t,  system_under_pressure);
-    autobrew_setup_linear_setpoint_leg(ap, PRESSURE_RAMP, p0_bar,  p_bar,   get_power_for_pressure, 2*ramp_t, NULL);
-    autobrew_setup_linear_setpoint_leg(ap, PRESSURE_CTRL, p_bar,   p_bar,   get_power_for_pressure, brew_t, system_at_flow);
-    autobrew_setup_linear_setpoint_leg(ap, FLOW_CTRL,     f_ul_s,  f_ul_s,  get_power_for_flow,     brew_t, scale_at_output);
+    uint8_t leg_id;
+    autobrew_clear_routine();
+    leg_id = autobrew_add_leg(-1, 0, pre_pwr, ramp_t);
+    autobrew_configure_leg_setup_fun(leg_id, autobrew_setup_zero_scale, true);
+
+    leg_id = autobrew_add_leg(-1, pre_pwr, pre_pwr, pre_t);
+    autobrew_configure_leg_trigger(leg_id, autobrew_trigger_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR);
+
+    leg_id = autobrew_add_leg(autobrew_mapping_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, 2*ramp_t);
+    
+    leg_id = autobrew_add_leg(autobrew_mapping_pressure, AUTOBREW_BREW_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, brew_t);
+    autobrew_configure_leg_trigger(leg_id, autobrew_trigger_flow, f_ul_ds);
+
+    leg_id = autobrew_add_leg(autobrew_mapping_flow, f_ul_ds, f_ul_ds, brew_t);
+    autobrew_configure_leg_trigger(leg_id, autobrew_trigger_scale, yield);
+    autobrew_configure_leg_setup_fun(leg_id, autobrew_setup_reset_flow_pid, true);
 }
 
 /**
@@ -244,7 +258,7 @@ static void espresso_machine_update_pump(){
         || ulka_pump_is_locked(pump) 
         || MODE_STEAM == _state.switches.mode_dial){
         // If the pump is locked, switched off, or in steam mode
-        autobrew_routine_reset(&autobrew_plan);
+        autobrew_reset();
         ulka_pump_off(pump);
         binary_output_put(solenoid, 0, 0);
 
@@ -257,10 +271,10 @@ static void espresso_machine_update_pump(){
         binary_output_put(solenoid, 0, 1);
 
     } else if (MODE_AUTO ==_state.switches.mode_dial){
-        if(!autobrew_routine_tick(&autobrew_plan)){
+        if(!autobrew_routine_tick()){
             binary_output_put(solenoid, 0, 1);
-            if(autobrew_plan.state.pump_setting_changed){
-                ulka_pump_pwr_percent(pump, autobrew_plan.state.pump_setting);
+            if(autobrew_pump_changed()){
+                ulka_pump_pwr_percent(pump, autobrew_pump_power());
             }
         } else {
             ulka_pump_off(pump);
@@ -349,11 +363,16 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     settings = machine_settings_setup(mb85_fram_setup(bus, 0x00, NULL));
 
-    // Setup the autobrew first leg that does not depend on machine settings
-    autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
-    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_AUTOBREW, 0, &autobrew_zero_scale);
-    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 0, &autobrew_setup_flow_ctrl);
-    
+    autobrew_init();
+    autobrew_trigger_scale        = autobrew_register_trigger(&scale_at_val);
+    autobrew_trigger_pressure     = autobrew_register_trigger(&system_at_pressure);
+    autobrew_trigger_flow         = autobrew_register_trigger(&system_at_flow);
+    autobrew_mapping_flow         = autobrew_register_mapping(&get_power_for_flow);
+    autobrew_mapping_pressure     = autobrew_register_mapping(&get_power_for_pressure);
+    autobrew_setup_zero_scale     = autobrew_register_setup_fun(&zero_scale);
+    autobrew_setup_reset_flow_pid = autobrew_register_setup_fun(&setup_flow_ctrl);
+
+
     // Setup flow control PID object
     const pid_gains flow_K = {.p = FLOW_PID_GAIN_P, .i = FLOW_PID_GAIN_I, .d = FLOW_PID_GAIN_D, .f = FLOW_PID_GAIN_F};
     flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, -100, 100, 25, 100);

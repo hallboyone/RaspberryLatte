@@ -34,6 +34,8 @@ static autobrew_leg _routine[AUTOBREW_LEG_MAX_NUM];
 static uint8_t _num_legs = 0;
 static uint8_t _current_leg = 0;
 static absolute_time_t _leg_end_time;
+static uint8_t _current_power;
+static bool _pump_changed;
 
 /**
  * \brief Initialize all leg struct values to 0 or NULL.
@@ -65,20 +67,11 @@ static uint16_t _autobrew_get_current_setpoint(){
 
 /**
  * \brief Takes a leg and updates the state based on the current time. 
- * 
- * The state includes the pump value, if the pump has changed since the last tick, and if the leg has finished.
- * 
- * \param leg Pointer to leg that will be ticked.
- * \param state Pointer to autobrew_state var where the state of the autobrew leg should be stored after the tick.
- */
-static bool _autobrew_leg_tick(autobrew_state * state){
-    state->leg_id = _current_leg;
-
+*/
+static bool _autobrew_leg_tick(){
     // If at end of routine, just set state to known value and exit
     if(_current_leg == _num_legs){ 
-        state->pump_setting = 0;
-        state->pump_setting_changed = false;
-        state->leg_id = _current_leg;
+        _current_power = 0;
         return false;
     }
 
@@ -95,34 +88,40 @@ static bool _autobrew_leg_tick(autobrew_state * state){
     }
 
     // Check if leg has finished
-    state->finished = absolute_time_diff_us(get_absolute_time(), _leg_end_time) >= 0;
+    bool leg_finished = absolute_time_diff_us(get_absolute_time(), _leg_end_time) >= 0;
     for(uint8_t i = 0; i < _num_triggers; i++){
-        if(state->finished){
+        if(leg_finished){
             _leg_end_time = nil_time;
             _current_leg += 1;
-            state->leg_id = _current_leg;
-            state->pump_setting = 0;
-            state->pump_setting_changed = true; // make sure 0 is applied
+            _current_power = 0;
             return true;
         }
         if(cl->trigger_vals[i] > 0 ){
-            state->finished = _triggers[i](cl->trigger_vals[i]);
+            leg_finished = _triggers[i](cl->trigger_vals[i]);
         }
     }
 
     // Get new pump setting.
     const uint16_t setpoint = _autobrew_get_current_setpoint();
-    const uint8_t new_setting = (cl->mapping_id == -1 ? setpoint : _mappings[cl->mapping_id](setpoint));
-    state->pump_setting_changed = (new_setting != state->pump_setting);
-    state->pump_setting = new_setting;
+    _current_power = (cl->mapping_id == -1 ? setpoint : _mappings[cl->mapping_id](setpoint));
+    assert(_current_power <= AUTOBREW_PUMP_POWER_MAX);
 
     return false;
 }
 
-void autobrew_routine_setup(){
+void autobrew_init(){
+    for(uint i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++)   _triggers[i]   = NULL;
+    for(uint i = 0; i < AUTOBREW_MAPPING_MAX_NUM; i++)   _mappings[i]   = NULL;
+    for(uint i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++) _setup_funs[i] = NULL;
+    _num_triggers = 0;
+    _num_mappings = 0;
+    _num_setup_funs = 0;
+    autobrew_clear_routine();
+    autobrew_reset();
+}
+
+void autobrew_clear_routine(){
     _num_legs = 0;
-    _current_leg = 0;
-    _leg_end_time = nil_time;
 }
 
 uint8_t autobrew_register_trigger(autobrew_trigger trigger){
@@ -148,6 +147,7 @@ uint8_t autobrew_register_setup_fun(autobrew_setup_fun setup_fun){
 
 uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds){
     assert(_num_legs < AUTOBREW_LEG_MAX_NUM);
+    assert(mapping_id < _num_mappings);
     _autobrew_clear_leg_struct(_num_legs);
     _routine[_num_legs].mapping_id = mapping_id;
     _routine[_num_legs].setpoint_start = setpoint_start;
@@ -158,12 +158,12 @@ uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t se
 }
 
 void autobrew_configure_leg_trigger(uint8_t leg_id, uint8_t trigger_id, uint16_t trigger_val){
-    assert(trigger_id < AUTOBREW_TRIGGER_MAX_NUM);
+    assert(trigger_id < _num_triggers);
     _routine[leg_id].trigger_vals[trigger_id] = trigger_val;
 }
 
 void autobrew_configure_leg_setup_fun(uint8_t leg_id, uint8_t setup_fun_id, bool enable){
-    assert(setup_fun_id < AUTOBREW_SETUP_FUN_MAX_NUM);
+    assert(setup_fun_id < _num_setup_funs);
     if(enable){
         _routine[leg_id].setup_flags = _routine[leg_id].setup_flags | (1<<setup_fun_id);
     } else {
@@ -171,12 +171,34 @@ void autobrew_configure_leg_setup_fun(uint8_t leg_id, uint8_t setup_fun_id, bool
     }
 }
 
-bool autobrew_routine_tick(autobrew_state * s){
+bool autobrew_routine_tick(){
+    uint8_t previous_power = _current_power;
     // tick until reaching a leg with work left to do or end of routine
-    while(_autobrew_leg_tick(s));
-    return s->finished;
+    while(_autobrew_leg_tick()) tight_loop_contents();
+
+    _pump_changed = (_current_power!=previous_power);
+    return autobrew_finished();
+}
+
+uint8_t autobrew_pump_power(){
+    return _current_power;
+}
+
+bool autobrew_pump_changed(){
+    return _pump_changed;
+}
+
+int8_t autobrew_current_leg(){
+    return (autobrew_finished() ? -1 : _current_leg);
+}
+
+bool autobrew_finished(){
+    return _current_leg == _num_legs;
 }
 
 void autobrew_reset(){
-    autobrew_routine_setup();
+    _current_leg = 0;
+    _leg_end_time = nil_time;
+    _current_power = 0;
+    _pump_changed = false;
 }
