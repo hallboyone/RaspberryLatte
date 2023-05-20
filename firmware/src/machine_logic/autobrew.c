@@ -15,17 +15,14 @@
 #include "utils/macros.h"
 
 typedef struct _autobrew_leg {
-    int8_t   mapping_id;                             /**< Which of the configured mappings to use. -1 is straight mapping. */
-    uint16_t setpoint_start;                         /**< Setpoint at start of leg. */
-    uint16_t setpoint_end;                           /**< Setpoint at end of leg. */
-    uint16_t timeout_ds;                             /**< Maximum duration of the leg in deciseconds. */
-    uint8_t  setup_flags;                            /**< Any setup functions. */
-    uint16_t trigger_vals[AUTOBREW_TRIGGER_MAX_NUM]; /**< Trigger values for the end of a leg (0 -> no trigger). */
+    autobrew_mapping mapping;                                 /**< Which of the configured mappings to use. -1 is straight mapping. */
+    uint16_t setpoint_start;                                  /**< Setpoint at start of leg. */
+    uint16_t setpoint_end;                                    /**< Setpoint at end of leg. */
+    uint16_t timeout_ds;                                      /**< Maximum duration of the leg in deciseconds. */
+    uint16_t trigger_data[AUTOBREW_TRIGGER_MAX_NUM];          /**< Trigger values for the end of a leg (0 -> no trigger). */
+    autobrew_trigger triggers[AUTOBREW_TRIGGER_MAX_NUM];      /**< Trigger values for the end of a leg (0 -> no trigger). */
+    autobrew_setup_fun setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM];/**< All the setup functions to run at start of leg. */
 } autobrew_leg;
-
-static autobrew_trigger _triggers[AUTOBREW_TRIGGER_MAX_NUM];
-static autobrew_mapping _mappings[AUTOBREW_MAPPING_MAX_NUM];
-static autobrew_setup_fun _setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM];
 
 static autobrew_leg _routine[AUTOBREW_LEG_MAX_NUM];
 static uint8_t _num_legs = 0;
@@ -42,10 +39,14 @@ static void _autobrew_clear_leg_struct(uint8_t leg_idx){
     _routine[leg_idx].setpoint_start = 0; 
     _routine[leg_idx].setpoint_end = 0;
     _routine[leg_idx].timeout_ds = 0; 
-    _routine[leg_idx].setup_flags = 0;
     for (uint8_t i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++){
-        _routine[leg_idx].trigger_vals[i] = 0;
+        _routine[leg_idx].trigger_data[i] = 0;
+        _routine[leg_idx].triggers[i] = NULL;
     }
+    for (uint8_t i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++){
+        _routine[leg_idx].setup_funs[i] = NULL;
+    }
+    _routine[leg_idx].mapping = NULL;
 }
 
 /**
@@ -80,7 +81,8 @@ static bool _autobrew_leg_tick(){
         _leg_end_time = make_timeout_time_ms(10*(uint32_t)cl->timeout_ds);
         // Run all startup functions for leg
         for(uint8_t i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++){
-            if(cl->setup_flags & (1 << i)) _setup_funs[i]();
+            if(cl->setup_funs[i] == NULL) break;
+            cl->setup_funs[i]();
         }
     }
 
@@ -93,51 +95,27 @@ static bool _autobrew_leg_tick(){
             _current_power = 0;
             return true;
         }
-        if(cl->trigger_vals[i] > 0 && _triggers[i] != NULL){
-            leg_finished = _triggers[i](cl->trigger_vals[i]);
-        }
+        if(cl->triggers[i] == NULL) break;
+        leg_finished = cl->triggers[i](cl->trigger_data[i]) ;
     }
 
     // Get new pump setting.
     const uint16_t setpoint = _autobrew_get_current_setpoint();
-    _current_power = (cl->mapping_id == -1 ? setpoint : _mappings[cl->mapping_id](setpoint));
+    _current_power = (cl->mapping == NULL ? setpoint : cl->mapping(setpoint));
     assert(_current_power <= AUTOBREW_PUMP_POWER_MAX);
 
     return false;
 }
 
 void autobrew_init(){
-    for(uint i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++)   _triggers[i]   = NULL;
-    for(uint i = 0; i < AUTOBREW_MAPPING_MAX_NUM; i++)   _mappings[i]   = NULL;
-    for(uint i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++) _setup_funs[i] = NULL;
-    autobrew_clear_routine();
+    _num_legs = 0;
     autobrew_reset();
 }
 
-void autobrew_clear_routine(){
-    _num_legs = 0;
-}
-
-void autobrew_register_trigger(uint8_t id, autobrew_trigger trigger){
-    assert(id < AUTOBREW_TRIGGER_MAX_NUM && _triggers[id] == NULL);
-    _triggers[id] = trigger;
-}
-
-void autobrew_register_mapping(uint8_t id, autobrew_mapping mapping){
-    assert(id < AUTOBREW_MAPPING_MAX_NUM && _mappings[id] == NULL);
-    _mappings[id] = mapping;
-}
-
-void autobrew_register_setup_fun(uint8_t id, autobrew_setup_fun setup_fun){
-    assert(id < AUTOBREW_SETUP_FUN_MAX_NUM && _setup_funs[id] == NULL);
-    _setup_funs[id] = setup_fun;
-}
-
-uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds){
+uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds){
     assert(_num_legs < AUTOBREW_LEG_MAX_NUM);
-    assert(mapping_id == -1 || (mapping_id < AUTOBREW_MAPPING_MAX_NUM && _mappings[mapping_id] != NULL));
     _autobrew_clear_leg_struct(_num_legs);
-    _routine[_num_legs].mapping_id = mapping_id;
+    _routine[_num_legs].mapping = mapping;
     _routine[_num_legs].setpoint_start = setpoint_start;
     _routine[_num_legs].setpoint_end = setpoint_end;
     _routine[_num_legs].timeout_ds  = timeout_ds;
@@ -145,18 +123,27 @@ uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t se
     return (_num_legs-1);
 }
 
-void autobrew_configure_leg_trigger(uint8_t leg_id, uint8_t trigger_id, uint16_t trigger_val){
-    assert(_triggers[trigger_id] != NULL);
-    _routine[leg_id].trigger_vals[trigger_id] = trigger_val;
+void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, uint16_t trigger_data){
+    assert(leg_id < AUTOBREW_LEG_MAX_NUM);
+    for(uint8_t i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++){
+        if(_routine[leg_id].triggers[i] == NULL){
+            _routine[leg_id].triggers[i] = trigger;
+            _routine[leg_id].trigger_data[i] = trigger_data;
+            return;
+        }
+    }
+    assert(false); // If we reach this line, we have no more trigger slots
 }
 
-void autobrew_configure_leg_setup_fun(uint8_t leg_id, uint8_t setup_fun_id, bool enable){
-    assert(_setup_funs[setup_fun_id] != NULL);
-    if(enable){
-        _routine[leg_id].setup_flags = _routine[leg_id].setup_flags | (1<<setup_fun_id);
-    } else {
-        _routine[leg_id].setup_flags = _routine[leg_id].setup_flags & (~(1<<setup_fun_id));
+void autobrew_leg_add_setup_fun(uint8_t leg_id, autobrew_setup_fun setup_fun){
+    assert(leg_id < AUTOBREW_LEG_MAX_NUM);
+    for(uint8_t i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++){
+        if(_routine[leg_id].setup_funs[i] == NULL){
+            _routine[leg_id].setup_funs[i] = setup_fun;
+            return;
+        }
     }
+    assert(false); // If we reach this line, we have no more setup function slots
 }
 
 bool autobrew_routine_tick(){

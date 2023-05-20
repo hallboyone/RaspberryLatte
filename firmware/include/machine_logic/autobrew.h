@@ -34,9 +34,8 @@
 
 #define AUTOBREW_LEG_MAX_NUM 16
 
-#define AUTOBREW_SETUP_FUN_MAX_NUM  3
-#define AUTOBREW_TRIGGER_MAX_NUM    3
-#define AUTOBREW_MAPPING_MAX_NUM    3
+#define AUTOBREW_SETUP_FUN_MAX_NUM 3
+#define AUTOBREW_TRIGGER_MAX_NUM   3
 
 #define AUTOBREW_PUMP_POWER_MAX 100
 
@@ -68,62 +67,33 @@ typedef bool (*autobrew_trigger)(uint16_t);
 void autobrew_init();
 
 /** 
- * \brief Clear all configured legs. 
- * This clears the legs but does not remove the triggers, mappings, or setup functions
- */
-void autobrew_clear_routine();
-
-/** 
- * \brief Registers a trigger function that can be used to end a leg.
- * \param id A previously unused ID between 0 and AUTOBREW_TRIGGER_MAX_NUM to assign to the trigger.
- * \param trigger Pointer to a trigger function.
- */
-void autobrew_register_trigger(uint8_t id, autobrew_trigger trigger);
-
-/** 
- * \brief Registers a mapping function that can be used to map setpoints to pump powers.
- * \param id A previously unused ID between 0 and AUTOBREW_MAPPING_MAX_NUM to assign to the mapping.
- * \param mapping Pointer to a mapping function.
- */
-void autobrew_register_mapping(uint8_t id, autobrew_mapping mapping);
-
-/** 
- * \brief Registers a setup function that can be called at the start of a leg.
- * \param id A previously unused ID between 0 and AUTOBREW_SETUP_FUN_MAX_NUM to assign to the setup function.
- * \param setup_fun Pointer to a setup function.
- * \returns The ID of the setup function. 
- */
-void autobrew_register_setup_fun(uint8_t id, autobrew_setup_fun setup_fun);
-
-/** 
  * \brief Create an autobrew leg with the minimal required elements.
  * 
  * Calls to this function create sequential legs in the routine. Setup legs in the order they should be run.
  * 
- * \param mapping_id The ID of a previously registered mapping. -1 to use setpoint directly.
+ * \param mapping Mapping function. NULL to use setpoint directly.
  * \param setpoint_start The value of the setpoint at the start of the leg.
  * \param setpoint_end The value of the setpoint at the leg's duration.
  * \param timeout_ds The timeout duration of the autobrew leg.
  * 
  * \returns The ID of the leg that was created. 
  */
-uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds);
+uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds);
 
 /** 
  * \brief Adds an end trigger to specific leg ID.
  * \param leg_id The id of the leg to add the trigger to.
- * \param trigger_id The ID of a previously registered trigger.
- * \param trigger_val The value to pass to the trigger function. 0 to disable trigger.
+ * \param trigger A trigger function.
+ * \param trigger_data The value to pass to the trigger function.
  */
-void autobrew_configure_leg_trigger(uint8_t leg_id, uint8_t trigger_id, uint16_t trigger_val);
+void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, uint16_t trigger_data);
 
 /** 
  * \brief Adds an setup function to specific leg ID.
  * \param leg_id The id of the leg to add the setup function to.
- * \param setup_fun_id The ID of a previously registered setup function.
- * \param enable Indicates if the setup function should be enabled or not. 
+ * \param setup_fun A setup function to call when leg is started.
  */
-void autobrew_configure_leg_setup_fun(uint8_t leg_id, uint8_t setup_fun_id, bool enable);
+void autobrew_leg_add_setup_fun(uint8_t leg_id, autobrew_setup_fun setup_fun);
 
 /**
  * \brief Run a single tick of the autobrew routine. 
