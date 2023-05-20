@@ -5,7 +5,7 @@
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief Local UI source
  * \version 1.0
- * \date 2022-12-05
+ * \date 2023-05-19
 */
 #include "machine_logic/autobrew.h"
 
@@ -26,9 +26,6 @@ typedef struct _autobrew_leg {
 static autobrew_trigger _triggers[AUTOBREW_TRIGGER_MAX_NUM];
 static autobrew_mapping _mappings[AUTOBREW_MAPPING_MAX_NUM];
 static autobrew_setup_fun _setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM];
-static uint8_t _num_triggers = 0;
-static uint8_t _num_mappings = 0;
-static uint8_t _num_setup_funs = 0;
 
 static autobrew_leg _routine[AUTOBREW_LEG_MAX_NUM];
 static uint8_t _num_legs = 0;
@@ -89,14 +86,14 @@ static bool _autobrew_leg_tick(){
 
     // Check if leg has finished
     bool leg_finished = absolute_time_diff_us(get_absolute_time(), _leg_end_time) >= 0;
-    for(uint8_t i = 0; i < _num_triggers; i++){
+    for(uint8_t i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++){
         if(leg_finished){
             _leg_end_time = nil_time;
             _current_leg += 1;
             _current_power = 0;
             return true;
         }
-        if(cl->trigger_vals[i] > 0 ){
+        if(cl->trigger_vals[i] > 0 && _triggers[i] != NULL){
             leg_finished = _triggers[i](cl->trigger_vals[i]);
         }
     }
@@ -113,9 +110,6 @@ void autobrew_init(){
     for(uint i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++)   _triggers[i]   = NULL;
     for(uint i = 0; i < AUTOBREW_MAPPING_MAX_NUM; i++)   _mappings[i]   = NULL;
     for(uint i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++) _setup_funs[i] = NULL;
-    _num_triggers = 0;
-    _num_mappings = 0;
-    _num_setup_funs = 0;
     autobrew_clear_routine();
     autobrew_reset();
 }
@@ -124,30 +118,24 @@ void autobrew_clear_routine(){
     _num_legs = 0;
 }
 
-uint8_t autobrew_register_trigger(autobrew_trigger trigger){
-    if(_num_triggers == AUTOBREW_TRIGGER_MAX_NUM) return PICO_ERROR_GENERIC;
-    _triggers[_num_triggers] = trigger;
-    _num_triggers += 1;
-    return _num_triggers - 1;
+void autobrew_register_trigger(uint8_t id, autobrew_trigger trigger){
+    assert(id < AUTOBREW_TRIGGER_MAX_NUM && _triggers[id] == NULL);
+    _triggers[id] = trigger;
 }
 
-uint8_t autobrew_register_mapping(autobrew_mapping mapping){
-    if(_num_mappings == AUTOBREW_MAPPING_MAX_NUM) return PICO_ERROR_GENERIC;
-    _mappings[_num_mappings] = mapping;
-    _num_mappings += 1;
-    return _num_mappings - 1;
+void autobrew_register_mapping(uint8_t id, autobrew_mapping mapping){
+    assert(id < AUTOBREW_MAPPING_MAX_NUM && _mappings[id] == NULL);
+    _mappings[id] = mapping;
 }
 
-uint8_t autobrew_register_setup_fun(autobrew_setup_fun setup_fun){
-    if(_num_setup_funs == AUTOBREW_SETUP_FUN_MAX_NUM) return PICO_ERROR_GENERIC;
-    _setup_funs[_num_setup_funs] = setup_fun;
-    _num_setup_funs += 1;
-    return _num_setup_funs - 1;
+void autobrew_register_setup_fun(uint8_t id, autobrew_setup_fun setup_fun){
+    assert(id < AUTOBREW_SETUP_FUN_MAX_NUM && _setup_funs[id] == NULL);
+    _setup_funs[id] = setup_fun;
 }
 
 uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds){
     assert(_num_legs < AUTOBREW_LEG_MAX_NUM);
-    assert(mapping_id < _num_mappings);
+    assert(mapping_id == -1 || (mapping_id < AUTOBREW_MAPPING_MAX_NUM && _mappings[mapping_id] != NULL));
     _autobrew_clear_leg_struct(_num_legs);
     _routine[_num_legs].mapping_id = mapping_id;
     _routine[_num_legs].setpoint_start = setpoint_start;
@@ -158,12 +146,12 @@ uint8_t autobrew_add_leg(int8_t mapping_id, uint16_t setpoint_start, uint16_t se
 }
 
 void autobrew_configure_leg_trigger(uint8_t leg_id, uint8_t trigger_id, uint16_t trigger_val){
-    assert(trigger_id < _num_triggers);
+    assert(_triggers[trigger_id] != NULL);
     _routine[leg_id].trigger_vals[trigger_id] = trigger_val;
 }
 
 void autobrew_configure_leg_setup_fun(uint8_t leg_id, uint8_t setup_fun_id, bool enable){
-    assert(setup_fun_id < _num_setup_funs);
+    assert(_setup_funs[setup_fun_id] != NULL);
     if(enable){
         _routine[leg_id].setup_flags = _routine[leg_id].setup_flags | (1<<setup_fun_id);
     } else {
