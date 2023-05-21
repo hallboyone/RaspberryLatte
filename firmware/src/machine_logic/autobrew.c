@@ -78,7 +78,7 @@ static bool _autobrew_leg_tick(){
     // First time leg has ticked?
     if(is_nil_time(_leg_end_time)){ 
         // Save timeout for leg
-        _leg_end_time = make_timeout_time_ms(10*(uint32_t)cl->timeout_ds);
+        _leg_end_time = make_timeout_time_ms(100*(uint32_t)cl->timeout_ds);
         // Run all startup functions for leg
         for(uint8_t i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++){
             if(cl->setup_funs[i] == NULL) break;
@@ -87,7 +87,7 @@ static bool _autobrew_leg_tick(){
     }
 
     // Check if leg has finished
-    bool leg_finished = absolute_time_diff_us(get_absolute_time(), _leg_end_time) >= 0;
+    bool leg_finished = absolute_time_diff_us(get_absolute_time(), _leg_end_time) <= 0;
     for(uint8_t i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++){
         if(leg_finished){
             _leg_end_time = nil_time;
