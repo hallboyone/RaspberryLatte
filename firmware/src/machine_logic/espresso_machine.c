@@ -151,11 +151,11 @@ static uint8_t get_power_for_pressure(uint16_t target_pressure_mbar){
  * 
  * The flow_ctrl PID object is updated to the new setpoint, ticked, and the current input is returned.
  * 
- * \param target_flow_ml_s The target flowrate in ml/s.
+ * \param target_flow_ul_ds The target flowrate in ul/ds.
  * \returns The pump power needed to reach the target flowrate, according to the flow_ctrl PID object.
 */
-static uint8_t get_power_for_flow(uint16_t target_flow_ul_s){
-    pid_update_setpoint(flow_pid, target_flow_ul_s/1000.0);
+static uint8_t get_power_for_flow(uint16_t target_flow_ul_ds){
+    pid_update_setpoint(flow_pid, target_flow_ul_ds*10);
     return (uint8_t)pid_tick(flow_pid, NULL);
 }
 
@@ -168,10 +168,10 @@ static uint8_t get_power_for_flow(uint16_t target_flow_ul_s){
  * on. 
  */
 static void espresso_machine_autobrew_setup(){
-    const uint32_t ramp_t  = *settings->autobrew.preinf_ramp_time * 100000UL;
-    const uint32_t pre_t   = *settings->autobrew.preinf_timeout * 1000000UL;
+    const uint32_t ramp_t  = *settings->autobrew.preinf_ramp_time;
+    const uint32_t pre_t   = *settings->autobrew.preinf_timeout * 10;
     const uint8_t  pre_pwr = *settings->autobrew.preinf_power;
-    const uint32_t brew_t  = *settings->autobrew.timeout * 1000000UL;
+    const uint32_t brew_t  = *settings->autobrew.timeout * 10;
     const uint16_t f_ul_ds = *settings->autobrew.flow;
     const uint16_t yield   = *settings->brew.yield;
     
@@ -281,9 +281,11 @@ static void espresso_machine_update_pump(){
             if(autobrew_pump_changed()){
                 ulka_pump_pwr_percent(pump, autobrew_pump_power());
             }
+            _state.autobrew_leg = 1+autobrew_current_leg();
         } else {
             ulka_pump_off(pump);
             binary_output_put(solenoid, 0, 0);
+            _state.autobrew_leg = 0;
         }
     }
 
@@ -299,6 +301,11 @@ static void espresso_machine_update_pump(){
  * and ticks its controller.
  */
 static void espresso_machine_update_boiler(){
+    _state.boiler.temperature = lmt01_read(thermo);
+
+    #ifdef DISABLE_BOILER
+    _state.boiler.setpoint = 0;
+    #else
     // Update setpoints
     if(_state.switches.ac_switch && is_ac_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
@@ -312,15 +319,10 @@ static void espresso_machine_update_boiler(){
         _state.boiler.setpoint = 0;
     }
 
-    _state.boiler.temperature = lmt01_read(thermo);
-
     if(thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature) < 0){
         espresso_machine_e_stop(); // Shut down pump and boiler
         _state.boiler.setpoint = 0;
     }
-    #ifdef DISABLE_BOILER
-    _state.boiler.setpoint = 0;
-    #else
     else {
         // If no thermal runaway
         pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);

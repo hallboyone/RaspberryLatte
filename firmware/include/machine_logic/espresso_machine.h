@@ -80,6 +80,7 @@ typedef struct {
     espresso_machine_boiler_state boiler;   /**< \brief State of espresso machine boiler */
     espresso_machine_pump_state pump;       /**< \brief State of espresso machine pump */
     espresso_machine_scale_state scale;     /**< \brief State of espresso machine scale */
+    uint8_t autobrew_leg;
 } espresso_machine_state;
 
 /** \brief Struct designed to hold the espresso machine state and expose it to outside functions */
