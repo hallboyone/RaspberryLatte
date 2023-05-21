@@ -15,21 +15,21 @@
 #include "utils/macros.h"
 
 typedef struct _autobrew_leg {
-    autobrew_mapping mapping;                                 /**< Which of the configured mappings to use. -1 is straight mapping. */
-    uint16_t setpoint_start;                                  /**< Setpoint at start of leg. */
-    uint16_t setpoint_end;                                    /**< Setpoint at end of leg. */
-    uint16_t timeout_ds;                                      /**< Maximum duration of the leg in deciseconds. */
-    uint16_t trigger_data[AUTOBREW_TRIGGER_MAX_NUM];          /**< Trigger values for the end of a leg (0 -> no trigger). */
-    autobrew_trigger triggers[AUTOBREW_TRIGGER_MAX_NUM];      /**< Trigger values for the end of a leg (0 -> no trigger). */
-    autobrew_setup_fun setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM];/**< All the setup functions to run at start of leg. */
+    autobrew_mapping mapping;                                  /**< Which of the configured mappings to use. -1 is straight mapping. */
+    uint16_t setpoint_start;                                   /**< Setpoint at start of leg. */
+    uint16_t setpoint_end;                                     /**< Setpoint at end of leg. */
+    uint16_t timeout_ds;                                       /**< Maximum duration of the leg in deciseconds. */
+    uint16_t trigger_data[AUTOBREW_TRIGGER_MAX_NUM];           /**< Trigger values for the end of a leg (0 -> no trigger). */
+    autobrew_trigger triggers[AUTOBREW_TRIGGER_MAX_NUM];       /**< Trigger values for the end of a leg (0 -> no trigger). */
+    autobrew_setup_fun setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM]; /**< All the setup functions to run at start of leg. */
 } autobrew_leg;
 
-static autobrew_leg _routine[AUTOBREW_LEG_MAX_NUM];
-static uint8_t _num_legs = 0;
-static uint8_t _current_leg = 0;
-static absolute_time_t _leg_end_time;
-static uint8_t _current_power;
-static bool _pump_changed;
+static autobrew_leg _routine[AUTOBREW_LEG_MAX_NUM]; /**< Array for storing all the configured legs of the routine. */
+static uint8_t _num_legs = 0;                       /**< The number of legs that have been configured. */
+static uint8_t _current_leg = 0;                    /**< The leg the routine is currently on. */
+static absolute_time_t _leg_end_time;               /**< The timeout for the current leg. nil_time if leg has ended. */
+static uint8_t _current_power;                      /**< The latest power computed in the routine. */
+static bool _pump_changed;                          /**< Flag indicating if the pump has changed between ticks. */
 
 /**
  * \brief Initialize all leg struct values to 0 or NULL.
@@ -64,7 +64,8 @@ static uint16_t _autobrew_get_current_setpoint(){
 }
 
 /**
- * \brief Takes a leg and updates the state based on the current time. 
+ * \brief Takes a leg and updates the state based on the current time.
+ * \return True if leg has ended. Else false. 
 */
 static bool _autobrew_leg_tick(){
     // If at end of routine, just set state to known value and exit

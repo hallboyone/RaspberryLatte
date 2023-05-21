@@ -5,16 +5,15 @@
  * \brief Provides tools for running multi-leg brew procedures.
  * 
  * The Autobrew Library manages brew procedures made up by one or more legs. Each leg begins with 
- * 0 - AUTOBREW_SETUP_FUN_MAX_NUM setup functions that run one time at the start of the leg. The 
- * legs run until either a timeout has been reached or until any of 0 - AUTOBREW_TRIGGER_MAX_NUM 
+ * 0 - AUTOBREW_SETUP_FUN_MAX_NUM setup functions that run one time at the start of the leg. Each 
+ * leg runs until either a timeout has been reached or until any of 0 - AUTOBREW_TRIGGER_MAX_NUM 
  * trigger functions returns true. While running, the legs map a linearly changing setpoint to a 
- * pump power using mapping functions or 1-to-1 logic (i.e. the setpoint is the pump power). 
+ * pump power using mapping functions or 1-to-1 logic if NULL (i.e. the setpoint is the pump power). 
  * 
- * To use, the library must be initalized and setup functions, triggers, and mappings must be
- * registered. Then, the legs of the routine are added sequentially using the autobrew_add_leg 
- * function. Setup functions and triggers can be added to legs as needed. Once all the legs have 
- * been added and configured, calling autobrew_routine_tick repeatedly followed by 
- * autobrew_current_power will move through the routine according to the configured logic and 
+ * To use, the library must first be initalized. Then, the legs of the routine are added sequentially 
+ * using the autobrew_add_leg function. Setup functions and triggers can be added to legs as needed. 
+ * Once all the legs have been added and configured, calling autobrew_routine_tick repeatedly followed 
+ * by autobrew_current_power will move through the routine according to the configured logic and 
  * return the corresponding pump power. At the end of the routine, calling autobrew_reset will 
  * restore the library to the starting state and the next autobrew routine can be run.
  * 
