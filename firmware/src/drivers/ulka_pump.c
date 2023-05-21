@@ -79,7 +79,7 @@ uint8_t ulka_pump_pressure_to_power(ulka_pump p, const float target_pressure_bar
         // Check if the power in each linear region is strong enough to reach flowrate. If it is, then compute
         // the required power and return.
         if(OFFSET[i] + PUMP_GAIN[i]*LINEAR_REGION_SPAN*(i+1) + FLOW_GAIN[i]*flowrate > target_pressure_bar){
-            float power = (target_pressure_bar - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
+            const float power = 1 + (target_pressure_bar - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
             return CLAMP(power, 0, 100);
         }
     }
