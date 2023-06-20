@@ -27,6 +27,10 @@ typedef struct thermal_runaway_watcher_s {
     absolute_time_t temp_change_timer_end; /**< \brief End of temp-change window*/  
 } thermal_runaway_watcher_;
 
+static inline bool _not_error_state(thermal_runaway_state s){
+    return s >= 0;
+}
+
 static inline bool _temp_change_timer_expired(thermal_runaway_watcher trw){
     return absolute_time_diff_us(get_absolute_time(), trw->temp_change_timer_end) <= 0;
 }
@@ -45,12 +49,10 @@ thermal_runaway_watcher thermal_runaway_watcher_setup(uint16_t temp_max_change,
     return trw;
 }
 
-thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, uint16_t setpoint, int16_t temp){
-    if (setpoint == 0){
+thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, uint16_t setpoint, int16_t temp, bool reset){
+    if (reset) {
         trw->state = TRS_OFF;
-    } 
-    // If not in error state
-    else if (trw->state >= 0){
+    } else if (_not_error_state(trw->state)){
         if (trw->setpoint == 0){
             // When machine is switched on, go ahead and manually set temp
             trw->temp = temp;

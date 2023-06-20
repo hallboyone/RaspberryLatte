@@ -61,32 +61,47 @@ static pid  flow_pid;
 static void espresso_machine_e_stop();
 
 /**
- * \brief Checks if the last AC zerocross time was within 1 60hz period.
+ * \brief Checks if the AC is on.
+ * If the last AC zerocross time was within 17,000us (a little over a 60hz 
+ * period), then it's assumed on.
  * \return True AC is on. False otherwise.
  */
 static inline bool is_ac_on(){
-    const int64_t period_60hz_us = 1000000/60;
-    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < period_60hz_us);
+    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
 }
 
 /** 
- * \brief Checks if AC has been on for the AC_SETTLING_TIME_MS so that transient spikes can die out. 
+ * \brief Checks if AC has settled.
+ * The AC is assumed settled once AC_SETTLING_TIME_MS have passed. The time should
+ * be long enough to allow transient spikes to die out. 
+ * \return True if ac has settled. Else, returns false.
  */
 static inline bool is_ac_settled(){
     return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
 }
 
 /** 
- * \brief Returns the boiler temp in C. 
- * Helper function for the boiler PID controller. 
+ * \brief Getter for the boiler temp. 
+ * Used as a helper function for the boiler PID controller.
+ * \returns The current boiler temp in C. 
  */
 static pid_data read_boiler_thermo_C(){
     return lmt01_read_float(thermo);
 }
 
 /**
- * \brief Applies an input to the boiler heater.
- * \param u Output for the boiler. 1 is full on, 0 is full off.
+ * \brief Getter for the pump's flowrate. 
+ * Used as a helper function for the pumps flow controller.
+ * \returns The current flow rate through the pump in ul/s. 
+ */
+static pid_data read_pump_flowrate_ul_s(){
+    return 1000.0*ulka_pump_get_flow_ml_s(pump);
+}
+
+/** 
+ * \brief Setter for the boiler's duty cycle. 
+ * Used as a helper function for the boiler PID controller.
+ * \param u A duty cycle with 0 being off and 1 being full on.
  */
 static void apply_boiler_input(float u){
     slow_pwm_set_float_duty(heater, u);
@@ -319,11 +334,10 @@ static void espresso_machine_update_boiler(){
         _state.boiler.setpoint = 0;
     }
 
-    if(thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature) < 0){
+    if((_state.boiler.thermal_state = thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature, !_state.switches.ac_switch)) < 0){
         espresso_machine_e_stop(); // Shut down pump and boiler
         _state.boiler.setpoint = 0;
-    }
-    else {
+    } else {
         // If no thermal runaway
         pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
         pid_tick(heater_pid, &_state.boiler.pid_state);

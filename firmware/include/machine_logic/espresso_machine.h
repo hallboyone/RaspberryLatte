@@ -51,7 +51,8 @@ typedef struct {
     uint8_t power_level;  /**< \brief Current power level applied to the boiler. */
     uint16_t error_sum;   /**< \brief Current error sum of the boiler's controller. */
     uint16_t error_slope; /**< \brief Current error slope of the boiler's controller. */
-    pid_viewer pid_state;
+    pid_viewer pid_state; /**< \brief Current state of the boiler PID. */
+    int8_t thermal_state; /**< \brief Current state of the thermal watcher. */
 } espresso_machine_boiler_state;
 
 /**

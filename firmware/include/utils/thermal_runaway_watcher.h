@@ -51,10 +51,10 @@ thermal_runaway_watcher thermal_runaway_watcher_setup(uint16_t temp_max_change,
  * \param trw The thermal_runaway_watcher object to tick.
  * \param setpoint The current setpoint of the system.
  * \param temp The current temp of the system.
- * 
+ * \param reset Flag indicating if watcher should be reset. 
  * \returns The new state of the system.
 */
-thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, uint16_t setpoint, int16_t temp);
+thermal_runaway_state thermal_runaway_watcher_tick(thermal_runaway_watcher trw, uint16_t setpoint, int16_t temp, bool reset);
 
 /** \brief Returns the latest state of the system.
  * \param trw The thermal_runaway_watcher object to examine.
