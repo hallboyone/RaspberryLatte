@@ -66,67 +66,66 @@ static autobrew_routine autobrew_plan;
 static void espresso_machine_e_stop();
 
 /**
- * \brief Checks if the last AC zerocross time was within 2 60hz periods.
+ * \brief Checks if the AC is on.
+ * If the last AC zerocross time was within 17,000us (a little over a 60hz 
+ * period), then it's assumed on.
  * \return True AC is on. False otherwise.
  */
 static inline bool is_ac_on(){
-    const int64_t period_60hz_us = 1000000/60;
-    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < period_60hz_us);
+    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
 }
 
 /** 
- * \brief Returns the boiler temp in C. 
- * Helper function for the boiler PID controller. 
+ * \brief Checks if AC has settled.
+ * The AC is assumed settled once AC_SETTLING_TIME_MS have passed. The time should
+ * be long enough to allow transient spikes to die out. 
+ * \return True if ac has settled. Else, returns false.
+ */
+static inline bool is_ac_settled(){
+    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
+}
+
+/** 
+ * \brief Getter for the boiler temp. 
+ * Used as a helper function for the boiler PID controller.
+ * \returns The current boiler temp in C. 
  */
 static pid_data read_boiler_thermo_C(){
     return lmt01_read_float(thermo);
 }
 
-/**
- * \brief Helper function that tracks and returns the scale's flowrate
-*/
+/** 
+ * \brief Getter for the pump's flowrate. 
+ * Used as a helper function for the pumps flow controller.
+ * \returns The current flow rate through the pump in ul/s. 
+ */
 static pid_data read_pump_flowrate_ul_s(){
     return 1000.0*ulka_pump_get_flow_ml_s(pump);
 }
 
-/**
- * \brief Helper function for the PID controller. Applies an input to the boiler heater.
- * 
- * \param u Output for the boiler. 1 is full on, 0 is full off.
+/** 
+ * \brief Setter for the boiler's duty cycle. 
+ * Used as a helper function for the boiler PID controller.
+ * \param u A duty cycle with 0 being off and 1 being full on.
  */
 static void apply_boiler_input(float u){
     slow_pwm_set_float_duty(heater, u);
 }
 
 /** 
- * \brief Returns true if scale is greater than or equal to the current output. 
+ * \brief Checks if the scale is at the current brew yield setting. 
+ * Used as a trigger for autobrew routines.
+ * \returns True if the scale is greater than the brew yield. Else, returns false.
  */
 static bool scale_at_output(){
     return nau7802_at_val_mg(scale, *settings->brew.yield*100);
 }
 
-/**
- * \brief Helper function to zero the scale. Used by the autobrew routine. 
+/** 
+ * \brief Zero's the scale
  */
 static void zero_scale(){
     nau7802_zero(scale);
-}
-
-/**
- * \brief Checks if AC is hot
- * 
- * Looks at the last zerocross time. If not 'too' long ago, then AC is on and function returns true.
- * 
- * \return true AC is on
- * \return false AC is off
- */
-static inline bool is_ac_on(){
-    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < 17000);
-}
-
-/** \brief Checks if AC has been on for 200ms so that transient spikes can die out. */
-static inline bool is_ac_settled(){
-    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
 }
 
 /** \brief Resets the flow-control PID and sets its bias */
