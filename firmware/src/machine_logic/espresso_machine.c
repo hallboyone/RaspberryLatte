@@ -66,7 +66,17 @@ static autobrew_routine autobrew_plan;
 static void espresso_machine_e_stop();
 
 /**
- * \brief Helper function for the PID controller. Returns the boiler temp in C.
+ * \brief Checks if the last AC zerocross time was within 2 60hz periods.
+ * \return True AC is on. False otherwise.
+ */
+static inline bool is_ac_on(){
+    const int64_t period_60hz_us = 1000000/60;
+    return (gpio_irq_timestamp_read_duration_us(AC_0CROSS_PIN) < period_60hz_us);
+}
+
+/** 
+ * \brief Returns the boiler temp in C. 
+ * Helper function for the boiler PID controller. 
  */
 static pid_data read_boiler_thermo_C(){
     return lmt01_read_float(thermo);
@@ -272,14 +282,13 @@ static void espresso_machine_update_boiler(){
 
     _state.boiler.temperature = lmt01_read(thermo);
 
-    if(thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature) < 0){
-        espresso_machine_e_stop(); // Shut down pump and boiler
-        _state.boiler.setpoint = 0;
-    }
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
     #else
-    else {
+    if((_state.boiler.thermal_state = thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature, !_state.switches.ac_switch)) < 0){
+        espresso_machine_e_stop(); // Shut down pump and boiler
+        _state.boiler.setpoint = 0;
+    } else {
         // If no thermal runaway
         pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
         pid_tick(heater_pid, &_state.boiler.pid_state);
