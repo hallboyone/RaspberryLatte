@@ -373,7 +373,10 @@ pid pid_setup(const pid_gains K, sensor_getter feedback_sensor, sensor_getter fe
 }
 
 void pid_update_setpoint(pid controller, const pid_data setpoint){
-    controller->setpoint = setpoint;
+    if(controller->setpoint != setpoint){
+        discrete_integral_reset(controller->err_sum);
+        controller->setpoint = setpoint;
+    }
 }
 
 void pid_update_bias(pid controller, float bias){
