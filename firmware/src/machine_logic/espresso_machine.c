@@ -108,14 +108,6 @@ static void apply_boiler_input(float u){
 }
 
 /** 
- * \brief Returns the pumps's flowrate.
- * Used by the flow control's PID controller.
- */
-static pid_data read_pump_flowrate_ul_s(){
-    return 1000.0*ulka_pump_get_flow_ml_s(pump);
-}
-
-/** 
  * \brief Zeros the scale. 
  * Helper for autobrew routine.
  */
