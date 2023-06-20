@@ -130,6 +130,7 @@ static bool system_at_flow(){
 /** \brief Returns true if system is under pressure */
 static bool system_under_pressure(){
     return ulka_pump_get_pressure_bar(pump) > AUTOBREW_PREINF_END_PRESSURE_BAR;
+}
 
 /** 
  * \brief Checks if the scale is at the current brew yield setting. 
@@ -141,9 +142,9 @@ static bool scale_at_output(){
 }
 
 /** 
- * \brief Zero's the scale
+ * \brief Zeros the scale
  */
-static void zero_scale(){
+static void autobrew_zero_scale(){
     nau7802_zero(scale);
 }
 
