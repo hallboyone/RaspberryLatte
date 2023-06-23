@@ -34,6 +34,7 @@
 
 /** An internal variable that collects the current state of the machine. */
 static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
+static const machine_settings* settings;
 
 /** I2C bus connected to memory, scale ADC, and I2C port */
 static i2c_inst_t *  bus = i2c1;
@@ -48,8 +49,6 @@ static slow_pwm                heater;      /**< PWM signal for the SSR driving 
 static lmt01                   thermo;      /**< Boiler thermometer. */
 static nau7802                 scale;       /**< Output scale. */
 static ulka_pump               pump;        /**< The vibratory pump. */
-
-static const machine_settings* settings;
 
 /** Autobrew and control objects */
 static pid  heater_pid;
@@ -72,12 +71,12 @@ static inline bool is_ac_on(){
 
 /** 
  * \brief Checks if AC has settled.
- * The AC is assumed settled once AC_SETTLING_TIME_MS have passed. The time should
- * be long enough to allow transient spikes to die out. 
+ * The AC is assumed settled once AC_SETTLING_TIME_MS have passed and AC is on. 
+ * The time should be long enough to allow transient spikes to die out. 
  * \return True if ac has settled. Else, returns false.
  */
-static inline bool is_ac_settled(){
-    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
+static inline bool is_ac_on_and_settled(){
+    return is_ac_on() && absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
 }
 
 /** 
@@ -201,8 +200,15 @@ static void espresso_machine_autobrew_setup(){
 }
 
 /**
- * \brief Flag changes in switch values. Run simple event-driven routines (zero scale, setup autobrew,
- * etc).
+ * \brief Flag changes in switch values and run simple event-driven routines.
+ * 
+ * The AC switch sets flags for its current value and if it changed. If switched on,
+ * record the current time, setup the autobrew routine, and reset the heater PID.
+ * 
+ * The mode dial sets flags for its current value and if it changed. If it does 
+ * change, the scale is zeroed for weighing beans.
+ * 
+ * The pump switch sets flags for its current value and if it changed.
  */
 static void espresso_machine_update_switches(){
     const bool new_ac_switch = is_ac_on();
@@ -233,7 +239,7 @@ static void espresso_machine_update_switches(){
     if(_state.switches.mode_dial != new_mode_switch){
         _state.switches.mode_dial_changed = (_state.switches.mode_dial > new_mode_switch ? -1 : 1);
         _state.switches.mode_dial = new_mode_switch;
-        nau7802_zero(scale);
+        nau7802_zero(scale); // zero scale so we can weigh the beans
     } else {
         _state.switches.mode_dial_changed = 0;
     }
@@ -259,7 +265,7 @@ static void espresso_machine_update_settings(){
 */
 static void espresso_machine_update_pump(){
     // Lock the pump if AC is off OR pump is on and the mode has changed or it has been locked already.
-    if(!_state.switches.ac_switch || !is_ac_settled() || thermal_runaway_watcher_error(trw)
+    if(!is_ac_on_and_settled() || thermal_runaway_watcher_errored(trw)
        || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || ulka_pump_is_locked(pump)))){
         ulka_pump_lock(pump);
     } else {
@@ -273,22 +279,19 @@ static void espresso_machine_update_pump(){
         autobrew_reset();
         ulka_pump_off(pump);
         binary_output_put(solenoid, 0, 0);
-
     } else if (MODE_HOT == _state.switches.mode_dial){
         ulka_pump_pwr_percent(pump, *settings->hot.power);
         binary_output_put(solenoid, 0, 0);
-
     } else if (MODE_MANUAL == _state.switches.mode_dial){
         ulka_pump_pwr_percent(pump, *settings->brew.power);
         binary_output_put(solenoid, 0, 1);
-
-    } else if (MODE_AUTO ==_state.switches.mode_dial){
+    } else if (MODE_AUTO == _state.switches.mode_dial){
         if(!autobrew_routine_tick()){
             binary_output_put(solenoid, 0, 1);
             if(autobrew_pump_changed()){
                 ulka_pump_pwr_percent(pump, autobrew_pump_power());
             }
-            _state.autobrew_leg = 1+autobrew_current_leg();
+            _state.autobrew_leg = 1 + autobrew_current_leg(); // legs are 0 indexed, shifted here to 1
         } else {
             ulka_pump_off(pump);
             binary_output_put(solenoid, 0, 0);
@@ -314,7 +317,7 @@ static void espresso_machine_update_boiler(){
     _state.boiler.setpoint = 0;
     #else
     // Update setpoints
-    if(_state.switches.ac_switch && is_ac_settled()){
+    if(is_ac_on_and_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
             _state.boiler.setpoint = 1.6*(*settings->steam.temp);
         } else if(_state.switches.mode_dial == MODE_HOT){
@@ -326,17 +329,16 @@ static void espresso_machine_update_boiler(){
         _state.boiler.setpoint = 0;
     }
 
-    if((_state.boiler.thermal_state = thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature, !_state.switches.ac_switch)) < 0){
+    _state.boiler.thermal_state = thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature, !_state.switches.ac_switch);
+    if(thermal_runaway_watcher_errored(trw)){
         espresso_machine_e_stop(); // Shut down pump and boiler
         _state.boiler.setpoint = 0;
     } else {
-        // If no thermal runaway
         pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
         pid_tick(heater_pid, &_state.boiler.pid_state);
     }
-    #endif
-    
     _state.boiler.power_level = slow_pwm_get_duty(heater);
+    #endif
 }
 
 /**
@@ -349,7 +351,7 @@ static void espresso_machine_update_boiler(){
 static void espresso_machine_update_leds(){
     if(_state.switches.ac_switch){
         uint8_t led_state = 0;
-        if(thermal_runaway_watcher_error(trw)){
+        if(thermal_runaway_watcher_errored(trw)){
             // If errored out, flash error state
             const uint LED_TOGGLE_PERIOD_MS = 512;
             if (to_ms_since_boot(get_absolute_time())%LED_TOGGLE_PERIOD_MS > (LED_TOGGLE_PERIOD_MS/2)){
@@ -399,9 +401,9 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup the binary inputs for pump switch and mode dial.
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
-    const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
-
     pump_switch = binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, PUMP_SWITCH_DEBOUNCE_DURATION_US, false, false);
+
+    const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
     mode_dial = binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, MODE_DIAL_DEBOUNCE_DURATION_US, false, true);
 
     // Setup the pump
