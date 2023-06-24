@@ -16,7 +16,7 @@
 
 #include "utils/macros.h"
 
-#define ULKA_PUMP_FLOW_FILTER_SPAN_MS 2005
+#define ULKA_PUMP_FLOW_FILTER_SPAN_MS 1505
 #define ULKA_PUMP_FLOW_SAMPLE_RATE_MS 100
 
 /** \brief Struct containing the fields for the actuation and measurement of a single Ulka pump */
