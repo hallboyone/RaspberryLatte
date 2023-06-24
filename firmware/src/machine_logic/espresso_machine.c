@@ -174,28 +174,28 @@ static uint8_t get_power_for_flow(uint16_t target_flow_ul_ds){
  * on. 
  */
 static void espresso_machine_autobrew_setup(){
-    const uint32_t ramp_t  = *settings->autobrew.preinf_ramp_time;
-    const uint32_t pre_t   = *settings->autobrew.preinf_timeout * 10;
-    const uint8_t  pre_pwr = *settings->autobrew.preinf_power;
-    const uint32_t brew_t  = *settings->autobrew.timeout * 10;
-    const uint16_t f_ul_ds = *settings->autobrew.flow;
-    const uint16_t yield   = *settings->brew.yield;
+    const uint32_t ramp_time_ds  = *settings->autobrew.preinf_ramp_time_ds;
+    const uint32_t preinf_timeout_ds   = *settings->autobrew.preinf_timeout_s * 10;
+    const uint8_t  preinf_pwr_per = *settings->autobrew.preinf_power_per;
+    const uint32_t brew_timeout_ds  = *settings->autobrew.timeout_s * 10;
+    const uint16_t flow_ul_ds = *settings->autobrew.flow_ul_ds;
+    const uint16_t yield_dg   = *settings->brew.yield_dg;
     
     uint8_t leg_id;
     autobrew_init();
-    leg_id = autobrew_add_leg(NULL, 0, pre_pwr, ramp_t);
+    leg_id = autobrew_add_leg(NULL, 0, preinf_pwr_per, ramp_time_ds);
     autobrew_leg_add_setup_fun(leg_id, zero_scale);
 
-    leg_id = autobrew_add_leg(NULL, pre_pwr, pre_pwr, pre_t);
+    leg_id = autobrew_add_leg(NULL, preinf_pwr_per, preinf_pwr_per, preinf_timeout_ds);
     autobrew_leg_add_trigger(leg_id, system_at_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR);
 
-    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, 2*ramp_t);
+    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, 2*ramp_time_ds);
     
-    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_BREW_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, brew_t);
-    autobrew_leg_add_trigger(leg_id, system_at_flow, f_ul_ds);
+    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_BREW_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, brew_timeout_ds);
+    autobrew_leg_add_trigger(leg_id, system_at_flow, flow_ul_ds);
 
-    leg_id = autobrew_add_leg(get_power_for_flow, f_ul_ds, f_ul_ds, brew_t);
-    autobrew_leg_add_trigger(leg_id, scale_at_val, yield);
+    leg_id = autobrew_add_leg(get_power_for_flow, flow_ul_ds, flow_ul_ds, brew_timeout_ds);
+    autobrew_leg_add_trigger(leg_id, scale_at_val, yield_dg);
     autobrew_leg_add_setup_fun(leg_id, setup_flow_ctrl);
 }
 
@@ -280,10 +280,10 @@ static void espresso_machine_update_pump(){
         ulka_pump_off(pump);
         binary_output_put(solenoid, 0, 0);
     } else if (MODE_HOT == _state.switches.mode_dial){
-        ulka_pump_pwr_percent(pump, *settings->hot.power);
+        ulka_pump_pwr_percent(pump, *settings->hot.power_per);
         binary_output_put(solenoid, 0, 0);
     } else if (MODE_MANUAL == _state.switches.mode_dial){
-        ulka_pump_pwr_percent(pump, *settings->brew.power);
+        ulka_pump_pwr_percent(pump, *settings->brew.power_per);
         binary_output_put(solenoid, 0, 1);
     } else if (MODE_AUTO == _state.switches.mode_dial){
         if(!autobrew_routine_tick()){
@@ -319,11 +319,11 @@ static void espresso_machine_update_boiler(){
     // Update setpoints
     if(is_ac_on_and_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*(*settings->steam.temp);
+            _state.boiler.setpoint = 1.6*(*settings->steam.temp_dC);
         } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = 1.6*(*settings->hot.temp);
+            _state.boiler.setpoint = 1.6*(*settings->hot.temp_dC);
         } else {
-            _state.boiler.setpoint = 1.6*(*settings->brew.temp);
+            _state.boiler.setpoint = 1.6*(*settings->brew.temp_dC);
         }
     } else {
         _state.boiler.setpoint = 0;
@@ -361,7 +361,7 @@ static void espresso_machine_update_leds(){
             led_state = (_state.switches.ac_switch) << 2|
                         (_state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5)) << 1 |
                         (_state.switches.ac_switch && !_state.switches.pump_switch 
-                        && nau7802_at_val_mg(scale, *settings->brew.dose *100)) << 0;
+                        && nau7802_at_val_mg(scale, *settings->brew.dose_dg *100)) << 0;
         }
         binary_output_mask(leds, led_state);
     } else {

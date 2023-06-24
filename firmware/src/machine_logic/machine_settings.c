@@ -229,18 +229,18 @@ static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
 
 /** \brief Link the internal settings array with the externally accessible settings struct */
 static void _machine_settings_link(){
-    _ms_struct.autobrew.preinf_timeout   = &(_ms[PREINF_ON_TIME]);
-    _ms_struct.autobrew.preinf_power     = &(_ms[PREINF_ON_POWER]);
-    _ms_struct.autobrew.timeout          = &(_ms[TIMEOUT]);
-    _ms_struct.autobrew.preinf_ramp_time = &(_ms[RAMP_TIME]);
-    _ms_struct.autobrew.flow             = &(_ms[AUTO_FLOW]);
-    _ms_struct.brew.temp                 = &(_ms[TEMP_BREW]);
-    _ms_struct.hot.temp                  = &(_ms[TEMP_HOT]);
-    _ms_struct.steam.temp                = &(_ms[TEMP_STEAM]);
-    _ms_struct.brew.power                = &(_ms[POWER_BREW]);
-    _ms_struct.hot.power                 = &(_ms[POWER_HOT]);
-    _ms_struct.brew.dose                 = &(_ms[WEIGHT_DOSE]);
-    _ms_struct.brew.yield                = &(_ms[WEIGHT_YIELD]);
+    _ms_struct.autobrew.preinf_timeout_s    = &(_ms[PREINF_ON_TIME]);
+    _ms_struct.autobrew.preinf_power_per    = &(_ms[PREINF_ON_POWER]);
+    _ms_struct.autobrew.timeout_s           = &(_ms[TIMEOUT]);
+    _ms_struct.autobrew.preinf_ramp_time_ds = &(_ms[RAMP_TIME]);
+    _ms_struct.autobrew.flow_ul_ds          = &(_ms[AUTO_FLOW]);
+    _ms_struct.brew.temp_dC                 = &(_ms[TEMP_BREW]);
+    _ms_struct.hot.temp_dC                  = &(_ms[TEMP_HOT]);
+    _ms_struct.steam.temp_dC                = &(_ms[TEMP_STEAM]);
+    _ms_struct.brew.power_per               = &(_ms[POWER_BREW]);
+    _ms_struct.hot.power_per                = &(_ms[POWER_HOT]);
+    _ms_struct.brew.dose_dg                 = &(_ms[WEIGHT_DOSE]);
+    _ms_struct.brew.yield_dg                = &(_ms[WEIGHT_YIELD]);
 }
 
 /** \brief Setup the local UI file structure. */
@@ -350,18 +350,18 @@ int machine_settings_print(){
         "Brew power         : %d%%\n"
         "Hot power          : %d%%\n"
         "Flow rate          : %0.2f ml/s\n\n",
-        *_ms_struct.autobrew.preinf_timeout,
-        *_ms_struct.autobrew.timeout,
-        *_ms_struct.autobrew.preinf_ramp_time/10.,
-        *_ms_struct.brew.dose/10.,
-        *_ms_struct.brew.yield/10.,
-        *_ms_struct.brew.temp/10.,
-        *_ms_struct.hot.temp/10.,
-        *_ms_struct.steam.temp/10.,
-        *_ms_struct.autobrew.preinf_power,
-        *_ms_struct.brew.power,
-        *_ms_struct.hot.power,
-        *_ms_struct.autobrew.flow/100.0);
+        *_ms_struct.autobrew.preinf_timeout_s,
+        *_ms_struct.autobrew.timeout_s,
+        *_ms_struct.autobrew.preinf_ramp_time_ds/10.,
+        *_ms_struct.brew.dose_dg/10.,
+        *_ms_struct.brew.yield_dg/10.,
+        *_ms_struct.brew.temp_dC/10.,
+        *_ms_struct.hot.temp_dC/10.,
+        *_ms_struct.steam.temp_dC/10.,
+        *_ms_struct.autobrew.preinf_power_per,
+        *_ms_struct.brew.power_per,
+        *_ms_struct.hot.power_per,
+        *_ms_struct.autobrew.flow_ul_ds/100.0);
     return PICO_ERROR_NONE;
 }
 
