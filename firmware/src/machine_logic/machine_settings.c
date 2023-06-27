@@ -16,13 +16,9 @@
 #include "machine_logic/local_ui.h"
 #include "utils/value_flasher.h"
 
-/** \brief Enumerated list naming the indicies of the settings array. */
-typedef enum {TEMP_BREW = 0,  TEMP_HOT,        TEMP_STEAM,      WEIGHT_DOSE, WEIGHT_YIELD,
-              PREINF_ON_TIME, PREINF_ON_POWER, RAMP_TIME,   TIMEOUT,         POWER_BREW,     
-              POWER_HOT,      AUTO_FLOW,       NUM_SETTINGS} setting_id;
-
 /** \brief Starting address in mb85 FRAM chip where setting data is stored */
 static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
+
 /** \brief The size, in bytes, of a single settings profile */
 static const uint16_t MACHINE_SETTINGS_MEMORY_SIZE = NUM_SETTINGS * sizeof(machine_setting);
 
@@ -36,12 +32,65 @@ static value_flasher _setting_flasher;
 static machine_setting _ms [NUM_SETTINGS];
 /** \brief Internal settings structure with fields pointing at \p _ms array */
 static machine_settings _ms_struct;
+
+typedef struct{
+    machine_setting min;
+    machine_setting max;
+    machine_setting std;
+} machine_setting_bound;
+
 /** \brief Minimum settings array */
-static const machine_setting _ms_min [NUM_SETTINGS] = {   0,    0,   0,    0,   0,   0,   0,   0,   0,   0,   0,   0};
-/** \brief Maximum settings array */
-static const machine_setting _ms_max [NUM_SETTINGS] = {1450, 1450, 1450, 500, 1000, 600, 100, 600, 180, 100, 100, 4000};
-/** \brief Default settings array */
-static const machine_setting _ms_std [NUM_SETTINGS] = { 900, 1000, 1450, 150,  300,  40,  75,  10,  60, 100,  75, 1000};
+static const machine_setting_bound _bound [NUM_SETTINGS] = {
+    {.min = 0, .max = 1400, .std = 900 }, //TEMP_BREW
+    {.min = 0, .max = 1400, .std = 1000}, //TEMP_HOT
+    {.min = 0, .max = 1400, .std = 1400}, //TEMP_STEAM
+    {.min = 0, .max = 500,  .std = 150 }, //WEIGHT_DOSE
+    {.min = 0, .max = 1000, .std = 300 }, //WEIGHT_YIELD
+    {.min = 0, .max = 100,  .std = 100 }, //POWER_BREW 
+    {.min = 0, .max = 100,  .std = 20  }, //POWER_HOT
+    {.min = 0, .max = 30,   .std = 0   }, //A1_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A1_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A1_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A1_TRGR_FLOW
+    {.min = 0, .max = 100,  .std = 0   }, //A1_TRGR_PRSR
+    {.min = 0, .max = 1000, .std = 0   }, //A1_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 100 }, //A1_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A2_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A2_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A2_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A2_TRGR_FLOW
+    {.min = 0, .max = 100,  .std = 0   }, //A2_TRGR_PRSR
+    {.min = 0, .max = 1000, .std = 0   }, //A2_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 100 }, //A2_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A3_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A3_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A3_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A3_TRGR_FLOW
+    {.min = 0, .max = 100,  .std = 0   }, //A3_TRGR_PRSR
+    {.min = 0, .max = 1000, .std = 0   }, //A3_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 100 }, //A3_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A4_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A4_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A4_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A4_TRGR_FLOW
+    {.min = 0, .max = 100,  .std = 0   }, //A4_TRGR_PRSR
+    {.min = 0, .max = 1000, .std = 0   }, //A4_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 100 }, //A4_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A5_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A5_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A5_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A5_TRGR_FLOW
+    {.min = 0, .max = 100,  .std = 0   }, //A5_TRGR_PRSR
+    {.min = 0, .max = 1000, .std = 0   }, //A5_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 100 }, //A5_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A6_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A6_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A6_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A6_TRGR_FLOW
+    {.min = 0, .max = 100,  .std = 0   }, //A6_TRGR_PRSR
+    {.min = 0, .max = 1000, .std = 0   }, //A6_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 100 }, //A6_TIMEOUT
+    };
 
 static local_ui_folder_tree settings_modifier; /**< \brief Local UI folder tree for updating machine settings*/
 static local_ui_folder f_root; /**< \brief Local UI folder: / */
@@ -95,9 +144,11 @@ static inline reg_addr _machine_settings_id_to_addr(uint8_t id){
  */
 static bool _machine_settings_verify(){
     for(uint8_t p_id = 0; p_id < NUM_SETTINGS; p_id++){
-        if(_ms[p_id] < _ms_min[p_id] || _ms[p_id] > _ms_max[p_id]){
+        if(_ms[p_id] < _bound[p_id].min || _ms[p_id] > _bound[p_id].max){
             // Invalid setting found. Copy in defaults and return true
-            memcpy(_ms, _ms_std, MACHINE_SETTINGS_MEMORY_SIZE);
+            for(uint8_t p_id_2 = 0; p_id_2 < NUM_SETTINGS; p_id_2++){
+                _ms[p_id_2] < _bound[p_id_2].std;
+            }
             return true;
         }
     }
