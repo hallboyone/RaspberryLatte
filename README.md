@@ -60,6 +60,13 @@ While ssh is fun, a mobile application would be significantly more convenient. T
 - [ ] Write project documentation
 
 ## Documentation
+### Project Documentation (Under Construction)
+To help with your build, project documentation is being written in another [repository](https://github.com/hallboyone/RaspberryLatte-docs). Clone and build the sphinx docs to view.
+<p align="center">
+  <img src="https://github.com/hallboyone/RaspberryLatte/blob/development/docs/Assets/rtd_ex.png" alt="RTD Documentation screenshot" width="500"/>
+</p>
+
+### Code Documentation
 The documentation is generated from the code's comments using doxygen. Below is a sample page showing the autobrew library. Clone and build the html to view the rest.
 <p align="center">
   <img src="https://github.com/hallboyone/RaspberryLatte/blob/development/docs/Assets/doxygen_ex.png" alt="Doxygen screenshot" width="500"/>

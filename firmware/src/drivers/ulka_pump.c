@@ -16,7 +16,7 @@
 
 #include "utils/macros.h"
 
-#define ULKA_PUMP_FLOW_FILTER_SPAN_MS 2005
+#define ULKA_PUMP_FLOW_FILTER_SPAN_MS 1505
 #define ULKA_PUMP_FLOW_SAMPLE_RATE_MS 100
 
 /** \brief Struct containing the fields for the actuation and measurement of a single Ulka pump */
@@ -79,7 +79,7 @@ uint8_t ulka_pump_pressure_to_power(ulka_pump p, const float target_pressure_bar
         // Check if the power in each linear region is strong enough to reach flowrate. If it is, then compute
         // the required power and return.
         if(OFFSET[i] + PUMP_GAIN[i]*LINEAR_REGION_SPAN*(i+1) + FLOW_GAIN[i]*flowrate > target_pressure_bar){
-            float power = (target_pressure_bar - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
+            const float power = 1 + (target_pressure_bar - FLOW_GAIN[i]*flowrate - OFFSET[i])/PUMP_GAIN[i];
             return CLAMP(power, 0, 100);
         }
     }

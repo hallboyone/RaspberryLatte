@@ -34,6 +34,7 @@
 
 /** An internal variable that collects the current state of the machine. */
 static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
+static const machine_settings* settings;
 
 /** I2C bus connected to memory, scale ADC, and I2C port */
 static i2c_inst_t *  bus = i2c1;
@@ -49,24 +50,13 @@ static lmt01                   thermo;      /**< Boiler thermometer. */
 static nau7802                 scale;       /**< Output scale. */
 static ulka_pump               pump;        /**< The vibratory pump. */
 
-static const machine_settings* settings;
-
 /** Autobrew and control objects */
 static pid  heater_pid;
-static pid  flow_pid;
+static pid  flow_pid;                    
 
-typedef enum {PREPARE_AUTOBREW = 0, // Reset all controllers and the scale
-              PREINF_RAMP,          // Ramp up to preinfuse power
-              PREINF_ON,            // Run at the preinfuse power until the system is under pressure or timeout
-              PRESSURE_RAMP,        // Ramp to the regulated pressure
-              PRESSURE_CTRL,        // Run with regulated pressure until flowrate/output exceeds threshold or timeout
-              PREPARE_FLOW,         // Set the flow control bias
-              FLOW_CTRL,            // Run with regulated flow until output exceeds threshold or timeout
-              NUM_LEGS} AUTOBREW_LEGS;
-
-static autobrew_routine autobrew_plan;
-
-/** Shuts down the pump and boiler. */
+/** 
+ * \brief Shuts down the pump and boiler. 
+*/
 static void espresso_machine_e_stop();
 
 /**
@@ -81,12 +71,12 @@ static inline bool is_ac_on(){
 
 /** 
  * \brief Checks if AC has settled.
- * The AC is assumed settled once AC_SETTLING_TIME_MS have passed. The time should
- * be long enough to allow transient spikes to die out. 
+ * The AC is assumed settled once AC_SETTLING_TIME_MS have passed and AC is on. 
+ * The time should be long enough to allow transient spikes to die out. 
  * \return True if ac has settled. Else, returns false.
  */
-static inline bool is_ac_settled(){
-    return absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
+static inline bool is_ac_on_and_settled(){
+    return is_ac_on() && absolute_time_diff_us(ac_on_time, get_absolute_time()) > 1000*AC_SETTLING_TIME_MS;
 }
 
 /** 
@@ -116,55 +106,62 @@ static void apply_boiler_input(float u){
     slow_pwm_set_float_duty(heater, u);
 }
 
-/** \brief Reset flow control and set the bias to the current pump power. */
-static void autobrew_setup_flow_ctrl(){
+/** 
+ * \brief Zeros the scale. 
+ * Helper for autobrew routine.
+ */
+static void zero_scale(){
+    nau7802_zero(scale);
+}
+
+/** 
+ * \brief Resets flow control and sets the bias to the current pump power.
+ * Helper for the autobrew routine.
+ */
+static void setup_flow_ctrl(){
     pid_reset(flow_pid);
     pid_update_bias(flow_pid, ulka_pump_get_pwr(pump));
 }
 
-/** \brief Returns true if flowrate is greater than target flow */
-static bool system_at_flow(){
-    return 100.0*ulka_pump_get_flow_ml_s(pump) >= *settings->autobrew.flow;
-}
-
-/** \brief Returns true if system is under pressure */
-static bool system_under_pressure(){
-    return ulka_pump_get_pressure_bar(pump) > AUTOBREW_PREINF_END_PRESSURE_BAR;
+/** 
+ * \brief Checks if the scale is greater than or equal to the passed in value. 
+ */
+static bool scale_at_val(uint16_t val_mg){
+    return nau7802_at_val_mg(scale, val_mg);
 }
 
 /** 
- * \brief Checks if the scale is at the current brew yield setting. 
- * Used as a trigger for autobrew routines.
- * \returns True if the scale is greater than the brew yield. Else, returns false.
+ * \brief Checks if flowrate is greater than or equal to the passed in value. 
  */
-static bool scale_at_output(){
-    return nau7802_at_val_mg(scale, *settings->brew.yield*100);
+static bool system_at_flow(uint16_t flow_ul_ds){
+    return 100.0*ulka_pump_get_flow_ml_s(pump) >= flow_ul_ds;
 }
 
 /** 
- * \brief Zeros the scale
+ * \brief Checks if pump is under passed in pressure 
  */
-static void autobrew_zero_scale(){
-    nau7802_zero(scale);
+static bool system_at_pressure(uint16_t pressure_mbar){
+    return ulka_pump_get_pressure_bar(pump) > (pressure_mbar/1000.);
 }
 
-/** \brief Returns the pump power required to hit target pressure (clipped between 0 and 100).
+/** 
+ * \brief Returns the pump power required to hit target pressure (clipped between 0 and 100).
  * \param target_pressure_bar The pressure in bar that is targeted.
  * \returns The pump power needed to hit the target pressure in percent power.
 */
-static uint8_t get_power_for_pressure(float target_pressure_bar){
-    return ulka_pump_pressure_to_power(pump, target_pressure_bar);
+static uint8_t get_power_for_pressure(uint16_t target_pressure_mbar){
+    return ulka_pump_pressure_to_power(pump, target_pressure_mbar/1000.0);
 }
 
 /** \brief Returns the pump power needed to regulated to the target flow rate.
  * 
  * The flow_ctrl PID object is updated to the new setpoint, ticked, and the current input is returned.
  * 
- * \param target_flow_ml_s The target flowrate in ml/s.
+ * \param target_flow_ul_ds The target flowrate in ul/ds.
  * \returns The pump power needed to reach the target flowrate, according to the flow_ctrl PID object.
 */
-static uint8_t get_power_for_flow(float target_flow_ml_s){
-    pid_update_setpoint(flow_pid, target_flow_ml_s);
+static uint8_t get_power_for_flow(uint16_t target_flow_ul_ds){
+    pid_update_setpoint(flow_pid, target_flow_ul_ds*10);
     return (uint8_t)pid_tick(flow_pid, NULL);
 }
 
@@ -177,25 +174,41 @@ static uint8_t get_power_for_flow(float target_flow_ml_s){
  * on. 
  */
 static void espresso_machine_autobrew_setup(){
-    const uint32_t ramp_t  = *settings->autobrew.preinf_ramp_time * 100000UL;
-    const uint32_t pre_t   = *settings->autobrew.preinf_timeout * 1000000UL;
-    const uint8_t  pre_pwr = *settings->autobrew.preinf_power;
-    const uint32_t brew_t  = *settings->autobrew.timeout * 1000000UL;
-    const uint32_t f_ul_s  = *settings->autobrew.flow * 10UL;
-    const float    p0_bar  = AUTOBREW_PREINF_END_PRESSURE_BAR;
-    const float    p_bar   = AUTOBREW_BREW_PRESSURE_BAR; 
+    const uint32_t ramp_time_ds  = *settings->autobrew.preinf_ramp_time_ds;
+    const uint32_t preinf_timeout_ds   = *settings->autobrew.preinf_timeout_s * 10;
+    const uint8_t  preinf_pwr_per = *settings->autobrew.preinf_power_per;
+    const uint32_t brew_timeout_ds  = *settings->autobrew.timeout_s * 10;
+    const uint16_t flow_ul_ds = *settings->autobrew.flow_ul_ds;
+    const uint16_t yield_dg   = *settings->brew.yield_dg;
     
-    autobrew_routine * ap = &autobrew_plan;
-    autobrew_setup_linear_setpoint_leg(ap, PREINF_RAMP,   0,       pre_pwr, NULL,                   ramp_t, NULL);
-    autobrew_setup_linear_setpoint_leg(ap, PREINF_ON,     pre_pwr, pre_pwr, NULL,                   pre_t,  system_under_pressure);
-    autobrew_setup_linear_setpoint_leg(ap, PRESSURE_RAMP, p0_bar,  p_bar,   get_power_for_pressure, 2*ramp_t, NULL);
-    autobrew_setup_linear_setpoint_leg(ap, PRESSURE_CTRL, p_bar,   p_bar,   get_power_for_pressure, brew_t, system_at_flow);
-    autobrew_setup_linear_setpoint_leg(ap, FLOW_CTRL,     f_ul_s,  f_ul_s,  get_power_for_flow,     brew_t, scale_at_output);
+    uint8_t leg_id;
+    autobrew_init();
+    leg_id = autobrew_add_leg(NULL, 0, preinf_pwr_per, ramp_time_ds);
+    autobrew_leg_add_setup_fun(leg_id, zero_scale);
+
+    leg_id = autobrew_add_leg(NULL, preinf_pwr_per, preinf_pwr_per, preinf_timeout_ds);
+    autobrew_leg_add_trigger(leg_id, system_at_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR);
+
+    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, 2*ramp_time_ds);
+    
+    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_BREW_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, brew_timeout_ds);
+    autobrew_leg_add_trigger(leg_id, system_at_flow, flow_ul_ds);
+
+    leg_id = autobrew_add_leg(get_power_for_flow, flow_ul_ds, flow_ul_ds, brew_timeout_ds);
+    autobrew_leg_add_trigger(leg_id, scale_at_val, yield_dg);
+    autobrew_leg_add_setup_fun(leg_id, setup_flow_ctrl);
 }
 
 /**
- * \brief Flag changes in switch values. Run simple event-driven routines (zero scale, setup autobrew,
- * etc).
+ * \brief Flag changes in switch values and run simple event-driven routines.
+ * 
+ * The AC switch sets flags for its current value and if it changed. If switched on,
+ * record the current time, setup the autobrew routine, and reset the heater PID.
+ * 
+ * The mode dial sets flags for its current value and if it changed. If it does 
+ * change, the scale is zeroed for weighing beans.
+ * 
+ * The pump switch sets flags for its current value and if it changed.
  */
 static void espresso_machine_update_switches(){
     const bool new_ac_switch = is_ac_on();
@@ -226,7 +239,7 @@ static void espresso_machine_update_switches(){
     if(_state.switches.mode_dial != new_mode_switch){
         _state.switches.mode_dial_changed = (_state.switches.mode_dial > new_mode_switch ? -1 : 1);
         _state.switches.mode_dial = new_mode_switch;
-        nau7802_zero(scale);
+        nau7802_zero(scale); // zero scale so we can weigh the beans
     } else {
         _state.switches.mode_dial_changed = 0;
     }
@@ -252,7 +265,7 @@ static void espresso_machine_update_settings(){
 */
 static void espresso_machine_update_pump(){
     // Lock the pump if AC is off OR pump is on and the mode has changed or it has been locked already.
-    if(!_state.switches.ac_switch || !is_ac_settled() || thermal_runaway_watcher_error(trw)
+    if(!is_ac_on_and_settled() || thermal_runaway_watcher_errored(trw)
        || (_state.switches.pump_switch && (_state.switches.mode_dial_changed || ulka_pump_is_locked(pump)))){
         ulka_pump_lock(pump);
     } else {
@@ -263,27 +276,26 @@ static void espresso_machine_update_pump(){
         || ulka_pump_is_locked(pump) 
         || MODE_STEAM == _state.switches.mode_dial){
         // If the pump is locked, switched off, or in steam mode
-        autobrew_routine_reset(&autobrew_plan);
+        autobrew_reset();
         ulka_pump_off(pump);
         binary_output_put(solenoid, 0, 0);
-
     } else if (MODE_HOT == _state.switches.mode_dial){
-        ulka_pump_pwr_percent(pump, *settings->hot.power);
+        ulka_pump_pwr_percent(pump, *settings->hot.power_per);
         binary_output_put(solenoid, 0, 0);
-
     } else if (MODE_MANUAL == _state.switches.mode_dial){
-        ulka_pump_pwr_percent(pump, *settings->brew.power);
+        ulka_pump_pwr_percent(pump, *settings->brew.power_per);
         binary_output_put(solenoid, 0, 1);
-
-    } else if (MODE_AUTO ==_state.switches.mode_dial){
-        if(!autobrew_routine_tick(&autobrew_plan)){
+    } else if (MODE_AUTO == _state.switches.mode_dial){
+        if(!autobrew_routine_tick()){
             binary_output_put(solenoid, 0, 1);
-            if(autobrew_plan.state.pump_setting_changed){
-                ulka_pump_pwr_percent(pump, autobrew_plan.state.pump_setting);
+            if(autobrew_pump_changed()){
+                ulka_pump_pwr_percent(pump, autobrew_pump_power());
             }
+            _state.autobrew_leg = 1 + autobrew_current_leg(); // legs are 0 indexed, shifted here to 1
         } else {
             ulka_pump_off(pump);
             binary_output_put(solenoid, 0, 0);
+            _state.autobrew_leg = 0;
         }
     }
 
@@ -299,35 +311,34 @@ static void espresso_machine_update_pump(){
  * and ticks its controller.
  */
 static void espresso_machine_update_boiler(){
-    // Update setpoints
-    if(_state.switches.ac_switch && is_ac_settled()){
-        if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*(*settings->steam.temp);
-        } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = 1.6*(*settings->hot.temp);
-        } else {
-            _state.boiler.setpoint = 1.6*(*settings->brew.temp);
-        }
-    } else {
-        _state.boiler.setpoint = 0;
-    }
-
     _state.boiler.temperature = lmt01_read(thermo);
 
     #ifdef DISABLE_BOILER
     _state.boiler.setpoint = 0;
     #else
-    if((_state.boiler.thermal_state = thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature, !_state.switches.ac_switch)) < 0){
+    // Update setpoints
+    if(is_ac_on_and_settled()){
+        if(_state.switches.mode_dial == MODE_STEAM){
+            _state.boiler.setpoint = 1.6*(*settings->steam.temp_dC);
+        } else if(_state.switches.mode_dial == MODE_HOT){
+            _state.boiler.setpoint = 1.6*(*settings->hot.temp_dC);
+        } else {
+            _state.boiler.setpoint = 1.6*(*settings->brew.temp_dC);
+        }
+    } else {
+        _state.boiler.setpoint = 0;
+    }
+
+    _state.boiler.thermal_state = thermal_runaway_watcher_tick(trw, _state.boiler.setpoint, _state.boiler.temperature, !_state.switches.ac_switch);
+    if(thermal_runaway_watcher_errored(trw)){
         espresso_machine_e_stop(); // Shut down pump and boiler
         _state.boiler.setpoint = 0;
     } else {
-        // If no thermal runaway
         pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
         pid_tick(heater_pid, &_state.boiler.pid_state);
     }
-    #endif
-    
     _state.boiler.power_level = slow_pwm_get_duty(heater);
+    #endif
 }
 
 /**
@@ -340,7 +351,7 @@ static void espresso_machine_update_boiler(){
 static void espresso_machine_update_leds(){
     if(_state.switches.ac_switch){
         uint8_t led_state = 0;
-        if(thermal_runaway_watcher_error(trw)){
+        if(thermal_runaway_watcher_errored(trw)){
             // If errored out, flash error state
             const uint LED_TOGGLE_PERIOD_MS = 512;
             if (to_ms_since_boot(get_absolute_time())%LED_TOGGLE_PERIOD_MS > (LED_TOGGLE_PERIOD_MS/2)){
@@ -350,7 +361,7 @@ static void espresso_machine_update_leds(){
             led_state = (_state.switches.ac_switch) << 2|
                         (_state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5)) << 1 |
                         (_state.switches.ac_switch && !_state.switches.pump_switch 
-                        && nau7802_at_val_mg(scale, *settings->brew.dose *100)) << 0;
+                        && nau7802_at_val_mg(scale, *settings->brew.dose_dg *100)) << 0;
         }
         binary_output_mask(leds, led_state);
     } else {
@@ -367,11 +378,8 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     settings = machine_settings_setup(mb85_fram_setup(bus, 0x00, NULL));
 
-    // Setup the autobrew first leg that does not depend on machine settings
-    autobrew_routine_setup(&autobrew_plan, NUM_LEGS);
-    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_AUTOBREW, 0, &autobrew_zero_scale);
-    autobrew_setup_function_call_leg(&autobrew_plan, PREPARE_FLOW, 0, &autobrew_setup_flow_ctrl);
-    
+    autobrew_init();
+
     // Setup flow control PID object
     const pid_gains flow_K = {.p = FLOW_PID_GAIN_P, .i = FLOW_PID_GAIN_I, .d = FLOW_PID_GAIN_D, .f = FLOW_PID_GAIN_F};
     flow_pid = pid_setup(flow_K, &read_pump_flowrate_ul_s, NULL, NULL, -100, 100, 25, 100);
@@ -393,9 +401,9 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     // Setup the binary inputs for pump switch and mode dial.
     const uint8_t pump_switch_gpio = PUMP_SWITCH_PIN;
-    const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
-
     pump_switch = binary_input_setup(1, &pump_switch_gpio, BINARY_INPUT_PULL_UP, PUMP_SWITCH_DEBOUNCE_DURATION_US, false, false);
+
+    const uint8_t mode_select_gpio[2] = {DIAL_A_PIN, DIAL_B_PIN};
     mode_dial = binary_input_setup(2, mode_select_gpio, BINARY_INPUT_PULL_UP, MODE_DIAL_DEBOUNCE_DURATION_US, false, true);
 
     // Setup the pump
@@ -410,7 +418,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     scale = nau7802_setup(bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
-    thermo = lmt01_setup(0, LMT01_DATA_PIN);
+    thermo = lmt01_setup(0, LMT01_DATA_PIN, BOILER_TEMP_OFFSET_16C);
 
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);

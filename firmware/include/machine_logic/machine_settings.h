@@ -41,23 +41,17 @@
 #include "pico/stdlib.h" // Typedefs
 #include "drivers/mb85_fram.h"   // FRAM memory driver to store settings
 
-typedef int16_t machine_setting;     /**< \brief Generic machine setting field */
-typedef machine_setting temp_dC;     /**< \brief Temperature value. Divide by 10 to get C */
-typedef machine_setting duration_ds; /**< \brief Duration length. Divide by 10 to get seconds */
-typedef machine_setting duration_s;  /**< \brief Duration length in seconds */
-typedef machine_setting power_per;   /**< \brief Power level as percentage */
-typedef machine_setting flow_ul_ds;  /**< \brief Flow in microliters per second */
-typedef machine_setting weight_dg;   /**< \brief Weight value. Divide by 10 to get g */
+typedef int16_t machine_setting; /**< \brief Generic machine setting field with range from -32768 to 32767 */
 
 /** \brief The settings associated with the steam mode */
 typedef struct {
-    temp_dC * temp; /**< The target temperature when in steam mode */
+    machine_setting * temp_dC; /**< The target temperature when in steam mode */
 } machine_settings_steam;
 
 /** \brief The settings associated with the hot-water mode */
 typedef struct {
-    temp_dC *   temp;  /**< The target temperature when in hot-water mode */
-    power_per * power; /**< The pump power for when in steam mode */
+    machine_setting * temp_dC;   /**< The target temperature when in hot-water mode */
+    machine_setting * power_per; /**< The pump power for when in steam mode */
 } machine_settings_hot;
 
 /** \brief The settings associated with brewing espresso. 
@@ -65,19 +59,19 @@ typedef struct {
  * Used in manual and auto mode 
  * */
 typedef struct {
-    temp_dC *   temp;  /**< The target temperature when brewing */ 
-    power_per * power; /**< The pump power when brewing */ 
-    weight_dg * dose;  /**< Weight of grounds used when brewing */
-    weight_dg * yield; /**< Weight of espresso to brew */
+    machine_setting * temp_dC;   /**< The target temperature when brewing */ 
+    machine_setting * power_per; /**< The pump power when brewing */ 
+    machine_setting * dose_dg;   /**< Weight of grounds used when brewing */
+    machine_setting * yield_dg;  /**< Weight of espresso to brew */
 } machine_settings_brew;
 
 /** \brief The settings associated with the auto mode */
 typedef struct {
-    duration_s *  preinf_timeout;   /**< Length of time to soak puck during pre-infuse */
-    power_per *   preinf_power;     /**< The power of the pre-infuse routine */
-    duration_ds * preinf_ramp_time; /**< The time, in ds of the linear ramp to target power */
-    flow_ul_ds *  flow;             /**< The target flow rate during the main brew leg */
-    duration_s *  timeout;          /**< The length of time to attempt to reach yield */
+    machine_setting * preinf_timeout_s;    /**< Length of time to soak puck during pre-infuse */
+    machine_setting * preinf_power_per;    /**< The power of the pre-infuse routine */
+    machine_setting * preinf_ramp_time_ds; /**< The time, in ds of the linear ramp to target power */
+    machine_setting * flow_ul_ds;          /**< The target flow rate during the main brew leg */
+    machine_setting * timeout_s;           /**< The length of time to attempt to reach yield */
 } machine_settings_auto;
 
 /** \brief Full espresso machine settings. 

@@ -22,6 +22,7 @@ typedef struct lmt01_s{
     uint _sm;         /**< \brief The state machine instance running the program reading the LMT01 sensor. */
     uint8_t _dat_pin; /**< \brief The GPIO pin attached to the LMT01 signal. */
     int _latest_temp; /**< \brief The most recent temp read by the sensor. */
+    int _offset;      /**< \brief The constant offset added to the temp readings. */
 } lmt01_;
 
 static const int PULSE_COUNTS [21] = { 
@@ -120,11 +121,11 @@ static inline void _lmt01_program_init(lmt01 l, uint offset) {
     pio_sm_set_enabled(l->_pio, l->_sm, true);
 }
 
-lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin){
+lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin, int offset_16C){
     lmt01 l = malloc(sizeof(lmt01_));
 
     l->_dat_pin = dat_pin;
-
+    l->_offset = offset_16C;
     // Load pio program into memory
     l->_pio =  (pio_num==0 ? pio0 : pio1);
     uint offset = pio_add_program(l->_pio, &lmt01_program);
@@ -140,7 +141,7 @@ lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin){
 
 int lmt01_read(lmt01 l){
     while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
-        l->_latest_temp = _lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm));
+        l->_latest_temp = l->_offset + _lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm));
     }
     return l->_latest_temp;
 }

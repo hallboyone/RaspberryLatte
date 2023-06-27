@@ -1,6 +1,6 @@
 /**
- * Length of time after powering on that the boiler and pump remain inactive. Let's transient voltages 
- * settle out before activating the machine.
+ * Length of time after powering on that the boiler and pump remain inactive. 
+ * Let's transient voltages settle out before activating the machine.
  */
 #define AC_SETTLING_TIME_MS 500
 
@@ -33,5 +33,12 @@
 #define PUMP_SWITCH_DEBOUNCE_DURATION_US 10000
 #define MODE_DIAL_DEBOUNCE_DURATION_US 75000
 
-#define AUTOBREW_PREINF_END_PRESSURE_BAR 3.0
-#define AUTOBREW_BREW_PRESSURE_BAR       9.0
+#define AUTOBREW_PREINF_END_PRESSURE_MBAR 3000
+#define AUTOBREW_BREW_PRESSURE_MBAR       9000
+
+/**
+ * The temp that the thermometer is reading may not match the water at the group-head.
+ * This constant defines the discrepancy. Compute the value in C and then multiply by 
+ * 16 and round to an integer. 
+*/
+#define BOILER_TEMP_OFFSET_16C 128

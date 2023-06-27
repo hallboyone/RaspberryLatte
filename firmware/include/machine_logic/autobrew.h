@@ -1,25 +1,29 @@
 /**
  * \defgroup autobrew Autobrew Library
- * \version 0.2
+ * \version 1.0
  * 
  * \brief Provides tools for running multi-leg brew procedures.
  * 
- * The Autobrew Library is built around \ref autobrew_routine structures containing
- * an array of internally managed \ref autobrew_leg structures. After setting up a routine
- * and configuring it's legs, it can be ticked through. This increments through each leg of
- * the routine, updating the pump power accordingly and calling any required callback 
- * functions. Each leg is either ended after it times out, a trigger function returns true,
- * or it call's its own callback function. 
+ * The Autobrew Library manages brew procedures made up by one or more legs. Each leg begins with 
+ * 0 - AUTOBREW_SETUP_FUN_MAX_NUM setup functions that run one time at the start of the leg. Each 
+ * leg runs until either a timeout has been reached or until any of 0 - AUTOBREW_TRIGGER_MAX_NUM 
+ * trigger functions returns true. While running, the legs map a linearly changing setpoint to a 
+ * pump power using mapping functions or 1-to-1 logic if NULL (i.e. the setpoint is the pump power). 
  * 
- * \todo Add PID regulation option
+ * To use, the library must first be initalized. Then, the legs of the routine are added sequentially 
+ * using the autobrew_add_leg function. Setup functions and triggers can be added to legs as needed. 
+ * Once all the legs have been added and configured, calling autobrew_routine_tick repeatedly followed 
+ * by autobrew_current_power will move through the routine according to the configured logic and 
+ * return the corresponding pump power. At the end of the routine, calling autobrew_reset will 
+ * restore the library to the starting state and the next autobrew routine can be run.
  * 
  * \ingroup machine_logic
  * \{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief Header defining API for autobrew routines.
- * \version 0.2
- * \date 2022-12-05
+ * \version 1.0
+ * \date 2023-05-19
  */
 
 #ifndef AUTOBREW_H
@@ -27,114 +31,110 @@
 #include "pico/stdlib.h"
 #include "utils/pid.h"
 
-/** \brief Function prototype that will be called during a function call leg. */
-typedef void (*autobrew_fun)();
+#define AUTOBREW_LEG_MAX_NUM 16
 
-/** \brief Function prototype for a function that converts a setpoint to a pump power.
- * 
- * An example use case would be calling a PID controller object.
- */
-typedef uint8_t (*autobrew_get_power)(float);
+#define AUTOBREW_SETUP_FUN_MAX_NUM 3
+#define AUTOBREW_TRIGGER_MAX_NUM   3
 
-/** \brief Function prototype for an ending trigger. Used to terminate a leg prior to the timeout. */
-typedef bool (*autobrew_trigger)();
-
-/**
- * \brief Struct for tracking the state of an autobrew leg and/or routine.
- * 
- * This struct is updated by tick calls (either leg or routine versions). 
- */
-typedef struct {
-    uint8_t pump_setting;       /**< \brief The percent power that the autobrew routine has set the pump to. */
-    bool pump_setting_changed;  /**< \brief Indicates if the pump_setting changed since the last tick. */
-    bool finished;              /**< \brief Indicates if the leg/routine has completed. */
-} autobrew_state;
+#define AUTOBREW_PUMP_POWER_MAX 100
 
 /** 
- * \brief Struct defining a single leg of the autobrew routine. 
- * 
- * Each leg is defined by a (possibly variable) pump power setting, and an end 
- * condition. The pump power level can either be constant, or change linearly
- * over the leg's duration. The end condition must always contain a timeout
- * length in microseconds but can also be triggered with a function returning 
- * true when some user defined condition is met. An exception to this is a leg 
- * used to call a void function. Such a leg is only ticked once and, during that 
- * tick, the function is called and the starting power is returned.
+ * \brief Function prototype for routines that should run at the start of a leg (e.g. reset PID controller) 
  */
-typedef struct _autobrew_leg autobrew_leg;
+typedef void (*autobrew_setup_fun)();
+
+/** 
+ * \brief Function prototype for a function that converts a setpoint to a pump power.
+ * 
+ * Function converts a setpoint to a pump power between 0 and AUTOBREW_PUMP_POWER_MAX.
+ * An example use case would be calling a PID controller object.
+ */
+typedef uint8_t (*autobrew_mapping)(uint16_t);
+
+/** 
+ * \brief Function prototype for an ending trigger. 
+ * 
+ * Used to terminate a leg prior to the timeout.
+ * 
+ * \return True if leg should end. Else returns false. 
+ */
+typedef bool (*autobrew_trigger)(uint16_t);
+
+/** 
+ * \brief Initializes the autobrew library. 
+ */
+void autobrew_init();
+
+/** 
+ * \brief Create an autobrew leg with the minimal required elements.
+ * 
+ * Calls to this function create sequential legs in the routine. Setup legs in the order they should be run.
+ * 
+ * \param mapping Mapping function. NULL to use setpoint directly.
+ * \param setpoint_start The value of the setpoint at the start of the leg.
+ * \param setpoint_end The value of the setpoint at the leg's duration.
+ * \param timeout_ds The timeout duration of the autobrew leg.
+ * 
+ * \returns The ID of the leg that was created. 
+ */
+uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds);
+
+/** 
+ * \brief Adds an end trigger to specific leg ID.
+ * \param leg_id The id of the leg to add the trigger to.
+ * \param trigger A trigger function.
+ * \param trigger_data The value to pass to the trigger function.
+ */
+void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, uint16_t trigger_data);
+
+/** 
+ * \brief Adds an setup function to specific leg ID.
+ * \param leg_id The id of the leg to add the setup function to.
+ * \param setup_fun A setup function to call when leg is started.
+ */
+void autobrew_leg_add_setup_fun(uint8_t leg_id, autobrew_setup_fun setup_fun);
 
 /**
- * \brief A full autobrew routine comprised of an array of autobrew legs.
- */
-typedef struct {
-    autobrew_state state; /**< \brief The current state of the routine. Populated during calls to autobrew_routine_tick*/
-    uint8_t _num_legs;    /**< \brief The number of legs in the routine.*/
-    uint8_t _cur_leg;     /**< \brief The index of the current leg. Incremented when the current leg finishes.*/
-    autobrew_leg * _legs; /**< \brief Array of _num_legs autobrew legs.*/
-} autobrew_routine;
-
-/**
- * \brief Sets up the required fields in an autobrew_leg within a autobrew_routine to create a 
- * function call leg.
+ * \brief Run a single tick of the autobrew routine. 
  * 
- * \param r Previously setup autobrew_routine structure with the leg that will be setup.
- * \param leg_idx The index of the leg to be setup (0 indexed).
- * \param pump_pwr The percent power that will be returned after the leg's only tick.
- * \param fun The function that will be called during the leg's only tick.
- * 
- * \returns PICO_ERROR_NONE if successful. Else, PICO_ERROR_INVALID_ARG if leg_idx is out of range.
- */
-int autobrew_setup_function_call_leg(autobrew_routine * r, uint8_t leg_idx, uint8_t pump_pwr, autobrew_fun fun);
-
-/**
- * \brief Sets up the required fields in an \ref autobrew_leg within a autobrew_routine to create a 
- * linear power leg. 
- * 
- * Leg may have an optional end trigger. If not desired, pass \ref NULL as the \ref trigger.
- * 
- * \param r Previously setup autobrew_routine structure with the leg that will be setup.
- * \param leg_idx The index of the leg to be setup (0 indexed).
- * \param pump_starting_setpoint Setpoint at the start of the leg.
- * \param pump_ending_setpoint Setpoint at the end of the leg. Note this power is reached at the end of the timeout.
- * If there is a trigger function, this value may never be realized.
- * \param ctrl Optional PID controller. If set, then its setpoint is updated according to previous parameters.
- * If not set, then the previous parameters correspond with the pump's percent power.
- * \param timeout_us Time in microseconds from the first tick to the end of the leg if never triggered.
- * \param trigger Trigger function that returns true when some end condition is met (e.g. scale hits 30g).
- * If NULL, only the timeout_us is used and the leg is a timed leg.
- * 
- * \returns PICO_ERROR_NONE if successful. Else, PICO_ERROR_INVALID_ARG if leg_idx is out of range.
- */
-int autobrew_setup_linear_setpoint_leg(autobrew_routine * r, uint8_t leg_idx, float pump_starting_setpoint, 
-                                    float pump_ending_setpoint, autobrew_get_power power_computer, uint32_t timeout_us, 
-                                    autobrew_trigger trigger);
-
-/**
- * \brief Setup the autobrew_routine * r with \ref num_legs empty legs.
- * 
- * \note Should only be called once per \ref autobrew_routine. Otherwise memory will be leaked.
- * 
- * \param r Pointer to autobrew_routine struct that represents the routine.
- * \param num_legs Number of legs in routine.
- */
-void autobrew_routine_setup(autobrew_routine * r, uint8_t num_legs);
-
-/**
- * \brief Run a single tick of the autobrew routine. The resulting pump setting can be 
- * accessed within r.state.pump_setting
- * 
- * \param r Pointer to a previously setup autobrew_routine.
+ * The resulting pump setting can be accessed with autobrew_pump_power().
  * 
  * \return True if the routine has finished. False otherwise.
  */
-bool autobrew_routine_tick(autobrew_routine * r);
+bool autobrew_routine_tick();
 
 /**
- * \brief Reset the internal fields of r so that the routine is restarted at the next tick.
+ * \brief Returns the current pump power according to the autobrew routine.
  * 
- * \param r Pointer to autobrew_routine that will be reset.
+ * \return The current pump power between 0 and  AUTOBREW_PUMP_POWER_MAX.
  */
-void autobrew_routine_reset(autobrew_routine * r);
+uint8_t autobrew_pump_power();
+
+/**
+ * \brief Checks if pump power was changed with the last tick.
+ * 
+ * \return True if pump power changed with the last tick. Else false. 
+ */
+bool autobrew_pump_changed();
+
+/**
+ * \brief Returns the index of the current leg.
+ * 
+ * \return The index of the current leg. If routine has finished, then -1 is returned.
+ */
+int8_t autobrew_current_leg();
+
+/**
+ * \brief Checks if autobrew routine has finished. 
+ * 
+ * \return True if routine has finished. False if it has not finished. 
+ */
+bool autobrew_finished();
+
+/**
+ * \brief Reset internal fields so that the routine is restarted at the next tick.
+ */
+void autobrew_reset();
 #endif
 
 /** \} */
