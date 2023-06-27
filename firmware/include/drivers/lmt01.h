@@ -30,12 +30,13 @@ typedef struct lmt01_s * lmt01;
  * \brief Configures the signal pin attached to a LMT01 temp sensor and starts a PIO 
  * program that counts the sensors pulse train
  * 
- * \param pio_num Either 0 or 1 indicating if PIO #0 or #1 should be used
- * \param dat_pin Pin that the LMT01 is attached to
+ * \param pio_num    Either 0 or 1 indicating if PIO #0 or #1 should be used
+ * \param dat_pin    Pin that the LMT01 is attached to
+ * \param offset_16C A constant offset added to temp readings in 16*C
  * 
  * \returns A new LMT01 object
  */
-lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin);
+lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin, int offset_16C);
 
 /**
  * \brief Returns the current temperature in 16*C. Divide by 16 to convert to C

@@ -418,7 +418,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     scale = nau7802_setup(bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
-    thermo = lmt01_setup(0, LMT01_DATA_PIN);
+    thermo = lmt01_setup(0, LMT01_DATA_PIN, BOILER_TEMP_OFFSET_16C);
 
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
