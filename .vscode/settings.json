@@ -86,9 +86,11 @@
         "pinout",
         "PREINF",
         "preinfuse",
+        "Prsr",
         "setpoint",
         "setpoints",
         "subfolders",
+        "TRGR",
         "ULKA",
         "VLDO",
         "ZEROCROSS"
