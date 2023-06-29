@@ -34,7 +34,6 @@
 
 /** An internal variable that collects the current state of the machine. */
 static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperature = 0}; 
-static const machine_settings* settings;
 
 /** I2C bus connected to memory, scale ADC, and I2C port */
 static i2c_inst_t *  bus = i2c1;
@@ -133,8 +132,8 @@ static bool scale_at_val(uint16_t val_mg){
 /** 
  * \brief Checks if flowrate is greater than or equal to the passed in value. 
  */
-static bool system_at_flow(uint16_t flow_ul_ds){
-    return 100.0*ulka_pump_get_flow_ml_s(pump) >= flow_ul_ds;
+static bool system_at_flow(uint16_t flow_ul_s){
+    return 1000.0*ulka_pump_get_flow_ml_s(pump) >= flow_ul_s;
 }
 
 /** 
@@ -157,11 +156,11 @@ static uint8_t get_power_for_pressure(uint16_t target_pressure_mbar){
  * 
  * The flow_ctrl PID object is updated to the new setpoint, ticked, and the current input is returned.
  * 
- * \param target_flow_ul_ds The target flowrate in ul/ds.
+ * \param target_flow_ul_s The target flowrate in ul/s.
  * \returns The pump power needed to reach the target flowrate, according to the flow_ctrl PID object.
 */
-static uint8_t get_power_for_flow(uint16_t target_flow_ul_ds){
-    pid_update_setpoint(flow_pid, target_flow_ul_ds*10);
+static uint8_t get_power_for_flow(uint16_t target_flow_ul_s){
+    pid_update_setpoint(flow_pid, target_flow_ul_s);
     return (uint8_t)pid_tick(flow_pid, NULL);
 }
 
@@ -174,29 +173,45 @@ static uint8_t get_power_for_flow(uint16_t target_flow_ul_ds){
  * on. 
  */
 static void espresso_machine_autobrew_setup(){
-    const uint32_t ramp_time_ds  = *settings->autobrew.preinf_ramp_time_ds;
-    const uint32_t preinf_timeout_ds   = *settings->autobrew.preinf_timeout_s * 10;
-    const uint8_t  preinf_pwr_per = *settings->autobrew.preinf_power_per;
-    const uint32_t brew_timeout_ds  = *settings->autobrew.timeout_s * 10;
-    const uint16_t flow_ul_ds = *settings->autobrew.flow_ul_ds;
-    const uint16_t yield_dg   = *settings->brew.yield_dg;
-    
-    uint8_t leg_id;
     autobrew_init();
-    leg_id = autobrew_add_leg(NULL, 0, preinf_pwr_per, ramp_time_ds);
-    autobrew_leg_add_setup_fun(leg_id, zero_scale);
+    uint8_t leg_id;
+    bool is_first_leg = false;
+    for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
+        const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
+        const machine_setting leg_timeout = machine_settings_get(MS_A1_TIMEOUT + offset);
+        if(leg_timeout > 0){
+            // Setup reference and timeout
+            const machine_setting ref_style = machine_settings_get(MS_A1_REF_STYLE + offset);
+            const machine_setting ref_start = machine_settings_get(MS_A1_REF_START + offset);
+            const machine_setting ref_end = machine_settings_get(MS_A1_REF_END + offset);
+            if(ref_style == AUTOBREW_REF_STYLE_PWR){
+                leg_id = autobrew_add_leg(NULL, ref_start, ref_end, leg_timeout);
+            } else if(ref_style == AUTOBREW_REF_STYLE_FLOW){
+                leg_id = autobrew_add_leg(get_power_for_flow, 100*ref_start, 100*ref_end, leg_timeout);
+                autobrew_leg_add_setup_fun(leg_id, setup_flow_ctrl);
+            } else {
+                leg_id = autobrew_add_leg(get_power_for_pressure, 100*ref_start, 100*ref_end, leg_timeout); 
+            }
 
-    leg_id = autobrew_add_leg(NULL, preinf_pwr_per, preinf_pwr_per, preinf_timeout_ds);
-    autobrew_leg_add_trigger(leg_id, system_at_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR);
+            // Setup triggers
+            const machine_setting t_flow = machine_settings_get(MS_A1_TRGR_FLOW + offset);
+            if(t_flow>0) autobrew_leg_add_trigger(leg_id, system_at_flow, 100*t_flow);
+            
+            const machine_setting t_prsr = machine_settings_get(MS_A1_TRGR_PRSR + offset);
+            if(t_prsr>0) autobrew_leg_add_trigger(leg_id, system_at_pressure, 100*t_prsr);
+            
+            const machine_setting t_mass = machine_settings_get(MS_A1_TRGR_MASS + offset);
+            if(t_mass>0){
+                autobrew_leg_add_trigger(leg_id, scale_at_val, 500*t_mass);
+            }
 
-    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_PREINF_END_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, 2*ramp_time_ds);
-    
-    leg_id = autobrew_add_leg(get_power_for_pressure, AUTOBREW_BREW_PRESSURE_MBAR, AUTOBREW_BREW_PRESSURE_MBAR, brew_timeout_ds);
-    autobrew_leg_add_trigger(leg_id, system_at_flow, flow_ul_ds);
-
-    leg_id = autobrew_add_leg(get_power_for_flow, flow_ul_ds, flow_ul_ds, brew_timeout_ds);
-    autobrew_leg_add_trigger(leg_id, scale_at_val, yield_dg);
-    autobrew_leg_add_setup_fun(leg_id, setup_flow_ctrl);
+            // Zero scale on first non-zero leg found
+            if(is_first_leg){
+                is_first_leg = false;
+                autobrew_leg_add_setup_fun(leg_id, zero_scale);
+            }
+        }
+    }
 }
 
 /**
@@ -280,10 +295,10 @@ static void espresso_machine_update_pump(){
         ulka_pump_off(pump);
         binary_output_put(solenoid, 0, 0);
     } else if (MODE_HOT == _state.switches.mode_dial){
-        ulka_pump_pwr_percent(pump, *settings->hot.power_per);
+        ulka_pump_pwr_percent(pump, machine_settings_get(MS_POWER_HOT));
         binary_output_put(solenoid, 0, 0);
     } else if (MODE_MANUAL == _state.switches.mode_dial){
-        ulka_pump_pwr_percent(pump, *settings->brew.power_per);
+        ulka_pump_pwr_percent(pump, machine_settings_get(MS_POWER_BREW));
         binary_output_put(solenoid, 0, 1);
     } else if (MODE_AUTO == _state.switches.mode_dial){
         if(!autobrew_routine_tick()){
@@ -319,11 +334,11 @@ static void espresso_machine_update_boiler(){
     // Update setpoints
     if(is_ac_on_and_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*(*settings->steam.temp_dC);
+            _state.boiler.setpoint = 1.6*(machine_settings_get(MS_TEMP_STEAM));
         } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = 1.6*(*settings->hot.temp_dC);
+            _state.boiler.setpoint = 1.6*(machine_settings_get(MS_TEMP_HOT));
         } else {
-            _state.boiler.setpoint = 1.6*(*settings->brew.temp_dC);
+            _state.boiler.setpoint = 1.6*(machine_settings_get(MS_TEMP_BREW));
         }
     } else {
         _state.boiler.setpoint = 0;
@@ -361,11 +376,11 @@ static void espresso_machine_update_leds(){
             led_state = (_state.switches.ac_switch) << 2|
                         (_state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5)) << 1 |
                         (_state.switches.ac_switch && !_state.switches.pump_switch 
-                        && nau7802_at_val_mg(scale, *settings->brew.dose_dg *100)) << 0;
+                        && nau7802_at_val_mg(scale, machine_settings_get(MS_WEIGHT_DOSE)*100)) << 0;
         }
         binary_output_mask(leds, led_state);
     } else {
-        binary_output_mask(leds, settings->ui_mask);
+        binary_output_mask(leds, machine_settings_get(MS_UI_MASK));
     }
 }
 
@@ -376,7 +391,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     i2c_bus_setup(bus, 100000, I2C_SCL_PIN, I2C_SDA_PIN);
 
-    settings = machine_settings_setup(mb85_fram_setup(bus, 0x00, NULL));
+    machine_settings_setup(mb85_fram_setup(bus, 0x00, NULL));
 
     autobrew_init();
 
