@@ -15,6 +15,7 @@
 
 #include "machine_logic/local_ui.h"
 #include "utils/value_flasher.h"
+#include "utils/macros.h"
 
 /** \brief Starting address in mb85 FRAM chip where setting data is stored */
 static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
@@ -27,12 +28,10 @@ static mb85_fram _mem = NULL;
 
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
+static uint8_t _ui_mask;
 
 /** \brief Internal settings array holding the master settings */
 static machine_setting _ms [NUM_SETTINGS];
-/** \brief Internal settings structure with fields pointing at \p _ms array */
-static machine_settings _ms_struct;
-
 typedef struct{
     machine_setting min;
     machine_setting max;
@@ -52,80 +51,188 @@ static const machine_setting_bound _bound [NUM_SETTINGS] = {
     {.min = 0, .max = 100,  .std = 25  }, //A1_REF_START
     {.min = 0, .max = 100,  .std = 25  }, //A1_REF_END
     {.min = 0, .max = 100,  .std = 0   }, //A1_TRGR_FLOW
-    {.min = 0, .max = 100,  .std = 0   }, //A1_TRGR_PRSR
-    {.min = 0, .max = 1000, .std = 0   }, //A1_TRGR_MASS
-    {.min = 0, .max = 600,  .std = 100 }, //A1_TIMEOUT
+    {.min = 0, .max = 150,  .std = 0   }, //A1_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A1_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A1_TIMEOUT
     {.min = 0, .max = 30,   .std = 0   }, //A2_REF_STYLE
     {.min = 0, .max = 100,  .std = 25  }, //A2_REF_START
     {.min = 0, .max = 100,  .std = 25  }, //A2_REF_END
     {.min = 0, .max = 100,  .std = 0   }, //A2_TRGR_FLOW
-    {.min = 0, .max = 100,  .std = 0   }, //A2_TRGR_PRSR
-    {.min = 0, .max = 1000, .std = 0   }, //A2_TRGR_MASS
-    {.min = 0, .max = 600,  .std = 100 }, //A2_TIMEOUT
+    {.min = 0, .max = 150,  .std = 0   }, //A2_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A2_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A2_TIMEOUT
     {.min = 0, .max = 30,   .std = 0   }, //A3_REF_STYLE
     {.min = 0, .max = 100,  .std = 25  }, //A3_REF_START
     {.min = 0, .max = 100,  .std = 25  }, //A3_REF_END
     {.min = 0, .max = 100,  .std = 0   }, //A3_TRGR_FLOW
-    {.min = 0, .max = 100,  .std = 0   }, //A3_TRGR_PRSR
-    {.min = 0, .max = 1000, .std = 0   }, //A3_TRGR_MASS
-    {.min = 0, .max = 600,  .std = 100 }, //A3_TIMEOUT
+    {.min = 0, .max = 150,  .std = 0   }, //A3_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A3_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A3_TIMEOUT
     {.min = 0, .max = 30,   .std = 0   }, //A4_REF_STYLE
     {.min = 0, .max = 100,  .std = 25  }, //A4_REF_START
     {.min = 0, .max = 100,  .std = 25  }, //A4_REF_END
     {.min = 0, .max = 100,  .std = 0   }, //A4_TRGR_FLOW
-    {.min = 0, .max = 100,  .std = 0   }, //A4_TRGR_PRSR
-    {.min = 0, .max = 1000, .std = 0   }, //A4_TRGR_MASS
-    {.min = 0, .max = 600,  .std = 100 }, //A4_TIMEOUT
+    {.min = 0, .max = 150,  .std = 0   }, //A4_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A4_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A4_TIMEOUT
     {.min = 0, .max = 30,   .std = 0   }, //A5_REF_STYLE
     {.min = 0, .max = 100,  .std = 25  }, //A5_REF_START
     {.min = 0, .max = 100,  .std = 25  }, //A5_REF_END
     {.min = 0, .max = 100,  .std = 0   }, //A5_TRGR_FLOW
-    {.min = 0, .max = 100,  .std = 0   }, //A5_TRGR_PRSR
-    {.min = 0, .max = 1000, .std = 0   }, //A5_TRGR_MASS
-    {.min = 0, .max = 600,  .std = 100 }, //A5_TIMEOUT
+    {.min = 0, .max = 150,  .std = 0   }, //A5_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A5_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A5_TIMEOUT
     {.min = 0, .max = 30,   .std = 0   }, //A6_REF_STYLE
     {.min = 0, .max = 100,  .std = 25  }, //A6_REF_START
     {.min = 0, .max = 100,  .std = 25  }, //A6_REF_END
     {.min = 0, .max = 100,  .std = 0   }, //A6_TRGR_FLOW
-    {.min = 0, .max = 100,  .std = 0   }, //A6_TRGR_PRSR
-    {.min = 0, .max = 1000, .std = 0   }, //A6_TRGR_MASS
-    {.min = 0, .max = 600,  .std = 100 }, //A6_TIMEOUT
+    {.min = 0, .max = 150,  .std = 0   }, //A6_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A6_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A6_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A7_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A7_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A7_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A7_TRGR_FLOW
+    {.min = 0, .max = 150,  .std = 0   }, //A7_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A7_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A7_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A8_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A8_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A8_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A8_TRGR_FLOW
+    {.min = 0, .max = 150,  .std = 0   }, //A8_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A8_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A8_TIMEOUT
+    {.min = 0, .max = 30,   .std = 0   }, //A9_REF_STYLE
+    {.min = 0, .max = 100,  .std = 25  }, //A9_REF_START
+    {.min = 0, .max = 100,  .std = 25  }, //A9_REF_END
+    {.min = 0, .max = 100,  .std = 0   }, //A9_TRGR_FLOW
+    {.min = 0, .max = 150,  .std = 0   }, //A9_TRGR_PRSR
+    {.min = 0, .max = 100,  .std = 0   }, //A9_TRGR_MASS
+    {.min = 0, .max = 600,  .std = 0   }, //A9_TIMEOUT
     };
 
+typedef local_ui_folder luf;
 static local_ui_folder_tree settings_modifier; /**< \brief Local UI folder tree for updating machine settings*/
-static local_ui_folder f_root; /**< \brief Local UI folder: / */
-static local_ui_folder f_settings; /**< \brief Local UI folder: /settings/ */
-static local_ui_folder f_settings_temp; /**< \brief Local UI folder: /settings/temp/ */
-static local_ui_folder f_settings_temp_brew; /**< \brief Local UI folder: /settings/temp/brew/ */
-static local_ui_folder f_settings_temp_hot; /**< \brief Local UI folder: /settings/temp/hot/ */
-static local_ui_folder f_settings_temp_steam; /**< \brief Local UI folder: /settings/temp/steam/ */
-static local_ui_folder f_settings_weight; /**< \brief Local UI folder: /settings/weight/ */
-static local_ui_folder f_settings_weight_yield; /**< \brief Local UI folder: /settings/weight/yield/ */
-static local_ui_folder f_settings_weight_dose; /**< \brief Local UI folder: /settings/weight/dose/ */
-static local_ui_folder f_settings_more; /**< \brief Local UI folder: /settings/more/ */
-static local_ui_folder f_settings_more_power; /**< \brief Local UI folder: /settings/more/power/ */
-static local_ui_folder f_settings_more_power_brew; /**< \brief Local UI folder: /settings/more/power/brew/ */
-static local_ui_folder f_settings_more_power_hot; /**< \brief Local UI folder: /settings/more/power/hot/ */
-static local_ui_folder f_settings_more_power_flow;/**< \brief Local UI folder: /settings/more/power/flow/ */
-static local_ui_folder f_settings_more_preinf; /**< \brief Local UI folder: /settings/more/preinfuse/ */
-static local_ui_folder f_settings_more_preinf_ramp_time; /**< \brief Local UI folder: /settings/more/preinfuse/ramp_time/ */
-static local_ui_folder f_settings_more_preinf_on_power; /**< \brief Local UI folder: /settings/more/preinfuse/on_power/ */
-static local_ui_folder f_settings_more_timeout; /**< \brief Local UI folder: /settings/more/misc/ */
-static local_ui_folder f_settings_more_timeout_brew; /**< \brief Local UI folder: /settings/more/misc/timeout_brew/ */
-static local_ui_folder f_settings_more_timeout_preinf; /**< \brief Local UI folder: /settings/more/misc/timeout_preinfuse/ */
-static local_ui_folder f_presets; /**< \brief Local UI folder: /presets/ */
-static local_ui_folder f_presets_profile_a; /**< \brief Local UI folder: /presets/profile_a/ */
-static local_ui_folder f_presets_profile_a_0; /**< \brief Local UI folder: /presets/profile_a/0/ */
-static local_ui_folder f_presets_profile_a_1; /**< \brief Local UI folder: /presets/profile_a/1/ */
-static local_ui_folder f_presets_profile_a_2; /**< \brief Local UI folder: /presets/profile_a/2/ */
-static local_ui_folder f_presets_profile_b; /**< \brief Local UI folder: /presets/profile_b/ */
-static local_ui_folder f_presets_profile_b_0; /**< \brief Local UI folder: /presets/profile_b/0/ */
-static local_ui_folder f_presets_profile_b_1; /**< \brief Local UI folder: /presets/profile_b/1/ */
-static local_ui_folder f_presets_profile_b_2; /**< \brief Local UI folder: /presets/profile_b/2/ */
-static local_ui_folder f_presets_profile_c; /**< \brief Local UI folder: /presets/profile_c/ */
-static local_ui_folder f_presets_profile_c_0; /**< \brief Local UI folder: /presets/profile_c/0/ */
-static local_ui_folder f_presets_profile_c_1; /**< \brief Local UI folder: /presets/profile_c/1/ */
-static local_ui_folder f_presets_profile_c_2; /**< \brief Local UI folder: /presets/profile_c/2/ */
+static luf  f_;
+static luf      f_set;
+static luf          f_set_temp;
+static luf              f_set_temp_brew;
+static luf              f_set_temp_hot;
+static luf              f_set_temp_steam;
+static luf          f_set_weight;
+static luf              f_set_weight_yield;
+static luf              f_set_weight_dose; 
+static luf          f_set_power;
+static luf              f_set_power_brew;
+static luf              f_set_power_hot;
+static luf      f_ab;
+static luf          f_ab_ab13;
+static luf              f_ab_ab13_ab1;
+static luf                  f_ab_ab13_ab1_ref;
+static luf                      f_ab_ab13_ab1_ref_style;
+static luf                      f_ab_ab13_ab1_ref_start;
+static luf                      f_ab_ab13_ab1_ref_end;
+static luf                  f_ab_ab13_ab1_trgr;
+static luf                      f_ab_ab13_ab1_trgr_flow;
+static luf                      f_ab_ab13_ab1_trgr_prsr;
+static luf                      f_ab_ab13_ab1_trgr_mass;
+static luf                  f_ab_ab13_ab1_timeout;
+static luf              f_ab_ab13_ab2;
+static luf                  f_ab_ab13_ab2_ref;
+static luf                      f_ab_ab13_ab2_ref_style;
+static luf                      f_ab_ab13_ab2_ref_start;
+static luf                      f_ab_ab13_ab2_ref_end;
+static luf                  f_ab_ab13_ab2_trgr;
+static luf                      f_ab_ab13_ab2_trgr_flow;
+static luf                      f_ab_ab13_ab2_trgr_prsr;
+static luf                      f_ab_ab13_ab2_trgr_mass;
+static luf                  f_ab_ab13_ab2_timeout;
+static luf              f_ab_ab13_ab3;
+static luf                  f_ab_ab13_ab3_ref;
+static luf                      f_ab_ab13_ab3_ref_style;
+static luf                      f_ab_ab13_ab3_ref_start;
+static luf                      f_ab_ab13_ab3_ref_end;
+static luf                  f_ab_ab13_ab3_trgr;
+static luf                      f_ab_ab13_ab3_trgr_flow;
+static luf                      f_ab_ab13_ab3_trgr_prsr;
+static luf                      f_ab_ab13_ab3_trgr_mass;
+static luf                  f_ab_ab13_ab3_timeout;
+static luf          f_ab_ab46;
+static luf              f_ab_ab46_ab4;
+static luf                  f_ab_ab46_ab4_ref;
+static luf                      f_ab_ab46_ab4_ref_style;
+static luf                      f_ab_ab46_ab4_ref_start;
+static luf                      f_ab_ab46_ab4_ref_end;
+static luf                  f_ab_ab46_ab4_trgr;
+static luf                      f_ab_ab46_ab4_trgr_flow;
+static luf                      f_ab_ab46_ab4_trgr_prsr;
+static luf                      f_ab_ab46_ab4_trgr_mass;
+static luf                  f_ab_ab46_ab4_timeout;
+static luf              f_ab_ab46_ab5;
+static luf                  f_ab_ab46_ab5_ref;
+static luf                      f_ab_ab46_ab5_ref_style;
+static luf                      f_ab_ab46_ab5_ref_start;
+static luf                      f_ab_ab46_ab5_ref_end; 
+static luf                  f_ab_ab46_ab5_trgr;
+static luf                      f_ab_ab46_ab5_trgr_flow;
+static luf                      f_ab_ab46_ab5_trgr_prsr;
+static luf                      f_ab_ab46_ab5_trgr_mass;
+static luf                  f_ab_ab46_ab5_timeout;
+static luf              f_ab_ab46_ab6;
+static luf                  f_ab_ab46_ab6_ref;
+static luf                      f_ab_ab46_ab6_ref_style;
+static luf                      f_ab_ab46_ab6_ref_start;
+static luf                      f_ab_ab46_ab6_ref_end;
+static luf                  f_ab_ab46_ab6_trgr;
+static luf                      f_ab_ab46_ab6_trgr_flow;
+static luf                      f_ab_ab46_ab6_trgr_prsr;
+static luf                      f_ab_ab46_ab6_trgr_mass;
+static luf                  f_ab_ab46_ab6_timeout;
+static luf          f_ab_ab79;
+static luf              f_ab_ab79_ab7;
+static luf                  f_ab_ab79_ab7_ref;
+static luf                      f_ab_ab79_ab7_ref_style;
+static luf                      f_ab_ab79_ab7_ref_start;
+static luf                      f_ab_ab79_ab7_ref_end;
+static luf                  f_ab_ab79_ab7_trgr;
+static luf                      f_ab_ab79_ab7_trgr_flow;
+static luf                      f_ab_ab79_ab7_trgr_prsr;
+static luf                      f_ab_ab79_ab7_trgr_mass;
+static luf                  f_ab_ab79_ab7_timeout;
+static luf              f_ab_ab79_ab8;
+static luf                  f_ab_ab79_ab8_ref;
+static luf                      f_ab_ab79_ab8_ref_style;
+static luf                      f_ab_ab79_ab8_ref_start;
+static luf                      f_ab_ab79_ab8_ref_end; 
+static luf                  f_ab_ab79_ab8_trgr;
+static luf                      f_ab_ab79_ab8_trgr_flow;
+static luf                      f_ab_ab79_ab8_trgr_prsr;
+static luf                      f_ab_ab79_ab8_trgr_mass;
+static luf                  f_ab_ab79_ab8_timeout;
+static luf              f_ab_ab79_ab9;
+static luf                  f_ab_ab79_ab9_ref;
+static luf                      f_ab_ab79_ab9_ref_style;
+static luf                      f_ab_ab79_ab9_ref_start;
+static luf                      f_ab_ab79_ab9_ref_end;
+static luf                  f_ab_ab79_ab9_trgr;
+static luf                      f_ab_ab79_ab9_trgr_flow;
+static luf                      f_ab_ab79_ab9_trgr_prsr;
+static luf                      f_ab_ab79_ab9_trgr_mass;
+static luf                  f_ab_ab79_ab9_timeout;
+static luf      f_presets;
+static luf          f_presets_profile_a;
+static luf              f_presets_profile_a_0;
+static luf              f_presets_profile_a_1;
+static luf              f_presets_profile_a_2;
+static luf          f_presets_profile_b;
+static luf              f_presets_profile_b_0;
+static luf              f_presets_profile_b_1;
+static luf              f_presets_profile_b_2;
+static luf          f_presets_profile_c;
+static luf              f_presets_profile_c_0;
+static luf              f_presets_profile_c_1;
+static luf              f_presets_profile_c_2;
 
 /**
  * \brief Returns the starting address of the given settings profile
@@ -147,7 +254,7 @@ static bool _machine_settings_verify(){
         if(_ms[p_id] < _bound[p_id].min || _ms[p_id] > _bound[p_id].max){
             // Invalid setting found. Copy in defaults and return true
             for(uint8_t p_id_2 = 0; p_id_2 < NUM_SETTINGS; p_id_2++){
-                _ms[p_id_2] < _bound[p_id_2].std;
+                _ms[p_id_2] = _bound[p_id_2].std;
             }
             return true;
         }
@@ -195,56 +302,6 @@ static int _machine_settings_load_profile(uint8_t profile_id){
 }
 
 /**
- * \brief Convert a folder ID to the correct setting or profile ID
- * 
- * \param id Folder ID
- * \return int8_t the folder or profile ID or -1 if none found.
- */
-static int8_t _machine_settings_folder_to_setting(folder_id id){
-    if (local_ui_id_in_subtree(&f_settings, id)){
-        if (local_ui_id_in_subtree(&f_settings_temp, id)){
-            if (id == f_settings_temp_brew.id)                        return TEMP_BREW;
-            else if (id == f_settings_temp_hot.id)                    return TEMP_HOT;
-            else if (id == f_settings_temp_steam.id)                  return TEMP_STEAM;
-        } else if (local_ui_id_in_subtree(&f_settings_weight, id)){
-            if (id == f_settings_weight_dose.id)                      return WEIGHT_DOSE;
-            else if (id == f_settings_weight_yield.id)                return WEIGHT_YIELD;
-        } else if (local_ui_id_in_subtree(&f_settings_more, id)){
-            if (local_ui_id_in_subtree(&f_settings_more_power, id)){
-                if (id == f_settings_more_power_brew.id)              return POWER_BREW;
-                else if (id == f_settings_more_power_hot.id)          return POWER_HOT;
-                else if (id == f_settings_more_power_flow.id)         return AUTO_FLOW;
-            } else if (local_ui_id_in_subtree(&f_settings_more_preinf, id)){
-                // Settings/more/preinfuse
-                if (id == f_settings_more_preinf_ramp_time.id)     return RAMP_TIME;
-                else if (id == f_settings_more_preinf_on_power.id) return PREINF_ON_POWER;
-            } else if (local_ui_id_in_subtree(&f_settings_more_timeout, id)){
-                // Settings/more/misc
-                if (id == f_settings_more_timeout_brew.id)            return TIMEOUT;
-                else if (id == f_settings_more_timeout_preinf.id)  return PREINF_ON_TIME;
-            }
-        }
-    } else if (local_ui_id_in_subtree(&f_presets, id)){
-        if (local_ui_id_in_subtree(&f_presets_profile_a, id)){
-            if (id == f_presets_profile_a_0.id)      return 0;
-            else if (id == f_presets_profile_a_1.id) return 1;
-            else if (id == f_presets_profile_a_2.id) return 2;
-        } else if (local_ui_id_in_subtree(&f_presets_profile_b, id)){
-            // Presets 4-6
-            if (id == f_presets_profile_b_0.id)      return 3;
-            else if (id == f_presets_profile_b_1.id) return 4;
-            else if (id == f_presets_profile_b_2.id) return 5;
-        } else if (local_ui_id_in_subtree(&f_presets_profile_c, id)){
-            // Presets 7-9
-            if (id == f_presets_profile_c_0.id)      return 6;
-            else if (id == f_presets_profile_c_1.id) return 7;
-            else if (id == f_presets_profile_c_2.id) return 8;
-        }
-    }
-    return -1;
-}
-
-/**
  * \brief Callback function used by setting action folders. Increments corresponding
  * setting or calls preset load/save function
  * 
@@ -252,133 +309,203 @@ static int8_t _machine_settings_folder_to_setting(folder_id id){
  * \param val Value of increment index. 0 = -10, 1 = +1, and 2 = +10
  * \returns True if value was greater than 2. False otherwise
  */
-static bool _machine_settings_folder_callback(folder_id id, uint8_t val){
+static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
     if (val > 2) return true;
-    if (local_ui_id_in_subtree(&f_settings, id)){
-        // Settings
-        const int8_t deltas [] = {-10, 1, 10};
-        const int8_t ms_id = _machine_settings_folder_to_setting(id);
-        if (ms_id == -1) return true;
-
-        // Add delta and clip if needed
-        _ms[ms_id] += deltas[val];
-        if (_ms[ms_id] < _ms_min[ms_id]) _ms[ms_id] = _ms_min[ms_id];
-        else if (_ms[ms_id] > _ms_max[ms_id]) _ms[ms_id] = _ms_max[ms_id];
-        
+    if (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id) ){
+        if(ms_id >= MS_A1_REF_STYLE && ((ms_id - MS_A1_REF_STYLE) % 7)==0){
+            // autobrew setpoint styles are handled differently since they are enumerations
+            _ms[ms_id] = val;
+        } else {
+            // Add delta and clip if needed
+            const int8_t deltas [] = {-10, 1, 10};
+            _ms[ms_id] += deltas[val];
+            _ms[ms_id] = CLAMP(_ms[ms_id], _bound[ms_id].min, _bound[ms_id].max);
+        }
         mb85_fram_save(_mem, _ms);
     } else if (local_ui_id_in_subtree(&f_presets, id)){
         // Presets
-        const int8_t profile_id = _machine_settings_folder_to_setting(id);
-        if (profile_id == -1) return true;
-        if      (val == 0) _machine_settings_save_profile(profile_id);
-        else if (val == 1) _machine_settings_load_profile(profile_id);
+        if      (val == 0) _machine_settings_save_profile(ms_id);
+        else if (val == 1) _machine_settings_load_profile(ms_id);
     }
 
     machine_settings_print();
     return false;
 }
 
-/** \brief Link the internal settings array with the externally accessible settings struct */
-static void _machine_settings_link(){
-    _ms_struct.autobrew.preinf_timeout_s    = &(_ms[PREINF_ON_TIME]);
-    _ms_struct.autobrew.preinf_power_per    = &(_ms[PREINF_ON_POWER]);
-    _ms_struct.autobrew.timeout_s           = &(_ms[TIMEOUT]);
-    _ms_struct.autobrew.preinf_ramp_time_ds = &(_ms[RAMP_TIME]);
-    _ms_struct.autobrew.flow_ul_ds          = &(_ms[AUTO_FLOW]);
-    _ms_struct.brew.temp_dC                 = &(_ms[TEMP_BREW]);
-    _ms_struct.hot.temp_dC                  = &(_ms[TEMP_HOT]);
-    _ms_struct.steam.temp_dC                = &(_ms[TEMP_STEAM]);
-    _ms_struct.brew.power_per               = &(_ms[POWER_BREW]);
-    _ms_struct.hot.power_per                = &(_ms[POWER_HOT]);
-    _ms_struct.brew.dose_dg                 = &(_ms[WEIGHT_DOSE]);
-    _ms_struct.brew.yield_dg                = &(_ms[WEIGHT_YIELD]);
-}
-
 /** \brief Setup the local UI file structure. */
 static void _machine_settings_setup_local_ui(){
-    local_ui_folder_tree_init(&settings_modifier, &f_root, "RaspberryLatte");
-    local_ui_add_subfolder(&f_root,                  &f_settings,                       "Settings",               NULL);
-    local_ui_add_subfolder(&f_settings,              &f_settings_temp,                  "Temperatures",           NULL);
-    local_ui_add_subfolder(&f_settings_temp,         &f_settings_temp_brew,             "Brew (-1, 0.1, 1)",      &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_temp,         &f_settings_temp_hot,              "Hot (-1, 0.1, 1)",       &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_temp,         &f_settings_temp_steam,            "Steam (-1, 0.1, 1)",     &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings,              &f_settings_weight,                "Weights",                NULL);
-    local_ui_add_subfolder(&f_settings_weight,       &f_settings_weight_dose,           "Dose (-1, 0.1, 1)",      &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_weight,       &f_settings_weight_yield,          "Yield (-1, 0.1, 1)",     &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings,              &f_settings_more,                  "More",                   NULL);
-    local_ui_add_subfolder(&f_settings_more,         &f_settings_more_power,            "Power",                  NULL);
-    local_ui_add_subfolder(&f_settings_more_power,   &f_settings_more_power_brew,       "Brew (-10, 1, 10)",      &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_more_power,   &f_settings_more_power_hot,        "Hot (-10, 1, 10)",       &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_more_power,   &f_settings_more_power_flow,       "Flow (-100, 10, 100)",   &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_more,         &f_settings_more_preinf,           "Preinfuse",              NULL);
-    local_ui_add_subfolder(&f_settings_more_preinf,  &f_settings_more_preinf_ramp_time, "Ramp Time (-1, 0.1, 1)", &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_more_preinf,  &f_settings_more_preinf_on_power,  "On Power (-10, 1, 10)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_more,         &f_settings_more_timeout,          "Timeout",                NULL);
-    local_ui_add_subfolder(&f_settings_more_timeout, &f_settings_more_timeout_preinf,   "Preinfuse (-10, 1, 10)", &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_settings_more_timeout, &f_settings_more_timeout_brew,     "Brew (-10, 1, 10)",      &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_root,                  &f_presets,                        "Presets",                NULL);
-    local_ui_add_subfolder(&f_presets,               &f_presets_profile_a,              "Presets 1-3",            NULL);
-    local_ui_add_subfolder(&f_presets_profile_a,     &f_presets_profile_a_0,            "Preset 1 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets_profile_a,     &f_presets_profile_a_1,            "Preset 2 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets_profile_a,     &f_presets_profile_a_2,            "Preset 3 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets,               &f_presets_profile_b,              "Presets 4-6",            NULL);
-    local_ui_add_subfolder(&f_presets_profile_b,     &f_presets_profile_b_0,            "Preset 4 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets_profile_b,     &f_presets_profile_b_1,            "Preset 5 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets_profile_b,     &f_presets_profile_b_2,            "Preset 6 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets,               &f_presets_profile_c,              "Presets 7-9",            NULL);
-    local_ui_add_subfolder(&f_presets_profile_c,     &f_presets_profile_c_0,            "Preset 7 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets_profile_c,     &f_presets_profile_c_1,            "Preset 8 (save, load)",  &_machine_settings_folder_callback);
-    local_ui_add_subfolder(&f_presets_profile_c,     &f_presets_profile_c_2,            "Preset 9 (save, load)",  &_machine_settings_folder_callback);
+    local_ui_folder_tree_init(&settings_modifier, &f_, "RaspberryLatte");
+    local_ui_add_subfolder(&f_,                 &f_set,                   "Settings",                NULL, 0);
+    local_ui_add_subfolder(&f_set,              &f_set_temp,              "Temperatures",            NULL, 0);
+    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_brew,         "Brew (-1, 0.1, 1)",       &_ms_f_cb, MS_TEMP_BREW);
+    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_hot,          "Hot (-1, 0.1, 1)",        &_ms_f_cb, MS_TEMP_HOT);
+    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_steam,        "Steam (-1, 0.1, 1)",      &_ms_f_cb, MS_TEMP_STEAM);
+    local_ui_add_subfolder(&f_set,              &f_set_weight,            "Weights",                 NULL, 0);
+    local_ui_add_subfolder(&f_set_weight,       &f_set_weight_dose,       "Dose (-1, 0.1, 1)",       &_ms_f_cb, MS_WEIGHT_DOSE);
+    local_ui_add_subfolder(&f_set_weight,       &f_set_weight_yield,      "Yield (-1, 0.1, 1)",      &_ms_f_cb, MS_WEIGHT_YIELD);
+    local_ui_add_subfolder(&f_set,              &f_set_power,             "Power",                   NULL, 0);
+    local_ui_add_subfolder(&f_set_power,        &f_set_power_brew,        "Brew (-10, 1, 10)",       &_ms_f_cb, MS_POWER_BREW);
+    local_ui_add_subfolder(&f_set_power,        &f_set_power_hot,         "Hot (-10, 1, 10)",        &_ms_f_cb, MS_POWER_HOT);
+
+    local_ui_add_subfolder(&f_,                 &f_ab,                    "Autobrew",                NULL, 0);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab13,               "Autobrew Legs 1-3",       NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab1,           "Autobrew Leg 1",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A1_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A1_REF_START);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A1_REF_END);
+    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A1_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A1_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A1_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A1_TIMEOUT);
+    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab2,           "Autobrew Leg 2",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A2_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A2_REF_START);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A2_REF_END);
+    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A2_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A2_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A2_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A2_TIMEOUT);
+    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab3,           "Autobrew Leg 3",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A3_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A3_REF_START);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A3_REF_END);
+    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A3_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A3_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A3_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A3_TIMEOUT);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab46,               "Autobrew Legs 4-6",       NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab4,           "Autobrew Leg 4",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A4_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A4_REF_START);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A4_REF_END);
+    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A4_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A4_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A4_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A4_TIMEOUT);
+    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab5,           "Autobrew Leg 5",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A5_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A5_REF_START);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A5_REF_END);
+    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A5_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A5_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A5_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A5_TIMEOUT);
+    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab6,           "Autobrew Leg 6",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A6_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A6_REF_START);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A6_REF_END);
+    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A6_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A6_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A6_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A6_TIMEOUT);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab79,               "Autobrew Legs 4-6",       NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab7,           "Autobrew Leg 7",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A4_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A4_REF_START);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A4_REF_END);
+    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A4_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A4_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A4_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A4_TIMEOUT);
+    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab8,           "Autobrew Leg 8",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A5_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A5_REF_START);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A5_REF_END);
+    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A5_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A5_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A5_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A5_TIMEOUT);
+    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab9,           "Autobrew Leg 9",          NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_ref,       "Setpoint",                NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A6_REF_STYLE);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A6_REF_START);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A6_REF_END);
+    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_trgr,      "Trigger",                 NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A6_TRGR_FLOW);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A6_TRGR_PRSR);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A6_TRGR_MASS);
+    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A6_TIMEOUT);
+
+    local_ui_add_subfolder(&f_,                 &f_presets,               "Presets",                 NULL, 0);
+    local_ui_add_subfolder(&f_presets,          &f_presets_profile_a,     "Presets 1-3",             NULL, 0);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_0,   "Preset 1 (save, load)",   &_ms_f_cb, 0);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_1,   "Preset 2 (save, load)",   &_ms_f_cb, 1);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_2,   "Preset 3 (save, load)",   &_ms_f_cb, 2);
+    local_ui_add_subfolder(&f_presets,          &f_presets_profile_b,     "Presets 4-6",             NULL, 0);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_0,   "Preset 4 (save, load)",   &_ms_f_cb, 3);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_1,   "Preset 5 (save, load)",   &_ms_f_cb, 4);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_2,   "Preset 6 (save, load)",   &_ms_f_cb, 5);
+    local_ui_add_subfolder(&f_presets,          &f_presets_profile_c,     "Presets 7-9",             NULL, 0);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_0,   "Preset 7 (save, load)",   &_ms_f_cb, 6);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_1,   "Preset 8 (save, load)",   &_ms_f_cb, 7);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_2,   "Preset 9 (save, load)",   &_ms_f_cb, 8);
 }
 
-const machine_settings * machine_settings_setup(mb85_fram mem){
+void machine_settings_setup(mb85_fram mem){
     if(_mem == NULL){
         _mem = mem;
         if(mb85_fram_link_var(_mem, &_ms, MACHINE_SETTINGS_START_ADDR, MACHINE_SETTINGS_MEMORY_SIZE, MB85_FRAM_INIT_FROM_FRAM)){
-            return NULL;
+            _mem = NULL;
+            return;
         }
         if(_machine_settings_verify()){
             // If settings had to be reset to defaults, save new values.
             mb85_fram_save(_mem, &_ms);
         }
-        _machine_settings_link();
         _machine_settings_setup_local_ui();
 
         // Create value_flasher object
-        _setting_flasher = value_flasher_setup(0, 750, &_ms_struct.ui_mask);
+        _setting_flasher = value_flasher_setup(0, 750, &_ui_mask);
     }
-    return &_ms_struct;
 }
 
-machine_settings * machine_settings_acquire(){
-    if(_mem == NULL) return NULL;
-    else return &_ms_struct;
+machine_setting machine_settings_get(setting_id id){
+    assert(id < NUM_SETTINGS || id == MS_UI_MASK);
+    if(_mem == NULL) return 0; // nothing setup yet :(
+    else if (id < NUM_SETTINGS) return _ms[id];
+    else return _ui_mask;
 }
 
 int machine_settings_update(bool reset, bool select, uint8_t val){
     if (reset){
         local_ui_go_to_root(&settings_modifier);
         value_flasher_end(_setting_flasher);
-        _ms_struct.ui_mask = 0;
+        _ui_mask = 0;
     } else if (select){
         if (val == 3){
             // Return to root
             local_ui_go_to_root(&settings_modifier);
             value_flasher_end(_setting_flasher);
-            _ms_struct.ui_mask = 0;
+            _ui_mask = 0;
         } else {
             local_ui_enter_subfolder(&settings_modifier, 2 - val);
             
             const folder_id id = settings_modifier.cur_folder->id;
             if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
-                local_ui_id_in_subtree(&f_settings, id)){
+                local_ui_id_in_subtree(&f_set, id)){
                 // If entered action settings folder, start value flasher
-                 value_flasher_update(_setting_flasher, _ms[_machine_settings_folder_to_setting(id)]);
+                 value_flasher_update(_setting_flasher, _ms[settings_modifier.cur_folder->data]);
                  value_flasher_start(_setting_flasher);
             } else {
                 // else in nav folder. Display id.
                 value_flasher_end(_setting_flasher);
-                _ms_struct.ui_mask = settings_modifier.cur_folder->rel_id;
+                _ui_mask = settings_modifier.cur_folder->rel_id;
             }
         }
     }
@@ -389,30 +516,38 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     printf(
-        "Preinfuse timeout  : %d s\n"
-        "Brew timeout       : %d s\n"
-        "Ramp length        : %0.2f s\n"
-        "Dose               : %0.2f g\n"
-        "Yield              : %0.2f g\n"
         "Brew temp          : %0.2f C\n"
         "Hot temp           : %0.2f C\n"
         "Steam temp         : %0.2f C\n"
-        "Preinfuse power    : %d%%\n"
+        "Dose               : %0.2f g\n"
+        "Yield              : %0.2f g\n"
         "Brew power         : %d%%\n"
-        "Hot power          : %d%%\n"
-        "Flow rate          : %0.2f ml/s\n\n",
-        *_ms_struct.autobrew.preinf_timeout_s,
-        *_ms_struct.autobrew.timeout_s,
-        *_ms_struct.autobrew.preinf_ramp_time_ds/10.,
-        *_ms_struct.brew.dose_dg/10.,
-        *_ms_struct.brew.yield_dg/10.,
-        *_ms_struct.brew.temp_dC/10.,
-        *_ms_struct.hot.temp_dC/10.,
-        *_ms_struct.steam.temp_dC/10.,
-        *_ms_struct.autobrew.preinf_power_per,
-        *_ms_struct.brew.power_per,
-        *_ms_struct.hot.power_per,
-        *_ms_struct.autobrew.flow_ul_ds/100.0);
+        "Hot power          : %d%%\n\n",
+        _ms[MS_TEMP_BREW]/10.,
+        _ms[MS_TEMP_HOT]/10.,
+        _ms[MS_TEMP_STEAM]/10.,
+        _ms[MS_WEIGHT_DOSE]/10.,
+        _ms[MS_WEIGHT_YIELD]/10.,
+        _ms[MS_POWER_BREW],
+        _ms[MS_POWER_HOT]);
+    
+    printf("______________________________________________________________\n");
+    printf("|        Setpoint         |         Target         | Timeout |\n");
+    printf("|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n");
+    printf("|---------:-------:-------|------:----------:------|---------|\n");
+    for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
+        const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
+        printf(
+           "|%s: %5.1f : %5.1f | %4.1f :   %4.1f   : %4.1f |   %4.1f  |\n",
+            (_ms[offset + MS_A1_REF_STYLE] == 0 ? "  Power  " : (_ms[i*7+MS_A1_REF_STYLE] == 1 ? "  Flow   " : " Pressure")),
+            _ms[offset + MS_A1_REF_START]/(_ms[i*7+MS_A1_REF_STYLE] == 0 ? 1.0 : 10.),
+            _ms[offset + MS_A1_REF_END]/(_ms[i*7+MS_A1_REF_STYLE] == 0 ? 1.0 : 10.),
+            _ms[offset + MS_A1_TRGR_FLOW]/10.,
+            _ms[offset + MS_A1_TRGR_PRSR]/10.,
+            _ms[offset + MS_A1_TRGR_MASS]/2.,
+            _ms[offset + MS_A1_TIMEOUT]/10.);
+    }
+    printf("|---------:-------:-------|------:----------:------|---------|\n\n");
     return PICO_ERROR_NONE;
 }
 

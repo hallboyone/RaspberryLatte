@@ -41,6 +41,9 @@
 #include "pico/stdlib.h" // Typedefs
 #include "drivers/mb85_fram.h"   // FRAM memory driver to store settings
 
+#define NUM_AUTOBREW_LEGS 9
+#define NUM_AUTOBREW_PARAMS_PER_LEG 7
+
 typedef int16_t machine_setting; /**< \brief Generic machine setting field with range from -32768 to 32767 */
 
 /** \brief Enumerated list naming the indicies of the settings array. */
@@ -93,62 +96,42 @@ typedef enum {MS_TEMP_BREW = 0,
               MS_A6_TRGR_PRSR,
               MS_A6_TRGR_MASS,
               MS_A6_TIMEOUT,
-              NUM_SETTINGS} setting_id;
+              MS_A7_REF_STYLE,
+              MS_A7_REF_START,
+              MS_A7_REF_END,
+              MS_A7_TRGR_FLOW,
+              MS_A7_TRGR_PRSR,
+              MS_A7_TRGR_MASS,
+              MS_A7_TIMEOUT,
+              MS_A8_REF_STYLE,
+              MS_A8_REF_START,
+              MS_A8_REF_END,
+              MS_A8_TRGR_FLOW,
+              MS_A8_TRGR_PRSR,
+              MS_A8_TRGR_MASS,
+              MS_A8_TIMEOUT,
+              MS_A9_REF_STYLE,
+              MS_A9_REF_START,
+              MS_A9_REF_END,
+              MS_A9_TRGR_FLOW,
+              MS_A9_TRGR_PRSR,
+              MS_A9_TRGR_MASS,
+              MS_A9_TIMEOUT,
+              NUM_SETTINGS,
+              MS_UI_MASK} setting_id;
 
-/** \brief The settings associated with the steam mode */
-typedef struct {
-    machine_setting * temp_dC; /**< The target temperature when in steam mode */
-} machine_settings_steam;
-
-/** \brief The settings associated with the hot-water mode */
-typedef struct {
-    machine_setting * temp_dC;   /**< The target temperature when in hot-water mode */
-    machine_setting * power_per; /**< The pump power for when in steam mode */
-} machine_settings_hot;
-
-/** \brief The settings associated with brewing espresso. 
- * 
- * Used in manual and auto mode 
- * */
-typedef struct {
-    machine_setting * temp_dC;   /**< The target temperature when brewing */ 
-    machine_setting * power_per; /**< The pump power when brewing */ 
-    machine_setting * dose_dg;   /**< Weight of grounds used when brewing */
-    machine_setting * yield_dg;  /**< Weight of espresso to brew */
-} machine_settings_brew;
-
-/** \brief The settings associated with the auto mode */
-typedef struct {
-    machine_setting * preinf_timeout_s;    /**< Length of time to soak puck during pre-infuse */
-    machine_setting * preinf_power_per;    /**< The power of the pre-infuse routine */
-    machine_setting * preinf_ramp_time_ds; /**< The time, in ds of the linear ramp to target power */
-    machine_setting * flow_ul_ds;          /**< The target flow rate during the main brew leg */
-    machine_setting * timeout_s;           /**< The length of time to attempt to reach yield */
-} machine_settings_auto;
-
-/** \brief Full espresso machine settings. 
- * 
- * The fields are associated with the different modes and the ui_mask uses the lowest three 
- * bits to communicate the current value of a setting being modifed. 
-*/
-typedef struct {
-    machine_settings_auto  autobrew;  /**< The settings associated with the auto mode */
-    machine_settings_brew  brew;      /**< The settings associated with brewing espresso. Used in manual and auto mode */
-    machine_settings_hot   hot;       /**< The settings associated with the hot-water mode */
-    machine_settings_steam steam;     /**< The settings associated with the steam mode */
-    uint8_t ui_mask;                  /**< Bitfield whose lowest 3 bits communicate the state of setting modifications */
-} machine_settings;
+enum {AUTOBREW_REF_STYLE_PWR = 0, AUTOBREW_REF_STYLE_FLOW, AUTOBREW_REF_STYLE_PRSR};
 
 /** \brief Initialize the settings and attach to memory device. 
  * \param mem A pointer to an initalized mb85_fram structure.
- * \returns A const pointer to the global settings structure or NULL on error. 
 */
-const machine_settings * machine_settings_setup(mb85_fram mem);
+void machine_settings_setup(mb85_fram mem);
 
-/** \brief Get a const pointer to internal settings structure
- * \returns A const pointer to the global settings structure or NULL if not setup. 
+/** 
+ * \brief Get the current value of a setting or the UI mask
+ * \returns The value of the indicated setting or the UI mask
 */
-machine_settings * machine_settings_acquire();
+machine_setting machine_settings_get(setting_id id);
 
 /**
  * \brief Navigates the internal setting's tree and updates values accordingly
