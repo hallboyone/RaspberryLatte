@@ -332,11 +332,11 @@ static void espresso_machine_update_boiler(){
     // Update setpoints
     if(is_ac_on_and_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = 1.6*(machine_settings_get(MS_TEMP_STEAM_mC));
+            _state.boiler.setpoint = machine_settings_get(MS_TEMP_STEAM_cC);
         } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = 1.6*(machine_settings_get(MS_TEMP_HOT_mC));
+            _state.boiler.setpoint = machine_settings_get(MS_TEMP_HOT_cC);
         } else {
-            _state.boiler.setpoint = 1.6*(machine_settings_get(MS_TEMP_BREW_mC));
+            _state.boiler.setpoint = machine_settings_get(MS_TEMP_BREW_cC);
         }
     } else {
         _state.boiler.setpoint = 0;
@@ -347,7 +347,7 @@ static void espresso_machine_update_boiler(){
         espresso_machine_e_stop(); // Shut down pump and boiler
         _state.boiler.setpoint = 0;
     } else {
-        pid_update_setpoint(heater_pid, _state.boiler.setpoint/16.);
+        pid_update_setpoint(heater_pid, _state.boiler.setpoint/100.);
         pid_tick(heater_pid, &_state.boiler.pid_state);
     }
     _state.boiler.power_level = slow_pwm_get_duty(heater);
@@ -366,8 +366,8 @@ static void espresso_machine_update_leds(){
         uint8_t led_state = 0;
         if(thermal_runaway_watcher_errored(trw)){
             // If errored out, flash error state
-            const uint LED_TOGGLE_PERIOD_MS = 512;
-            if (to_ms_since_boot(get_absolute_time())%LED_TOGGLE_PERIOD_MS > (LED_TOGGLE_PERIOD_MS/2)){
+            if (to_ms_since_boot(get_absolute_time())%THERMAL_RUNAWAY_WATCHER_LED_TOGGLE_PERIOD_MS 
+                    > (THERMAL_RUNAWAY_WATCHER_LED_TOGGLE_PERIOD_MS/2)){
                 led_state = (1 << (3+thermal_runaway_watcher_state(trw)));
             }
         } else {
@@ -401,11 +401,11 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     heater = slow_pwm_setup(HEATER_PWM_PIN, 1260, 64);
     const pid_gains boiler_K = {.p = BOILER_PID_GAIN_P, .i = BOILER_PID_GAIN_I, .d = BOILER_PID_GAIN_D, .f = BOILER_PID_GAIN_F};
     heater_pid = pid_setup(boiler_K, &read_boiler_thermo_C, &read_pump_flowrate_ul_s, &apply_boiler_input, 0, 1, 100, 1000);
-    trw = thermal_runaway_watcher_setup(THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_16C,
-                                        THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_16C,
-                                        THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_16C,
-                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_HEAT_16C,
-                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_COOL_16C,
+    trw = thermal_runaway_watcher_setup(THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_cC,
+                                        THERMAL_RUNAWAY_WATCHER_CONVERGENCE_TOL_cC,
+                                        THERMAL_RUNAWAY_WATCHER_DIVERGENCE_TOL_cC,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_HEAT_cC,
+                                        THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_COOL_cC,
                                         THERMAL_RUNAWAY_WATCHER_MIN_TEMP_CHANGE_PERIOD_MS);
     
     // Setup the LED binary output
