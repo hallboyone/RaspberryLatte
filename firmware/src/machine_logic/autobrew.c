@@ -18,7 +18,7 @@ typedef struct _autobrew_leg {
     autobrew_mapping mapping;                                  /**< Which of the configured mappings to use. -1 is straight mapping. */
     uint16_t setpoint_start;                                   /**< Setpoint at start of leg. */
     uint16_t setpoint_end;                                     /**< Setpoint at end of leg. */
-    uint16_t timeout_ds;                                       /**< Maximum duration of the leg in deciseconds. */
+    uint16_t timeout_ms;                                       /**< Maximum duration of the leg in milliseconds. */
     uint16_t trigger_data[AUTOBREW_TRIGGER_MAX_NUM];           /**< Trigger values for the end of a leg (0 -> no trigger). */
     autobrew_trigger triggers[AUTOBREW_TRIGGER_MAX_NUM];       /**< Trigger values for the end of a leg (0 -> no trigger). */
     autobrew_setup_fun setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM]; /**< All the setup functions to run at start of leg. */
@@ -38,7 +38,7 @@ static bool _pump_changed;                          /**< Flag indicating if the 
 static void _autobrew_clear_leg_struct(uint8_t leg_idx){
     _routine[leg_idx].setpoint_start = 0; 
     _routine[leg_idx].setpoint_end = 0;
-    _routine[leg_idx].timeout_ds = 0; 
+    _routine[leg_idx].timeout_ms = 0; 
     for (uint8_t i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++){
         _routine[leg_idx].trigger_data[i] = 0;
         _routine[leg_idx].triggers[i] = NULL;
@@ -59,7 +59,7 @@ static uint16_t _autobrew_get_current_setpoint(){
     } else {
         const int16_t c = _routine[_current_leg].setpoint_end - _routine[_current_leg].setpoint_start;
         return _routine[_current_leg].setpoint_start + c -
-        (c * t_remaining_ms)/(100*(int)_routine[_current_leg].timeout_ds);
+        (c * t_remaining_ms)/(_routine[_current_leg].timeout_ms);
     }
 }
 
@@ -79,7 +79,7 @@ static bool _autobrew_leg_tick(){
     // First time leg has ticked?
     if(is_nil_time(_leg_end_time)){ 
         // Save timeout for leg
-        _leg_end_time = make_timeout_time_ms(100*(uint32_t)cl->timeout_ds);
+        _leg_end_time = make_timeout_time_ms(cl->timeout_ms);
         // Run all startup functions for leg
         for(uint8_t i = 0; i < AUTOBREW_SETUP_FUN_MAX_NUM; i++){
             if(cl->setup_funs[i] == NULL) break;
@@ -113,13 +113,13 @@ void autobrew_init(){
     autobrew_reset();
 }
 
-uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds){
+uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ms){
     assert(_num_legs < AUTOBREW_LEG_MAX_NUM);
     _autobrew_clear_leg_struct(_num_legs);
     _routine[_num_legs].mapping = mapping;
     _routine[_num_legs].setpoint_start = setpoint_start;
     _routine[_num_legs].setpoint_end = setpoint_end;
-    _routine[_num_legs].timeout_ds  = timeout_ds;
+    _routine[_num_legs].timeout_ms  = timeout_ms;
     _num_legs += 1;
     return (_num_legs-1);
 }
