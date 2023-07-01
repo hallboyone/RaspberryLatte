@@ -41,80 +41,87 @@
 typedef uint16_t machine_setting; /**< \brief Generic machine setting field with range from 0 to 65535 */
 
 /** \brief Enumerated list naming the indicies of the settings array. */
-typedef enum {MS_TEMP_BREW_cC = 0,
-              MS_TEMP_HOT_cC,
-              MS_TEMP_STEAM_cC,
-              MS_WEIGHT_DOSE_mg,
-              MS_WEIGHT_YIELD_mg,
-              MS_POWER_BREW_PER,    
-              MS_POWER_HOT_PER,
-              MS_A1_REF_STYLE_ENM,
-              MS_A1_REF_START_100per_ulps_mbar,
-              MS_A1_REF_END_100per_ulps_mbar,
-              MS_A1_TRGR_FLOW_ul_s,
-              MS_A1_TRGR_PRSR_mbar,
-              MS_A1_TRGR_MASS_mg,
-              MS_A1_TIMEOUT_s,
-              MS_A2_REF_STYLE_ENM,
-              MS_A2_REF_START_100per_ulps_mbar,
-              MS_A2_REF_END_100per_ulps_mbar,
-              MS_A2_TRGR_FLOW_ul_s,
-              MS_A2_TRGR_PRSR_mbar,
-              MS_A2_TRGR_MASS_mg,
-              MS_A2_TIMEOUT_s,
-              MS_A3_REF_STYLE_ENM,
-              MS_A3_REF_START_100per_ulps_mbar,
-              MS_A3_REF_END_100per_ulps_mbar,
-              MS_A3_TRGR_FLOW_ul_s,
-              MS_A3_TRGR_PRSR_mbar,
-              MS_A3_TRGR_MASS_mg,
-              MS_A3_TIMEOUT_s,
-              MS_A4_REF_STYLE_ENM,
-              MS_A4_REF_START_100per_ulps_mbar,
-              MS_A4_REF_END_100per_ulps_mbar,
-              MS_A4_TRGR_FLOW_ul_s,
-              MS_A4_TRGR_PRSR_mbar,
-              MS_A4_TRGR_MASS_mg,
-              MS_A4_TIMEOUT_s,
-              MS_A5_REF_STYLE_ENM,
-              MS_A5_REF_START_100per_ulps_mbar,
-              MS_A5_REF_END_100per_ulps_mbar,
-              MS_A5_TRGR_FLOW_ul_s,
-              MS_A5_TRGR_PRSR_mbar,
-              MS_A5_TRGR_MASS_mg,
-              MS_A5_TIMEOUT_s,
-              MS_A6_REF_STYLE_ENM,
-              MS_A6_REF_START_100per_ulps_mbar,
-              MS_A6_REF_END_100per_ulps_mbar,
-              MS_A6_TRGR_FLOW_ul_s,
-              MS_A6_TRGR_PRSR_mbar,
-              MS_A6_TRGR_MASS_mg,
-              MS_A6_TIMEOUT_s,
-              MS_A7_REF_STYLE_ENM,
-              MS_A7_REF_START_100per_ulps_mbar,
-              MS_A7_REF_END_100per_ulps_mbar,
-              MS_A7_TRGR_FLOW_ul_s,
-              MS_A7_TRGR_PRSR_mbar,
-              MS_A7_TRGR_MASS_mg,
-              MS_A7_TIMEOUT_s,
-              MS_A8_REF_STYLE_ENM,
-              MS_A8_REF_START_100per_ulps_mbar,
-              MS_A8_REF_END_100per_ulps_mbar,
-              MS_A8_TRGR_FLOW_ul_s,
-              MS_A8_TRGR_PRSR_mbar,
-              MS_A8_TRGR_MASS_mg,
-              MS_A8_TIMEOUT_s,
-              MS_A9_REF_STYLE_ENM,
-              MS_A9_REF_START_100per_ulps_mbar,
-              MS_A9_REF_END_100per_ulps_mbar,
-              MS_A9_TRGR_FLOW_ul_s,
-              MS_A9_TRGR_PRSR_mbar,
-              MS_A9_TRGR_MASS_mg,
-              MS_A9_TIMEOUT_s,
-              NUM_SETTINGS,
-              MS_UI_MASK} setting_id;
+typedef enum {
+    MS_TEMP_BREW_cC = 0,              /**<\brief The temp for brew and autobrew mode. */
+    MS_TEMP_HOT_cC,                   /**<\brief The temp for hot-water mode. */
+    MS_TEMP_STEAM_cC,                 /**<\brief The temp for steam mode. */
+    MS_WEIGHT_DOSE_mg,                /**<\brief The target dose. */
+    MS_WEIGHT_YIELD_mg,               /**<\brief The target yield. */
+    MS_POWER_BREW_PER,                /**<\brief Pump power while in brew mode. */
+    MS_POWER_HOT_PER,                 /**<\brief Pump power while in hot-water mode. */
+    MS_A1_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 1. */
+    MS_A1_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 1. If percent, divide by 100. Else, use directly. */
+    MS_A1_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 1. If percent, divide by 100. Else, use directly. */
+    MS_A1_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 1 to end. Set to 0 to disable. */
+    MS_A1_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 1 to end. Set to 0 to disable. */
+    MS_A1_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 1 to end. Set to 0 to disable. */
+    MS_A1_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 1 to end. Set to 0 to disable leg. */
+    MS_A2_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 2. */
+    MS_A2_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 2. If percent, divide by 100. Else, use directly. */
+    MS_A2_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 2. If percent, divide by 100. Else, use directly. */
+    MS_A2_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 2 to end. Set to 0 to disable. */
+    MS_A2_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 2 to end. Set to 0 to disable. */
+    MS_A2_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 2 to end. Set to 0 to disable. */
+    MS_A2_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 2 to end. Set to 0 to disable leg. */
+    MS_A3_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 3. */
+    MS_A3_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 3. If percent, divide by 100. Else, use directly. */
+    MS_A3_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 3. If percent, divide by 100. Else, use directly. */
+    MS_A3_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 3 to end. Set to 0 to disable. */
+    MS_A3_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 3 to end. Set to 0 to disable. */
+    MS_A3_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 3 to end. Set to 0 to disable. */
+    MS_A3_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 3 to end. Set to 0 to disable leg. */
+    MS_A4_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 4. */
+    MS_A4_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 4. If percent, divide by 100. Else, use directly. */
+    MS_A4_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 4. If percent, divide by 100. Else, use directly. */
+    MS_A4_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 4 to end. Set to 0 to disable. */
+    MS_A4_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 4 to end. Set to 0 to disable. */
+    MS_A4_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 4 to end. Set to 0 to disable. */
+    MS_A4_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 4 to end. Set to 0 to disable leg. */
+    MS_A5_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 5. */
+    MS_A5_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 5. If percent, divide by 100. Else, use directly. */
+    MS_A5_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 5. If percent, divide by 100. Else, use directly. */
+    MS_A5_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 5 to end. Set to 0 to disable. */
+    MS_A5_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 5 to end. Set to 0 to disable. */
+    MS_A5_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 5 to end. Set to 0 to disable. */
+    MS_A5_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 5 to end. Set to 0 to disable leg. */
+    MS_A6_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 6. */
+    MS_A6_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 6. If percent, divide by 100. Else, use directly. */
+    MS_A6_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 6. If percent, divide by 100. Else, use directly. */
+    MS_A6_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 6 to end. Set to 0 to disable. */
+    MS_A6_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 6 to end. Set to 0 to disable. */
+    MS_A6_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 6 to end. Set to 0 to disable. */
+    MS_A6_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 6 to end. Set to 0 to disable leg. */
+    MS_A7_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 7. */
+    MS_A7_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 7. If percent, divide by 100. Else, use directly. */
+    MS_A7_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 7. If percent, divide by 100. Else, use directly. */
+    MS_A7_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 7 to end. Set to 0 to disable. */
+    MS_A7_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 7 to end. Set to 0 to disable. */
+    MS_A7_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 7 to end. Set to 0 to disable. */
+    MS_A7_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 7 to end. Set to 0 to disable leg. */
+    MS_A8_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 8. */
+    MS_A8_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 8. If percent, divide by 100. Else, use directly. */
+    MS_A8_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 8. If percent, divide by 100. Else, use directly. */
+    MS_A8_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 8 to end. Set to 0 to disable. */
+    MS_A8_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 8 to end. Set to 0 to disable. */
+    MS_A8_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 8 to end. Set to 0 to disable. */
+    MS_A8_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 8 to end. Set to 0 to disable leg. */
+    MS_A9_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 9. */
+    MS_A9_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 9. If percent, divide by 100. Else, use directly. */
+    MS_A9_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 9. If percent, divide by 100. Else, use directly. */
+    MS_A9_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 9 to end. Set to 0 to disable. */
+    MS_A9_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 9 to end. Set to 0 to disable. */
+    MS_A9_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 9 to end. Set to 0 to disable. */
+    MS_A9_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 9 to end. Set to 0 to disable leg. */
+    NUM_SETTINGS,                     /**<\brief The number of settings that are managed. */
+    MS_UI_MASK                        /**<\brief ui mask for flashing values on LEDs */
+} setting_id;
 
-enum {AUTOBREW_REF_STYLE_PWR = 0, AUTOBREW_REF_STYLE_FLOW, AUTOBREW_REF_STYLE_PRSR};
+/**\brief Enumerated list of possible reference styles. */
+enum {
+    AUTOBREW_REF_STYLE_PWR = 0, /**<\brief The reference is percent power. */
+    AUTOBREW_REF_STYLE_FLOW,    /**<\brief The reference is flowrate. */
+    AUTOBREW_REF_STYLE_PRSR     /**<\brief The reference is pressure. */
+    };
 
 /** \brief Initialize the settings and attach to memory device. 
  * \param mem A pointer to an initalized mb85_fram structure.

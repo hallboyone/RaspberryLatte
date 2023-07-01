@@ -178,7 +178,7 @@ static void espresso_machine_autobrew_setup(){
     bool is_first_leg = false;
     for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
         const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
-        const machine_setting leg_timeout = machine_settings_get(MS_A1_TIMEOUT_s + offset);
+        const machine_setting leg_timeout = machine_settings_get(MS_A1_TIMEOUT_ms + offset);
         if(leg_timeout > 0){
             // Setup reference and timeout
             const machine_setting ref_style = machine_settings_get(MS_A1_REF_STYLE_ENM + offset);
@@ -431,7 +431,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
     scale = nau7802_setup(bus, SCALE_CONVERSION_MG);
 
     // Setup thermometer
-    thermo = lmt01_setup(0, LMT01_DATA_PIN, BOILER_TEMP_OFFSET_16C);
+    thermo = lmt01_setup(0, LMT01_DATA_PIN, BOILER_TEMP_OFFSET_cC);
 
     // Setup AC power sensor
     gpio_irq_timestamp_setup(AC_0CROSS_PIN, ZEROCROSS_EVENT_RISING);
