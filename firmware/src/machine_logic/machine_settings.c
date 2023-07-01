@@ -5,18 +5,16 @@
  * \file machine_settings.c
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief Machine Settings source
- * \version 0.1
- * \date 2022-11-12
+ * \version 1.0
+ * \date 2023-07-01
  */
 
 #include "machine_logic/machine_settings.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "machine_logic/local_ui.h"
 #include "utils/value_flasher.h"
-#include "utils/macros.h"
 
 /** \brief Starting address in mb85 FRAM chip where setting data is stored */
 static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
@@ -317,11 +315,11 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
         const int16_t deltas [3] = {-10*_specs[ms_id].step_size, _specs[ms_id].step_size, 10*_specs[ms_id].step_size};
         const int16_t step = (_specs[ms_id].step_size==0) ? val-1 : deltas[val];
 
-        if(-deltas[val] > _ms[ms_id]){
+        if(-step > _ms[ms_id]){
             // If step would lead to negative value
             _ms[ms_id] = 0;
         } else {
-            _ms[ms_id] = MIN(_ms[ms_id] + deltas[val], _specs[ms_id].max);
+            _ms[ms_id] = MIN(_ms[ms_id] + step, _specs[ms_id].max);
         }
         
         mb85_fram_save(_mem, _ms);
