@@ -4,14 +4,8 @@
  *  \brief Library managing the settings of a single boiler espresso machine.
  * 
  *  The machine_settings functionality can be divided into three groups. First, the settings
- *  must be accessible by external programs. This is accomplished with const machine_settings 
- *  pointers that are passed out after calling ::machine_settings_setup or ::machine_settings_acquire.
- *  This allows for access to the current settings with, for example, 
- *  
- *      ms = machine_settings_acquire();
- *      weight_dg yield = *(ms->brew.yield);
- *  
- *  Note the field names are pointers themselves and must be dereferenced. 
+ *  must be accessible by external programs. This is accomplished with the ::machine_settings_get
+ *  function which takes one, enumerated parameter indicating which setting to retrieve.
  *  
  *  The library also handles the modification of settings. This is accomplished with the
  *  ::machine_settings_update function. This function takes a reset and select flags and a integer 
@@ -31,25 +25,25 @@
  * \file machine_settings.h
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief Machine Settings header
- * \version 0.1
- * \date 2022-11-12
+ * \version 1.0
+ * \date 2023-07-01
  */
 
 #ifndef MACHINE_SETTINGS_H
 #define MACHINE_SETTINGS_H
 
-#include "pico/stdlib.h" // Typedefs
+#include "pico/stdlib.h"         // Typedefs
 #include "drivers/mb85_fram.h"   // FRAM memory driver to store settings
 
-#define NUM_AUTOBREW_LEGS 9
-#define NUM_AUTOBREW_PARAMS_PER_LEG 7
+#define NUM_AUTOBREW_LEGS 9           /**<\brief The max number of autobrew legs in the settings. */
+#define NUM_AUTOBREW_PARAMS_PER_LEG 7 /**<\brief The number of settings per autobrew leg. */
 
-typedef int32_t machine_setting; /**< \brief Generic machine setting field with range from -32768 to 32767 */
+typedef uint16_t machine_setting; /**< \brief Generic machine setting field with range from 0 to 65535 */
 
 /** \brief Enumerated list naming the indicies of the settings array. */
-typedef enum {MS_TEMP_BREW_mC = 0,
-              MS_TEMP_HOT_mC,
-              MS_TEMP_STEAM_mC,
+typedef enum {MS_TEMP_BREW_cC = 0,
+              MS_TEMP_HOT_cC,
+              MS_TEMP_STEAM_cC,
               MS_WEIGHT_DOSE_mg,
               MS_WEIGHT_YIELD_mg,
               MS_POWER_BREW_PER,    
