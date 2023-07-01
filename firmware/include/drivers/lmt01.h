@@ -39,11 +39,11 @@ typedef struct lmt01_s * lmt01;
 lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin, int offset_16C);
 
 /**
- * \brief Returns the current temperature in 16*C. Divide by 16 to convert to C
+ * \brief Returns the current temperature in cC.
  * 
  * \param l Pointer to lmt01 struct that contains the parameters for the LMT01 interface
  * 
- * \returns The current temperature in 16*C.
+ * \returns The current temperature in cC.
  */
 int lmt01_read(lmt01 l);
 
