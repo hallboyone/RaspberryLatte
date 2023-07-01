@@ -183,14 +183,14 @@ static void espresso_machine_autobrew_setup(){
             // Setup reference and timeout
             const machine_setting ref_style = machine_settings_get(MS_A1_REF_STYLE_ENM + offset);
             const machine_setting ref_start = machine_settings_get(MS_A1_REF_START_100per_ulps_mbar + offset);
-            const machine_setting ref_end = machine_settings_get(MS_A1_REF_END_100per_ulps_mbar + offset);
+            const machine_setting ref_end   = machine_settings_get(MS_A1_REF_END_100per_ulps_mbar + offset);
             if(ref_style == AUTOBREW_REF_STYLE_PWR){
                 leg_id = autobrew_add_leg(NULL, ref_start/100, ref_end/100, leg_timeout);
             } else if(ref_style == AUTOBREW_REF_STYLE_FLOW){
-                leg_id = autobrew_add_leg(get_power_for_flow, 100*ref_start, 100*ref_end, leg_timeout);
+                leg_id = autobrew_add_leg(get_power_for_flow, ref_start, ref_end, leg_timeout);
                 autobrew_leg_add_setup_fun(leg_id, setup_flow_ctrl);
             } else {
-                leg_id = autobrew_add_leg(get_power_for_pressure, 100*ref_start, 100*ref_end, leg_timeout); 
+                leg_id = autobrew_add_leg(get_power_for_pressure, ref_start, ref_end, leg_timeout); 
             }
 
             // Setup triggers
