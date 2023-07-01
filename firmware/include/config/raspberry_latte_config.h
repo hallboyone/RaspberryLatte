@@ -43,4 +43,4 @@
  * This constant defines the discrepancy. Compute the value in C and then multiply by 
  * 16 and round to an integer. 
 */
-#define BOILER_TEMP_OFFSET_16C 128
+#define BOILER_TEMP_OFFSET_cC 800

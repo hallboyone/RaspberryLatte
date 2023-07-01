@@ -132,7 +132,7 @@ lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin, int offset_16C){
     l->_sm = pio_claim_unused_sm(l->_pio, true);
     _lmt01_program_init(l, offset);
 
-    while(l->_latest_temp<=0 || l->_latest_temp>2800){
+    while(l->_latest_temp<=0 || l->_latest_temp>17500){
         // Wait till a valid temperature is measured
         lmt01_read(l);
     }
@@ -141,13 +141,13 @@ lmt01 lmt01_setup(uint8_t pio_num, uint8_t dat_pin, int offset_16C){
 
 int lmt01_read(lmt01 l){
     while(!pio_sm_is_rx_fifo_empty(l->_pio, l->_sm)){
-        l->_latest_temp = l->_offset + _lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm));
+        l->_latest_temp = l->_offset + (100*_lmt01_pulse_to_temp(pio_sm_get_blocking(l->_pio, l->_sm))/16);
     }
-    return (100*l->_latest_temp)/16;
+    return l->_latest_temp;
 }
 
 float lmt01_read_float(lmt01 l){
-    return lmt01_read(l)/16.;
+    return lmt01_read(l)/100.;
 }
 
 void lmt01_deinit(lmt01 l){
