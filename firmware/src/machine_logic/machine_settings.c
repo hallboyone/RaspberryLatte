@@ -411,7 +411,7 @@ static void _machine_settings_setup_local_ui(){
     local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A6_TRGR_PRSR_mbar);
     local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A6_TRGR_MASS_mg);
     local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A6_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab,               &f_ab_ab79,               "Autobrew Legs 4-6",       NULL, 0);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab79,               "Autobrew Legs 7-9",       NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab7,           "Autobrew Leg 7",          NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_ref,       "Setpoint",                NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A4_REF_STYLE_ENM);
