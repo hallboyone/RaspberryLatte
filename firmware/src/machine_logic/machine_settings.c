@@ -46,63 +46,63 @@ static const machine_setting_specs _specs [NUM_SETTINGS] = {
     {.step_size = 100, .max = 60000, .std = 30000},// MS_WEIGHT_YIELD_mg
     {.step_size = 1,   .max = 100,   .std = 100  },// MS_POWER_BREW_PER,   
     {.step_size = 1,   .max = 100,   .std = 20   },// MS_POWER_HOT_PER
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A1_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A1_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A1_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A1_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A1_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A1_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A1_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A1_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A2_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A2_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A2_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A2_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A2_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A2_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A2_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A2_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A3_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A3_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A3_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A3_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A3_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A3_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A3_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A3_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A4_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A4_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A4_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A4_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A4_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A4_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A4_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A4_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A5_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A5_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A5_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A5_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A5_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A5_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A5_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A5_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A6_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A6_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A6_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A6_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A6_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A6_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A6_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A6_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A7_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A7_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A7_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A7_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A7_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A7_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A7_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A7_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A8_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A8_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A8_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A8_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A8_TRGR_FLOW_ul_s
     {.step_size = 100, .max = 15000, .std = 0    },// MS_A8_TRGR_PRSR_mbar
     {.step_size = 100, .max = 30000, .std = 0    },// MS_A8_TRGR_MASS_mg
     {.step_size = 100, .max = 60000, .std = 0    },// MS_A8_TIMEOUT_s
-    {.step_size = 0,   .max = 3,     .std = 0    },// MS_A9_REF_STYLE_ENM
+    {.step_size = 0,   .max = 2,     .std = 0    },// MS_A9_REF_STYLE_ENM
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A9_REF_START_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 2500 },// MS_A9_REF_END_100per_ulps_mbar
     {.step_size = 100, .max = 20000, .std = 0    },// MS_A9_TRGR_FLOW_ul_s
@@ -495,7 +495,7 @@ int machine_settings_update(bool reset, bool select, uint8_t val){
             value_flasher_end(_setting_flasher);
             _ui_mask = 0;
         } else {
-            local_ui_enter_subfolder(&settings_modifier, 2 - val);
+            local_ui_enter_subfolder(&settings_modifier, val);
             
             const folder_id id = settings_modifier.cur_folder->id;
             if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
@@ -524,9 +524,9 @@ int machine_settings_print(){
         "Yield              : %0.2f g\n"
         "Brew power         : %u%%\n"
         "Hot power          : %u%%\n\n",
-        _ms[MS_TEMP_BREW_cC]/1000.,
-        _ms[MS_TEMP_HOT_cC]/1000.,
-        _ms[MS_TEMP_STEAM_cC]/1000.,
+        _ms[MS_TEMP_BREW_cC]/100.,
+        _ms[MS_TEMP_HOT_cC]/100.,
+        _ms[MS_TEMP_STEAM_cC]/100.,
         _ms[MS_WEIGHT_DOSE_mg]/1000.,
         _ms[MS_WEIGHT_YIELD_mg]/1000.,
         _ms[MS_POWER_BREW_PER],
