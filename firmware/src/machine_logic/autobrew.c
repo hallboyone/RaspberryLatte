@@ -19,7 +19,7 @@ typedef struct _autobrew_leg {
     uint16_t setpoint_start;                                   /**< Setpoint at start of leg. */
     uint16_t setpoint_end;                                     /**< Setpoint at end of leg. */
     uint16_t timeout_ms;                                       /**< Maximum duration of the leg in milliseconds. */
-    uint16_t trigger_data[AUTOBREW_TRIGGER_MAX_NUM];           /**< Trigger values for the end of a leg (0 -> no trigger). */
+    int32_t trigger_data[AUTOBREW_TRIGGER_MAX_NUM];            /**< Trigger values for the end of a leg (0 -> no trigger). */
     autobrew_trigger triggers[AUTOBREW_TRIGGER_MAX_NUM];       /**< Trigger values for the end of a leg (0 -> no trigger). */
     autobrew_setup_fun setup_funs[AUTOBREW_SETUP_FUN_MAX_NUM]; /**< All the setup functions to run at start of leg. */
 } autobrew_leg;
@@ -124,7 +124,7 @@ uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint
     return (_num_legs-1);
 }
 
-void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, uint16_t trigger_data){
+void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, int32_t trigger_data){
     assert(leg_id < AUTOBREW_LEG_MAX_NUM);
     for(uint8_t i = 0; i < AUTOBREW_TRIGGER_MAX_NUM; i++){
         if(_routine[leg_id].triggers[i] == NULL){

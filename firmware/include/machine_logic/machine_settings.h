@@ -38,7 +38,7 @@
 #define NUM_AUTOBREW_LEGS 9           /**<\brief The max number of autobrew legs in the settings. */
 #define NUM_AUTOBREW_PARAMS_PER_LEG 7 /**<\brief The number of settings per autobrew leg. */
 
-typedef uint16_t machine_setting; /**< \brief Generic machine setting field with range from 0 to 65535 */
+typedef int32_t machine_setting; /**< \brief Generic machine setting field with range from 0 to 65535 */
 
 /** \brief Enumerated list naming the indicies of the settings array. */
 typedef enum {

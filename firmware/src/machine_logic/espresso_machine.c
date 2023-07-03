@@ -125,22 +125,33 @@ static void setup_flow_ctrl(){
 /** 
  * \brief Checks if the scale is greater than or equal to the passed in value. 
  */
-static bool scale_at_val(uint16_t val_mg){
+static bool scale_at_val(int32_t val_mg){
     return nau7802_at_val_mg(scale, val_mg);
 }
 
 /** 
  * \brief Checks if flowrate is greater than or equal to the passed in value. 
  */
-static bool system_at_flow(uint16_t flow_ul_s){
-    return 1000.0*ulka_pump_get_flow_ml_s(pump) >= flow_ul_s;
+static bool system_at_flow(int32_t flow_ul_s){
+    if(flow_ul_s > 0){
+        return 1000.0*ulka_pump_get_flow_ml_s(pump) >= flow_ul_s;
+    } else {
+        return 1000.0*ulka_pump_get_flow_ml_s(pump) <= -flow_ul_s;
+    }
 }
 
 /** 
- * \brief Checks if pump is under passed in pressure 
+ * \brief Checks if pump has triggered target pressure.
+ * 
+ * If pressure is positive, then returns true if pressure is greater than target.
+ * If pressure is negative, then returns true if pressure is less than target.
  */
-static bool system_at_pressure(uint16_t pressure_mbar){
-    return ulka_pump_get_pressure_bar(pump) > (pressure_mbar/1000.);
+static bool system_at_pressure(int32_t pressure_mbar){
+    if(pressure_mbar > 0){
+        return ulka_pump_get_pressure_bar(pump) >= (pressure_mbar/1000.);
+    } else {
+        return ulka_pump_get_pressure_bar(pump) <= -(pressure_mbar/1000.);
+    }
 }
 
 /** 

@@ -58,7 +58,7 @@ typedef uint8_t (*autobrew_mapping)(uint16_t);
  * 
  * \return True if leg should end. Else returns false. 
  */
-typedef bool (*autobrew_trigger)(uint16_t);
+typedef bool (*autobrew_trigger)(int32_t);
 
 /** 
  * \brief Initializes the autobrew library. 
@@ -85,7 +85,7 @@ uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint
  * \param trigger A trigger function.
  * \param trigger_data The value to pass to the trigger function.
  */
-void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, uint16_t trigger_data);
+void autobrew_leg_add_trigger(uint8_t leg_id, autobrew_trigger trigger, int32_t trigger_data);
 
 /** 
  * \brief Adds an setup function to specific leg ID.
