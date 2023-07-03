@@ -68,6 +68,7 @@ void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * ro
     _local_ui_init_folder_name(root, root_name);
     root->id = 0;
     root->num_subfolders = 0;
+    root->parent = NULL;
     root->action = NULL;
     root->subfolders = NULL;
     root->_subfolder_buf_size = 0;
@@ -88,12 +89,25 @@ void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolde
 
     _local_ui_init_folder_name(subfolder, subfolder_name);
     _local_ui_init_subfolder_id(folder, subfolder);
+    subfolder->parent = folder;
     subfolder->action = subfolder_action;
     subfolder->data = subfolder_action_data;
     subfolder->num_subfolders = 0;
     subfolder->subfolders = NULL;
     subfolder->_subfolder_buf_size = 0;
     subfolder->rel_id = folder->rel_id + folder->num_subfolders;
+}
+
+void local_ui_go_up(local_ui_folder_tree * tree){
+    if(tree->cur_folder->parent != NULL){
+        tree->cur_folder = tree->cur_folder->parent;
+    }
+    #ifdef DEBUG_LOCAL_UI
+    printf("Entered folder with subfolders:\n");
+    for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
+        printf(" (%d) [%s]\n", i+1, tree->cur_folder->subfolders[i]->name);
+    }
+    #endif
 }
 
 void local_ui_go_to_root(local_ui_folder_tree * tree){

@@ -42,6 +42,7 @@ typedef bool (*folder_action)(folder_id, uint8_t, folder_action_data);
 typedef struct local_ui_folder_ {
     uint32_t id;                            /**< \brief A unique ID assigned to a folder */
     uint16_t rel_id;                        /**< \brief An unstructured ID based on parent rel_id and subfolder index.*/
+    struct local_ui_folder_ * parent;       /**< \brief Parent folder. NULL if root. */
     char * name;                            /**< \brief The folder's name as a null-terminated string*/
     folder_action action;                   /**< \brief An optional folder action callback*/
     folder_action_data data;                /**< \brief An integer value used to pass data to action folders */
@@ -78,6 +79,11 @@ void local_ui_add_subfolder(local_ui_folder * folder,
                             const char * subfolder_name, 
                             folder_action subfolder_action, 
                             folder_action_data subfolder_action_data);
+
+/**
+ * \brief Go up a level in the folders
+ */
+void local_ui_go_up(local_ui_folder_tree * tree);
 
 /**
  * \brief Returns to the root of the tree

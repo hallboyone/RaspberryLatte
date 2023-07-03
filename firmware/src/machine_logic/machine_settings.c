@@ -490,15 +490,36 @@ static setting_command _get_ssh_command(){
 }
 
 int machine_settings_update(setting_command cmd){
-    if(cmd == MS_CMD_NONE){
-        cmd = _get_ssh_command();
-    }
-
+    if(cmd == MS_CMD_NONE) cmd = _get_ssh_command();
+    bool changed_folder = false;
     switch(cmd){
         case MS_CMD_SUBFOLDER_A: 
         case MS_CMD_SUBFOLDER_B:
         case MS_CMD_SUBFOLDER_C:
         local_ui_enter_subfolder(&settings_modifier, cmd - MS_CMD_SUBFOLDER_A);
+        changed_folder = true;
+        break;
+
+        case MS_CMD_ROOT:
+        local_ui_go_to_root(&settings_modifier);
+        value_flasher_end(_setting_flasher);
+        _ui_mask = 0;
+        break;
+
+        case MS_CMD_UP:
+        local_ui_go_up(&settings_modifier);
+        changed_folder = true;
+        break;
+
+        case MS_CMD_PRINT:
+        machine_settings_print();
+        break;
+
+        case MS_CMD_NONE:
+        break;
+    }
+
+    if(changed_folder){
         const folder_id id = settings_modifier.cur_folder->id;
         if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
             (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id))){
@@ -510,23 +531,6 @@ int machine_settings_update(setting_command cmd){
             value_flasher_end(_setting_flasher);
             _ui_mask = settings_modifier.cur_folder->rel_id;
         }
-        break;
-
-        case MS_CMD_ROOT:
-        local_ui_go_to_root(&settings_modifier);
-        value_flasher_end(_setting_flasher);
-        _ui_mask = 0;
-        break;
-
-        case MS_CMD_UP:
-        break;
-
-        case MS_CMD_PRINT:
-        machine_settings_print();
-        break;
-
-        case MS_CMD_NONE:
-        break;
     }
     return PICO_ERROR_NONE;
 }
@@ -535,13 +539,13 @@ int machine_settings_update(setting_command cmd){
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     printf(
-        "Brew temp          : %0.2f C\n"
+        "\nBrew temp          : %0.2f C\n"
         "Hot temp           : %0.2f C\n"
         "Steam temp         : %0.2f C\n"
         "Dose               : %0.2f g\n"
         "Yield              : %0.2f g\n"
         "Brew power         : %u%%\n"
-        "Hot power          : %u%%\n\n",
+        "Hot power          : %u%%\n",
         _ms[MS_TEMP_BREW_cC]/100.,
         _ms[MS_TEMP_HOT_cC]/100.,
         _ms[MS_TEMP_STEAM_cC]/100.,
@@ -550,14 +554,14 @@ int machine_settings_print(){
         _ms[MS_POWER_BREW_PER],
         _ms[MS_POWER_HOT_PER]);
     
-    printf("______________________________________________________________\n");
-    printf("|        Setpoint         |         Target         | Timeout |\n");
-    printf("|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n");
-    printf("|---------:-------:-------|------:----------:------|---------|\n");
+    printf("|=|=========================|========================|=========|\n");
+    printf("| |        Setpoint         |         Target         | Timeout |\n");
+    printf("|#|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n");
+    printf("|-|---------:-------:-------|------:----------:------|---------|\n");
     for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
         const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
         printf(
-           "|%s: %5.1f : %5.1f | %4.1f :   %4.1f   : %4.1f |  %4.1f   |\n",
+           "|%d|%s: %5.1f : %5.1f | %4.1f :   %4.1f   : %4.1f |  %4.1f   |\n", i + 1,
             (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
             _ms[offset + MS_A1_REF_START_100per_ulps_mbar]/(_ms[offset+MS_A1_REF_STYLE_ENM] == 0 ? 100.0 : 1000.),
             _ms[offset + MS_A1_REF_END_100per_ulps_mbar]/(_ms[offset+MS_A1_REF_STYLE_ENM] == 0 ? 100.0 : 1000.),
@@ -565,8 +569,8 @@ int machine_settings_print(){
             _ms[offset + MS_A1_TRGR_PRSR_mbar]/1000.,
             _ms[offset + MS_A1_TRGR_MASS_mg]/1000.,
             _ms[offset + MS_A1_TIMEOUT_ms]/1000.);
-    }
-    printf("|---------:-------:-------|------:----------:------|---------|\n\n");
+    }      
+    printf("|=|=========================|========================|=========|\n\n");
     return PICO_ERROR_NONE;
 }
 
