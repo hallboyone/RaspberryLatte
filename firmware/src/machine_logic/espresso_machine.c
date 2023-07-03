@@ -264,11 +264,14 @@ static void espresso_machine_update_switches(){
  * the setting tree to root.
  */
 static void espresso_machine_update_settings(){
-    const bool reset_settings_ui = (_state.switches.ac_switch_changed == 1);
-    const int c = getchar_timeout_us(0);
-    const bool select_settings_ui = !_state.switches.ac_switch && (_state.switches.pump_switch_changed || c > 0);
-    const uint8_t val = (c > 0 ? c - '0' - 1 : 2 - _state.switches.mode_dial);
-    machine_settings_update(reset_settings_ui, select_settings_ui, val);
+    setting_command cmd = MS_CMD_NONE;
+    if(_state.switches.ac_switch_changed == 1){
+        cmd = MS_CMD_ROOT;
+    } else if(!_state.switches.ac_switch && (_state.switches.pump_switch_changed)){
+        const setting_command cmds [] = {MS_CMD_SUBFOLDER_C,MS_CMD_SUBFOLDER_B,MS_CMD_SUBFOLDER_A,MS_CMD_ROOT};
+        cmd = cmds[_state.switches.mode_dial];
+    }
+    machine_settings_update(cmd);
 }
 
 /** \brief Uses the state of the switches to update the pump and solenoid.

@@ -483,32 +483,50 @@ machine_setting machine_settings_get(setting_id id){
     else return _ui_mask;
 }
 
-int machine_settings_update(bool reset, bool select, uint8_t val){
-    if (reset){
+static setting_command _get_ssh_command(){
+    int cmd = getchar_timeout_us(0);
+    if(cmd < 0) cmd = MS_CMD_NONE;
+    return cmd;
+}
+
+int machine_settings_update(setting_command cmd){
+    if(cmd == MS_CMD_NONE){
+        cmd = _get_ssh_command();
+    }
+
+    switch(cmd){
+        case MS_CMD_SUBFOLDER_A: 
+        case MS_CMD_SUBFOLDER_B:
+        case MS_CMD_SUBFOLDER_C:
+        local_ui_enter_subfolder(&settings_modifier, cmd - MS_CMD_SUBFOLDER_A);
+        const folder_id id = settings_modifier.cur_folder->id;
+        if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
+            (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id))){
+            // If entered action settings folder, start value flasher
+                value_flasher_update(_setting_flasher, _ms[settings_modifier.cur_folder->data]);
+                value_flasher_start(_setting_flasher);
+        } else {
+            // else in nav folder. Display id.
+            value_flasher_end(_setting_flasher);
+            _ui_mask = settings_modifier.cur_folder->rel_id;
+        }
+        break;
+
+        case MS_CMD_ROOT:
         local_ui_go_to_root(&settings_modifier);
         value_flasher_end(_setting_flasher);
         _ui_mask = 0;
-    } else if (select){
-        if (val == 3){
-            // Return to root
-            local_ui_go_to_root(&settings_modifier);
-            value_flasher_end(_setting_flasher);
-            _ui_mask = 0;
-        } else {
-            local_ui_enter_subfolder(&settings_modifier, val);
-            
-            const folder_id id = settings_modifier.cur_folder->id;
-            if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
-                (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id))){
-                // If entered action settings folder, start value flasher
-                 value_flasher_update(_setting_flasher, _ms[settings_modifier.cur_folder->data]);
-                 value_flasher_start(_setting_flasher);
-            } else {
-                // else in nav folder. Display id.
-                value_flasher_end(_setting_flasher);
-                _ui_mask = settings_modifier.cur_folder->rel_id;
-            }
-        }
+        break;
+
+        case MS_CMD_UP:
+        break;
+
+        case MS_CMD_PRINT:
+        machine_settings_print();
+        break;
+
+        case MS_CMD_NONE:
+        break;
     }
     return PICO_ERROR_NONE;
 }

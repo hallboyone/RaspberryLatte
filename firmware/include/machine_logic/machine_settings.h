@@ -123,6 +123,16 @@ enum {
     AUTOBREW_REF_STYLE_PRSR     /**<\brief The reference is pressure. */
     };
 
+typedef enum {
+    MS_CMD_NONE = '0',
+    MS_CMD_SUBFOLDER_A = '1',
+    MS_CMD_SUBFOLDER_B = '2',
+    MS_CMD_SUBFOLDER_C = '3',
+    MS_CMD_ROOT = 'r',
+    MS_CMD_UP = 'u',
+    MS_CMD_PRINT = 'p'
+} setting_command;
+
 /** \brief Initialize the settings and attach to memory device. 
  * \param mem A pointer to an initalized mb85_fram structure.
 */
@@ -142,7 +152,7 @@ machine_setting machine_settings_get(setting_id id);
  * \param val Value of selector
  * \return int 
  */
-int machine_settings_update(bool reset, bool select, uint8_t val);
+int machine_settings_update(setting_command cmd);
 
 /**
  * \brief Print the current states using printf
