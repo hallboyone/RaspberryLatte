@@ -74,7 +74,7 @@ void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * ro
     root->rel_id = 0;
 }
 
-void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolder, const char * subfolder_name, folder_action subfolder_action){
+void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolder, const char * subfolder_name, folder_action subfolder_action, folder_action_data subfolder_action_data){
     if(folder->num_subfolders == folder->_subfolder_buf_size){
         local_ui_folder ** new_buf = (local_ui_folder**)malloc(2*folder->_subfolder_buf_size*sizeof(local_ui_folder *));
         memcpy(folder->subfolders, new_buf, folder->num_subfolders*sizeof(local_ui_folder *));
@@ -89,6 +89,7 @@ void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolde
     _local_ui_init_folder_name(subfolder, subfolder_name);
     _local_ui_init_subfolder_id(folder, subfolder);
     subfolder->action = subfolder_action;
+    subfolder->data = subfolder_action_data;
     subfolder->num_subfolders = 0;
     subfolder->subfolders = NULL;
     subfolder->_subfolder_buf_size = 0;
@@ -110,7 +111,7 @@ void local_ui_go_to_root(local_ui_folder_tree * tree){
 void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx){
     if(tree->cur_folder->action != NULL){
         // If in action folder, just call action instead of entering subfolder
-        if(tree->cur_folder->action(tree->cur_folder->id, subfolder_idx)){
+        if(tree->cur_folder->action(tree->cur_folder->id, subfolder_idx, tree->cur_folder->data)){
             #ifdef DEBUG_LOCAL_UI
             printf("Calling action on [%s] with value %d\n", tree->cur_folder->name, subfolder_idx);
             #endif

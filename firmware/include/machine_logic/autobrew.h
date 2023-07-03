@@ -73,11 +73,11 @@ void autobrew_init();
  * \param mapping Mapping function. NULL to use setpoint directly.
  * \param setpoint_start The value of the setpoint at the start of the leg.
  * \param setpoint_end The value of the setpoint at the leg's duration.
- * \param timeout_ds The timeout duration of the autobrew leg.
+ * \param timeout_ms The timeout duration of the autobrew leg.
  * 
  * \returns The ID of the leg that was created. 
  */
-uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ds);
+uint8_t autobrew_add_leg(autobrew_mapping mapping, uint16_t setpoint_start, uint16_t setpoint_end, uint16_t timeout_ms);
 
 /** 
  * \brief Adds an end trigger to specific leg ID.

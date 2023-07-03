@@ -31,8 +31,8 @@ int main(){
         if(num_ticks%ticks_per_message == 0){
             if(espresso_machine->switches.ac_switch){
                 printf("%5.1f\t%5.1f\t%3d\t%2d\t%3d\t%6.1f\t%4.1f\n",
-                espresso_machine->boiler.setpoint/16.,
-                espresso_machine->boiler.temperature/16.,
+                espresso_machine->boiler.setpoint/100.,
+                espresso_machine->boiler.temperature/100.,
                 espresso_machine->boiler.power_level,
                 espresso_machine->autobrew_leg,
                 espresso_machine->pump.power_level,

@@ -32,7 +32,8 @@
 typedef uint32_t folder_id;
 
 /** \brief Action function assigned to folder. If true is returned, tree returns to root. */
-typedef bool (*folder_action)(folder_id, uint8_t);
+typedef int folder_action_data;
+typedef bool (*folder_action)(folder_id, uint8_t, folder_action_data);
 
 /** \brief A single folder. The folder structure is basically a linked
  * list with some extra functionality. Therefore, the folder can be thought
@@ -43,6 +44,7 @@ typedef struct local_ui_folder_ {
     uint16_t rel_id;                        /**< \brief An unstructured ID based on parent rel_id and subfolder index.*/
     char * name;                            /**< \brief The folder's name as a null-terminated string*/
     folder_action action;                   /**< \brief An optional folder action callback*/
+    folder_action_data data;                /**< \brief An integer value used to pass data to action folders */
     uint8_t num_subfolders;                 /**< \brief The number of subfolders under folder */
     struct local_ui_folder_ ** subfolders;  /**< \brief A list of pointers to a folder's subfolders */
     uint8_t _subfolder_buf_size;            /**< \brief Internal var used to allocate space for subfolder pointers*/
@@ -71,7 +73,11 @@ void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * ro
  * \param subfolder_name Human readable name for the subfolder.
  * \param subfolder_action Pointer to an action callback. Null if no action.
  */
-void local_ui_add_subfolder(local_ui_folder * folder, local_ui_folder * subfolder, const char * subfolder_name, folder_action subfolder_action);
+void local_ui_add_subfolder(local_ui_folder * folder, 
+                            local_ui_folder * subfolder, 
+                            const char * subfolder_name, 
+                            folder_action subfolder_action, 
+                            folder_action_data subfolder_action_data);
 
 /**
  * \brief Returns to the root of the tree

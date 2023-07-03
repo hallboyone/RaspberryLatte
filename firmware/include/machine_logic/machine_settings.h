@@ -4,14 +4,8 @@
  *  \brief Library managing the settings of a single boiler espresso machine.
  * 
  *  The machine_settings functionality can be divided into three groups. First, the settings
- *  must be accessible by external programs. This is accomplished with const machine_settings 
- *  pointers that are passed out after calling ::machine_settings_setup or ::machine_settings_acquire.
- *  This allows for access to the current settings with, for example, 
- *  
- *      ms = machine_settings_acquire();
- *      weight_dg yield = *(ms->brew.yield);
- *  
- *  Note the field names are pointers themselves and must be dereferenced. 
+ *  must be accessible by external programs. This is accomplished with the ::machine_settings_get
+ *  function which takes one, enumerated parameter indicating which setting to retrieve.
  *  
  *  The library also handles the modification of settings. This is accomplished with the
  *  ::machine_settings_update function. This function takes a reset and select flags and a integer 
@@ -31,72 +25,114 @@
  * \file machine_settings.h
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief Machine Settings header
- * \version 0.1
- * \date 2022-11-12
+ * \version 1.0
+ * \date 2023-07-01
  */
 
 #ifndef MACHINE_SETTINGS_H
 #define MACHINE_SETTINGS_H
 
-#include "pico/stdlib.h" // Typedefs
+#include "pico/stdlib.h"         // Typedefs
 #include "drivers/mb85_fram.h"   // FRAM memory driver to store settings
 
-typedef int16_t machine_setting; /**< \brief Generic machine setting field with range from -32768 to 32767 */
+#define NUM_AUTOBREW_LEGS 9           /**<\brief The max number of autobrew legs in the settings. */
+#define NUM_AUTOBREW_PARAMS_PER_LEG 7 /**<\brief The number of settings per autobrew leg. */
 
-/** \brief The settings associated with the steam mode */
-typedef struct {
-    machine_setting * temp_dC; /**< The target temperature when in steam mode */
-} machine_settings_steam;
+typedef uint16_t machine_setting; /**< \brief Generic machine setting field with range from 0 to 65535 */
 
-/** \brief The settings associated with the hot-water mode */
-typedef struct {
-    machine_setting * temp_dC;   /**< The target temperature when in hot-water mode */
-    machine_setting * power_per; /**< The pump power for when in steam mode */
-} machine_settings_hot;
+/** \brief Enumerated list naming the indicies of the settings array. */
+typedef enum {
+    MS_TEMP_BREW_cC = 0,              /**<\brief The temp for brew and autobrew mode. */
+    MS_TEMP_HOT_cC,                   /**<\brief The temp for hot-water mode. */
+    MS_TEMP_STEAM_cC,                 /**<\brief The temp for steam mode. */
+    MS_WEIGHT_DOSE_mg,                /**<\brief The target dose. */
+    MS_WEIGHT_YIELD_mg,               /**<\brief The target yield. */
+    MS_POWER_BREW_PER,                /**<\brief Pump power while in brew mode. */
+    MS_POWER_HOT_PER,                 /**<\brief Pump power while in hot-water mode. */
+    MS_A1_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 1. */
+    MS_A1_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 1. If percent, divide by 100. Else, use directly. */
+    MS_A1_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 1. If percent, divide by 100. Else, use directly. */
+    MS_A1_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 1 to end. Set to 0 to disable. */
+    MS_A1_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 1 to end. Set to 0 to disable. */
+    MS_A1_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 1 to end. Set to 0 to disable. */
+    MS_A1_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 1 to end. Set to 0 to disable leg. */
+    MS_A2_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 2. */
+    MS_A2_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 2. If percent, divide by 100. Else, use directly. */
+    MS_A2_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 2. If percent, divide by 100. Else, use directly. */
+    MS_A2_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 2 to end. Set to 0 to disable. */
+    MS_A2_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 2 to end. Set to 0 to disable. */
+    MS_A2_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 2 to end. Set to 0 to disable. */
+    MS_A2_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 2 to end. Set to 0 to disable leg. */
+    MS_A3_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 3. */
+    MS_A3_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 3. If percent, divide by 100. Else, use directly. */
+    MS_A3_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 3. If percent, divide by 100. Else, use directly. */
+    MS_A3_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 3 to end. Set to 0 to disable. */
+    MS_A3_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 3 to end. Set to 0 to disable. */
+    MS_A3_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 3 to end. Set to 0 to disable. */
+    MS_A3_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 3 to end. Set to 0 to disable leg. */
+    MS_A4_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 4. */
+    MS_A4_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 4. If percent, divide by 100. Else, use directly. */
+    MS_A4_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 4. If percent, divide by 100. Else, use directly. */
+    MS_A4_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 4 to end. Set to 0 to disable. */
+    MS_A4_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 4 to end. Set to 0 to disable. */
+    MS_A4_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 4 to end. Set to 0 to disable. */
+    MS_A4_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 4 to end. Set to 0 to disable leg. */
+    MS_A5_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 5. */
+    MS_A5_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 5. If percent, divide by 100. Else, use directly. */
+    MS_A5_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 5. If percent, divide by 100. Else, use directly. */
+    MS_A5_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 5 to end. Set to 0 to disable. */
+    MS_A5_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 5 to end. Set to 0 to disable. */
+    MS_A5_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 5 to end. Set to 0 to disable. */
+    MS_A5_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 5 to end. Set to 0 to disable leg. */
+    MS_A6_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 6. */
+    MS_A6_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 6. If percent, divide by 100. Else, use directly. */
+    MS_A6_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 6. If percent, divide by 100. Else, use directly. */
+    MS_A6_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 6 to end. Set to 0 to disable. */
+    MS_A6_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 6 to end. Set to 0 to disable. */
+    MS_A6_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 6 to end. Set to 0 to disable. */
+    MS_A6_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 6 to end. Set to 0 to disable leg. */
+    MS_A7_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 7. */
+    MS_A7_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 7. If percent, divide by 100. Else, use directly. */
+    MS_A7_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 7. If percent, divide by 100. Else, use directly. */
+    MS_A7_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 7 to end. Set to 0 to disable. */
+    MS_A7_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 7 to end. Set to 0 to disable. */
+    MS_A7_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 7 to end. Set to 0 to disable. */
+    MS_A7_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 7 to end. Set to 0 to disable leg. */
+    MS_A8_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 8. */
+    MS_A8_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 8. If percent, divide by 100. Else, use directly. */
+    MS_A8_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 8. If percent, divide by 100. Else, use directly. */
+    MS_A8_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 8 to end. Set to 0 to disable. */
+    MS_A8_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 8 to end. Set to 0 to disable. */
+    MS_A8_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 8 to end. Set to 0 to disable. */
+    MS_A8_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 8 to end. Set to 0 to disable leg. */
+    MS_A9_REF_STYLE_ENM,              /**<\brief The reference style (PWR, FLOW, or PRSR) for autobrew leg 9. */
+    MS_A9_REF_START_100per_ulps_mbar, /**<\brief The starting reference for autobrew leg 9. If percent, divide by 100. Else, use directly. */
+    MS_A9_REF_END_100per_ulps_mbar,   /**<\brief The ending reference for autobrew leg 9. If percent, divide by 100. Else, use directly. */
+    MS_A9_TRGR_FLOW_ul_s,             /**<\brief Flow that triggers autobrew leg 9 to end. Set to 0 to disable. */
+    MS_A9_TRGR_PRSR_mbar,             /**<\brief Pressure that triggers autobrew leg 9 to end. Set to 0 to disable. */
+    MS_A9_TRGR_MASS_mg,               /**<\brief Weight that triggers autobrew leg 9 to end. Set to 0 to disable. */
+    MS_A9_TIMEOUT_ms,                 /**<\brief Time that triggers autobrew leg 9 to end. Set to 0 to disable leg. */
+    NUM_SETTINGS,                     /**<\brief The number of settings that are managed. */
+    MS_UI_MASK                        /**<\brief ui mask for flashing values on LEDs */
+} setting_id;
 
-/** \brief The settings associated with brewing espresso. 
- * 
- * Used in manual and auto mode 
- * */
-typedef struct {
-    machine_setting * temp_dC;   /**< The target temperature when brewing */ 
-    machine_setting * power_per; /**< The pump power when brewing */ 
-    machine_setting * dose_dg;   /**< Weight of grounds used when brewing */
-    machine_setting * yield_dg;  /**< Weight of espresso to brew */
-} machine_settings_brew;
-
-/** \brief The settings associated with the auto mode */
-typedef struct {
-    machine_setting * preinf_timeout_s;    /**< Length of time to soak puck during pre-infuse */
-    machine_setting * preinf_power_per;    /**< The power of the pre-infuse routine */
-    machine_setting * preinf_ramp_time_ds; /**< The time, in ds of the linear ramp to target power */
-    machine_setting * flow_ul_ds;          /**< The target flow rate during the main brew leg */
-    machine_setting * timeout_s;           /**< The length of time to attempt to reach yield */
-} machine_settings_auto;
-
-/** \brief Full espresso machine settings. 
- * 
- * The fields are associated with the different modes and the ui_mask uses the lowest three 
- * bits to communicate the current value of a setting being modifed. 
-*/
-typedef struct {
-    machine_settings_auto  autobrew;  /**< The settings associated with the auto mode */
-    machine_settings_brew  brew;      /**< The settings associated with brewing espresso. Used in manual and auto mode */
-    machine_settings_hot   hot;       /**< The settings associated with the hot-water mode */
-    machine_settings_steam steam;     /**< The settings associated with the steam mode */
-    uint8_t ui_mask;                  /**< Bitfield whose lowest 3 bits communicate the state of setting modifications */
-} machine_settings;
+/**\brief Enumerated list of possible reference styles. */
+enum {
+    AUTOBREW_REF_STYLE_PWR = 0, /**<\brief The reference is percent power. */
+    AUTOBREW_REF_STYLE_FLOW,    /**<\brief The reference is flowrate. */
+    AUTOBREW_REF_STYLE_PRSR     /**<\brief The reference is pressure. */
+    };
 
 /** \brief Initialize the settings and attach to memory device. 
  * \param mem A pointer to an initalized mb85_fram structure.
- * \returns A const pointer to the global settings structure or NULL on error. 
 */
-const machine_settings * machine_settings_setup(mb85_fram mem);
+void machine_settings_setup(mb85_fram mem);
 
-/** \brief Get a const pointer to internal settings structure
- * \returns A const pointer to the global settings structure or NULL if not setup. 
+/** 
+ * \brief Get the current value of a setting or the UI mask
+ * \returns The value of the indicated setting or the UI mask
 */
-machine_settings * machine_settings_acquire();
+machine_setting machine_settings_get(setting_id id);
 
 /**
  * \brief Navigates the internal setting's tree and updates values accordingly
