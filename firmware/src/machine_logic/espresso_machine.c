@@ -189,30 +189,30 @@ static void espresso_machine_autobrew_setup(){
     bool is_first_leg = false;
     for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
         const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
-        const machine_setting leg_timeout = machine_settings_get(MS_A1_TIMEOUT_ms + offset);
+        const machine_setting leg_timeout = machine_settings_get(MS_A1_TIMEOUT_10s + offset);
         if(leg_timeout > 0){
             // Setup reference and timeout
             const machine_setting ref_style = machine_settings_get(MS_A1_REF_STYLE_ENM + offset);
-            const machine_setting ref_start = machine_settings_get(MS_A1_REF_START_100per_ulps_mbar + offset);
-            const machine_setting ref_end   = machine_settings_get(MS_A1_REF_END_100per_ulps_mbar + offset);
+            const machine_setting ref_start = machine_settings_get(MS_A1_REF_START_per_100lps_10bar + offset);
+            const machine_setting ref_end   = machine_settings_get(MS_A1_REF_END_per_100lps_10bar + offset);
             if(ref_style == AUTOBREW_REF_STYLE_PWR){
-                leg_id = autobrew_add_leg(NULL, ref_start/100, ref_end/100, leg_timeout);
+                leg_id = autobrew_add_leg(NULL, ref_start, ref_end, leg_timeout);
             } else if(ref_style == AUTOBREW_REF_STYLE_FLOW){
-                leg_id = autobrew_add_leg(get_power_for_flow, ref_start, ref_end, leg_timeout);
+                leg_id = autobrew_add_leg(get_power_for_flow, 10*ref_start, 10*ref_end, leg_timeout);
                 autobrew_leg_add_setup_fun(leg_id, setup_flow_ctrl);
             } else {
-                leg_id = autobrew_add_leg(get_power_for_pressure, ref_start, ref_end, leg_timeout); 
+                leg_id = autobrew_add_leg(get_power_for_pressure, 100*ref_start, 100*ref_end, leg_timeout); 
             }
 
             // Setup triggers
-            const machine_setting t_flow = machine_settings_get(MS_A1_TRGR_FLOW_ul_s + offset);
-            if(t_flow>0) autobrew_leg_add_trigger(leg_id, system_at_flow, t_flow);
+            const int32_t t_flow = machine_settings_get(MS_A1_TRGR_FLOW_100lps + offset);
+            if(t_flow>0) autobrew_leg_add_trigger(leg_id, system_at_flow, 10*t_flow);
             
-            const machine_setting t_prsr = machine_settings_get(MS_A1_TRGR_PRSR_mbar + offset);
-            if(t_prsr>0) autobrew_leg_add_trigger(leg_id, system_at_pressure, t_prsr);
+            const machine_setting t_prsr = machine_settings_get(MS_A1_TRGR_PRSR_10bar + offset);
+            if(t_prsr>0) autobrew_leg_add_trigger(leg_id, system_at_pressure, 100*t_prsr);
             
-            const machine_setting t_mass = machine_settings_get(MS_A1_TRGR_MASS_mg + offset);
-            if(t_mass>0) autobrew_leg_add_trigger(leg_id, scale_at_val, t_mass);
+            const machine_setting t_mass = machine_settings_get(MS_A1_TRGR_MASS_10g + offset);
+            if(t_mass>0) autobrew_leg_add_trigger(leg_id, scale_at_val, 100*t_mass);
 
             // Zero scale on first non-zero leg found
             if(is_first_leg){
@@ -348,11 +348,11 @@ static void espresso_machine_update_boiler(){
     // Update setpoints
     if(is_ac_on_and_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
-            _state.boiler.setpoint = machine_settings_get(MS_TEMP_STEAM_cC);
+            _state.boiler.setpoint = 10*machine_settings_get(MS_TEMP_STEAM_10C);
         } else if(_state.switches.mode_dial == MODE_HOT){
-            _state.boiler.setpoint = machine_settings_get(MS_TEMP_HOT_cC);
+            _state.boiler.setpoint = 10*machine_settings_get(MS_TEMP_HOT_10C);
         } else {
-            _state.boiler.setpoint = machine_settings_get(MS_TEMP_BREW_cC);
+            _state.boiler.setpoint = 10*machine_settings_get(MS_TEMP_BREW_10C);
         }
     } else {
         _state.boiler.setpoint = 0;
@@ -390,7 +390,7 @@ static void espresso_machine_update_leds(){
             led_state = (_state.switches.ac_switch) << 2|
                         (_state.switches.ac_switch && pid_at_setpoint(heater_pid, 2.5)) << 1 |
                         (_state.switches.ac_switch && !_state.switches.pump_switch 
-                        && nau7802_at_val_mg(scale, machine_settings_get(MS_WEIGHT_DOSE_mg))) << 0;
+                        && nau7802_at_val_mg(scale, 100*machine_settings_get(MS_WEIGHT_DOSE_10g))) << 0;
         }
         binary_output_mask(leds, led_state);
     } else {

@@ -33,7 +33,7 @@ static uint8_t _ui_mask;
 /** \brief Internal settings array holding the master settings */
 static machine_setting _ms [NUM_SETTINGS];
 typedef struct{
-    machine_setting step_size;  /**\brief Length of each delta when incremented. 0 is for enumerated values. */
+    machine_setting scale;  /**\brief Length of each delta when incremented. 0 is for enumerated values. */
     machine_setting max;        /**\brief The maximum value of the setting. */
     machine_setting min;        /**\brief The minimum value of the setting. */
     machine_setting std;        /**\brief The default value of the setting. */
@@ -41,76 +41,76 @@ typedef struct{
 
 /** \brief Minimum settings array */
 static const machine_setting_specs _specs [NUM_SETTINGS] = {
-    {.step_size = 100, .min = 0,     .max = 14000, .std = 9000 },// MS_TEMP_BREW_cC = 0
-    {.step_size = 100, .min = 0,     .max = 14000, .std = 10000},// MS_TEMP_HOT_cC
-    {.step_size = 100, .min = 0,     .max = 14000, .std = 14000},// MS_TEMP_STEAM_cC
-    {.step_size = 100, .min = 0,     .max = 30000, .std = 15000},// MS_WEIGHT_DOSE_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 30000},// MS_WEIGHT_YIELD_mg
-    {.step_size = 1,   .min = 0,     .max = 100,   .std = 100  },// MS_POWER_BREW_PER,   
-    {.step_size = 1,   .min = 0,     .max = 100,   .std = 20   },// MS_POWER_HOT_PER
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A1_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A1_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A1_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A1_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A1_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A1_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A1_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A2_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A2_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A2_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A2_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A2_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A2_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A2_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A3_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A3_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A3_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A3_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A3_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A3_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A3_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A4_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A4_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A4_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A4_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A4_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A4_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A4_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A5_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A5_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A5_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A5_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A5_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A5_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A5_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A6_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A6_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A6_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A6_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A6_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A6_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A6_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A7_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A7_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A7_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000 , .max = 3000 , .std = 0    },// MS_A7_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A7_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A7_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A7_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A8_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A8_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A8_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A8_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A8_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A8_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    },// MS_A8_TIMEOUT_s
-    {.step_size = 0,   .min = 0,     .max = 2,     .std = 0    },// MS_A9_REF_STYLE_ENM
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A9_REF_START_100per_ulps_mbar
-    {.step_size = 100, .min = 0,     .max = 20000, .std = 2500 },// MS_A9_REF_END_100per_ulps_mbar
-    {.step_size = 100, .min =-3000,  .max = 3000,  .std = 0    },// MS_A9_TRGR_FLOW_ul_s
-    {.step_size = 100, .min =-15000, .max = 15000, .std = 0    },// MS_A9_TRGR_PRSR_mbar
-    {.step_size = 100, .min =-30000, .max = 30000, .std = 0    },// MS_A9_TRGR_MASS_mg
-    {.step_size = 100, .min = 0,     .max = 60000, .std = 0    } // MS_A9_TIMEOUT_s
+    {.scale = 10,  .min = 0,   .max = 1400, .std = 900 },// MS_TEMP_BREW_10C = 0
+    {.scale = 10,  .min = 0,   .max = 1400, .std = 1000},// MS_TEMP_HOT_10C
+    {.scale = 10,  .min = 0,   .max = 1400, .std = 1400},// MS_TEMP_STEAM_10C
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 150 },// MS_WEIGHT_DOSE_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 300 },// MS_WEIGHT_YIELD_10g
+    {.scale = 1,   .min = 0,   .max = 100,  .std = 100 },// MS_POWER_BREW_PER,   
+    {.scale = 1,   .min = 0,   .max = 100,  .std = 20  },// MS_POWER_HOT_PER
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
     };
 
 typedef local_ui_folder luf;
@@ -314,8 +314,9 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
     if (val > 2) return true;
     if (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id) ){
         // Get step size (special case if base step size is 0)
-        const int16_t deltas [3] = {-10*_specs[ms_id].step_size, _specs[ms_id].step_size, 10*_specs[ms_id].step_size};
-        const int16_t step = (_specs[ms_id].step_size==0) ? val-1 : deltas[val];
+        //const int16_t deltas [3] = {-10*_specs[ms_id].scale, _specs[ms_id].scale, 10*_specs[ms_id].scale};
+        const int16_t deltas [3] = {-10, 1, 10};
+        const int16_t step = (_specs[ms_id].scale==0) ? val-1 : deltas[val];
         _ms[ms_id] = CLAMP(_ms[ms_id] + step, _specs[ms_id].min, _specs[ms_id].max);
         
         mb85_fram_save(_mem, _ms);
@@ -332,126 +333,126 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
 /** \brief Setup the local UI file structure. */
 static void _machine_settings_setup_local_ui(){
     local_ui_folder_tree_init(&settings_modifier, &f_, "RaspberryLatte");
-    local_ui_add_subfolder(&f_,                 &f_set,                   "Settings",                NULL, 0);
-    local_ui_add_subfolder(&f_set,              &f_set_temp,              "Temperatures",            NULL, 0);
-    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_brew,         "Brew (-1, 0.1, 1)",       &_ms_f_cb, MS_TEMP_BREW_cC);
-    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_hot,          "Hot (-1, 0.1, 1)",        &_ms_f_cb, MS_TEMP_HOT_cC);
-    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_steam,        "Steam (-1, 0.1, 1)",      &_ms_f_cb, MS_TEMP_STEAM_cC);
-    local_ui_add_subfolder(&f_set,              &f_set_weight,            "Weights",                 NULL, 0);
-    local_ui_add_subfolder(&f_set_weight,       &f_set_weight_dose,       "Dose (-1, 0.1, 1)",       &_ms_f_cb, MS_WEIGHT_DOSE_mg);
-    local_ui_add_subfolder(&f_set_weight,       &f_set_weight_yield,      "Yield (-1, 0.1, 1)",      &_ms_f_cb, MS_WEIGHT_YIELD_mg);
-    local_ui_add_subfolder(&f_set,              &f_set_power,             "Power",                   NULL, 0);
-    local_ui_add_subfolder(&f_set_power,        &f_set_power_brew,        "Brew (-10, 1, 10)",       &_ms_f_cb, MS_POWER_BREW_PER);
-    local_ui_add_subfolder(&f_set_power,        &f_set_power_hot,         "Hot (-10, 1, 10)",        &_ms_f_cb, MS_POWER_HOT_PER);
+    local_ui_add_subfolder(&f_,                 &f_set,                   "Settings",                     NULL, 0);
+    local_ui_add_subfolder(&f_set,              &f_set_temp,              "Temperatures",                 NULL, 0);
+    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_brew,         "Brew (-1, 0.1, 1)",            &_ms_f_cb, MS_TEMP_BREW_10C);
+    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_hot,          "Hot (-1, 0.1, 1)",             &_ms_f_cb, MS_TEMP_HOT_10C);
+    local_ui_add_subfolder(&f_set_temp,         &f_set_temp_steam,        "Steam (-1, 0.1, 1)",           &_ms_f_cb, MS_TEMP_STEAM_10C);
+    local_ui_add_subfolder(&f_set,              &f_set_weight,            "Weights",                      NULL, 0);
+    local_ui_add_subfolder(&f_set_weight,       &f_set_weight_dose,       "Dose (-1, 0.1, 1)",            &_ms_f_cb, MS_WEIGHT_DOSE_10g);
+    local_ui_add_subfolder(&f_set_weight,       &f_set_weight_yield,      "Yield (-1, 0.1, 1)",           &_ms_f_cb, MS_WEIGHT_YIELD_10g);
+    local_ui_add_subfolder(&f_set,              &f_set_power,             "Power",                        NULL, 0);
+    local_ui_add_subfolder(&f_set_power,        &f_set_power_brew,        "Brew (-10, 1, 10)",            &_ms_f_cb, MS_POWER_BREW_PER);
+    local_ui_add_subfolder(&f_set_power,        &f_set_power_hot,         "Hot (-10, 1, 10)",             &_ms_f_cb, MS_POWER_HOT_PER);
 
-    local_ui_add_subfolder(&f_,                 &f_ab,                    "Autobrew",                NULL, 0);
-    local_ui_add_subfolder(&f_ab,               &f_ab_ab13,               "Autobrew Legs 1-3",       NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab1,           "Autobrew Leg 1",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A1_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A1_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A1_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A1_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A1_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A1_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A1_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab2,           "Autobrew Leg 2",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A2_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A2_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A2_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A2_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A2_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A2_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A2_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab3,           "Autobrew Leg 3",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A3_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A3_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A3_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A3_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A3_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A3_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A3_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab,               &f_ab_ab46,               "Autobrew Legs 4-6",       NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab4,           "Autobrew Leg 4",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A4_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A4_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A4_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A4_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A4_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A4_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A4_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab5,           "Autobrew Leg 5",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A5_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A5_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A5_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A5_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A5_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A5_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A5_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab6,           "Autobrew Leg 6",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A6_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A6_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A6_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A6_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A6_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A6_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A6_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab,               &f_ab_ab79,               "Autobrew Legs 7-9",       NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab7,           "Autobrew Leg 7",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A7_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A7_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A7_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A7_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A7_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A7_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A7_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab8,           "Autobrew Leg 8",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A8_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A8_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A8_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A8_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A8_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A8_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A8_TIMEOUT_ms);
-    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab9,           "Autobrew Leg 9",          NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_ref,       "Setpoint",                NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_style, "Style (Pwr, Flow, Prsr)", _ms_f_cb, MS_A9_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_start, "Starting Setpoint",       _ms_f_cb, MS_A9_REF_START_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_end,   "Ending Setpoint",         _ms_f_cb, MS_A9_REF_END_100per_ulps_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_trgr,      "Trigger",                 NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_flow, "Flow (ml/s, -1, 0.1, 1)", _ms_f_cb, MS_A9_TRGR_FLOW_ul_s);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",  _ms_f_cb, MS_A9_TRGR_PRSR_mbar);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_mass, "Mass (g, -1, 0.1, 1)",    _ms_f_cb, MS_A9_TRGR_MASS_mg);
-    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_timeout,   "Timeout (-1, 0.1, 1)",    _ms_f_cb, MS_A9_TIMEOUT_ms);
+    local_ui_add_subfolder(&f_,                 &f_ab,                    "Autobrew",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab13,               "Autobrew Legs 1-3",            NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab1,           "Autobrew Leg 1",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A1_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A1_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A1_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A1_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A1_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A1_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A1_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab2,           "Autobrew Leg 2",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A2_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A2_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A2_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A2_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A2_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A2_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A2_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab3,           "Autobrew Leg 3",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A3_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A3_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A3_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A3_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A3_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A3_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A3_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab46,               "Autobrew Legs 4-6",            NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab4,           "Autobrew Leg 4",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A4_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A4_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A4_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A4_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A4_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A4_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A4_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab5,           "Autobrew Leg 5",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A5_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A5_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A5_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A5_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A5_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A5_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A5_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab6,           "Autobrew Leg 6",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A6_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A6_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A6_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A6_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A6_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A6_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A6_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab,               &f_ab_ab79,               "Autobrew Legs 7-9",            NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab7,           "Autobrew Leg 7",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A7_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A7_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A7_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A7_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A7_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A7_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A7_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab8,           "Autobrew Leg 8",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A8_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A8_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A8_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A8_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A8_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A8_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A8_TIMEOUT_10s);
+    local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab9,           "Autobrew Leg 9",               NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_ref,       "Setpoint",                     NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A9_REF_STYLE_ENM);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A9_REF_START_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A9_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_trgr,      "Trigger",                      NULL, 0);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A9_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A9_TRGR_PRSR_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A9_TRGR_MASS_10g);
+    local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A9_TIMEOUT_10s);
 
-    local_ui_add_subfolder(&f_,                 &f_presets,               "Presets",                 NULL, 0);
-    local_ui_add_subfolder(&f_presets,          &f_presets_profile_a,     "Presets 1-3",             NULL, 0);
-    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_0,   "Preset 1 (save, load)",   &_ms_f_cb, 0);
-    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_1,   "Preset 2 (save, load)",   &_ms_f_cb, 1);
-    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_2,   "Preset 3 (save, load)",   &_ms_f_cb, 2);
-    local_ui_add_subfolder(&f_presets,          &f_presets_profile_b,     "Presets 4-6",             NULL, 0);
-    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_0,   "Preset 4 (save, load)",   &_ms_f_cb, 3);
-    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_1,   "Preset 5 (save, load)",   &_ms_f_cb, 4);
-    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_2,   "Preset 6 (save, load)",   &_ms_f_cb, 5);
-    local_ui_add_subfolder(&f_presets,          &f_presets_profile_c,     "Presets 7-9",             NULL, 0);
-    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_0,   "Preset 7 (save, load)",   &_ms_f_cb, 6);
-    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_1,   "Preset 8 (save, load)",   &_ms_f_cb, 7);
-    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_2,   "Preset 9 (save, load)",   &_ms_f_cb, 8);
+    local_ui_add_subfolder(&f_,                 &f_presets,               "Presets",                      NULL, 0);
+    local_ui_add_subfolder(&f_presets,          &f_presets_profile_a,     "Presets 1-3",                  NULL, 0);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_0,   "Preset 1 (save, load)",        &_ms_f_cb, 0);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_1,   "Preset 2 (save, load)",        &_ms_f_cb, 1);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_2,   "Preset 3 (save, load)",        &_ms_f_cb, 2);
+    local_ui_add_subfolder(&f_presets,          &f_presets_profile_b,     "Presets 4-6",                  NULL, 0);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_0,   "Preset 4 (save, load)",        &_ms_f_cb, 3);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_1,   "Preset 5 (save, load)",        &_ms_f_cb, 4);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_2,   "Preset 6 (save, load)",        &_ms_f_cb, 5);
+    local_ui_add_subfolder(&f_presets,          &f_presets_profile_c,     "Presets 7-9",                  NULL, 0);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_0,   "Preset 7 (save, load)",        &_ms_f_cb, 6);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_1,   "Preset 8 (save, load)",        &_ms_f_cb, 7);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_2,   "Preset 9 (save, load)",        &_ms_f_cb, 8);
 }
 
 void machine_settings_setup(mb85_fram mem){
@@ -513,6 +514,9 @@ int machine_settings_update(setting_command cmd){
 
         case MS_CMD_NONE:
         break;
+
+        default:
+        return PICO_ERROR_INVALID_ARG;
     }
 
     if(changed_folder){
@@ -535,18 +539,18 @@ int machine_settings_update(setting_command cmd){
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
     printf(
-        "\nBrew temp          : %0.2f C\n"
-        "Hot temp           : %0.2f C\n"
-        "Steam temp         : %0.2f C\n"
-        "Dose               : %0.2f g\n"
-        "Yield              : %0.2f g\n"
-        "Brew power         : %ld%%\n"
-        "Hot power          : %ld%%\n",
-        _ms[MS_TEMP_BREW_cC]/100.,
-        _ms[MS_TEMP_HOT_cC]/100.,
-        _ms[MS_TEMP_STEAM_cC]/100.,
-        _ms[MS_WEIGHT_DOSE_mg]/1000.,
-        _ms[MS_WEIGHT_YIELD_mg]/1000.,
+        "\nBrew temp   : %5.1fC\n"
+        "Hot temp    : %5.1fC\n"
+        "Steam temp  : %5.1fC\n"
+        "Dose        : %5.1fg\n"
+        "Yield       : %5.1fg\n"
+        "Brew power  : %5d%%\n"
+        "Hot power   : %5d%%\n",
+        _ms[MS_TEMP_BREW_10C]/10.,
+        _ms[MS_TEMP_HOT_10C]/10.,
+        _ms[MS_TEMP_STEAM_10C]/10.,
+        _ms[MS_WEIGHT_DOSE_10g]/10.,
+        _ms[MS_WEIGHT_YIELD_10g]/10.,
         _ms[MS_POWER_BREW_PER],
         _ms[MS_POWER_HOT_PER]);
     
@@ -556,15 +560,16 @@ int machine_settings_print(){
     printf("|-|---------:-------:-------|------:----------:------|---------|\n");
     for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
         const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
+        const float ref_scales [] = {1., 100., 10.};
         printf(
-           "|%d|%s: %5.1f : %5.1f | %4.1f :   %4.1f   : %4.1f |  %4.1f   |\n", i + 1,
+           "|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n", i + 1,
             (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
-            _ms[offset + MS_A1_REF_START_100per_ulps_mbar]/(_ms[offset+MS_A1_REF_STYLE_ENM] == 0 ? 100.0 : 1000.),
-            _ms[offset + MS_A1_REF_END_100per_ulps_mbar]/(_ms[offset+MS_A1_REF_STYLE_ENM] == 0 ? 100.0 : 1000.),
-            _ms[offset + MS_A1_TRGR_FLOW_ul_s]/1000.,
-            _ms[offset + MS_A1_TRGR_PRSR_mbar]/1000.,
-            _ms[offset + MS_A1_TRGR_MASS_mg]/1000.,
-            _ms[offset + MS_A1_TIMEOUT_ms]/1000.);
+            _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
+            _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
+            _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
+            _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
+            _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
+            _ms[offset + MS_A1_TIMEOUT_10s]/10.);
     }      
     printf("|=|=========================|========================|=========|\n\n");
     return PICO_ERROR_NONE;
