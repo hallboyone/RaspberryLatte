@@ -145,12 +145,12 @@ void machine_settings_setup(mb85_fram mem);
 machine_setting machine_settings_get(setting_id id);
 
 /**
- * \brief Navigates the internal setting's tree and updates values accordingly
+ * \brief Navigates the internal setting's tree and updates values accordingly.
  * 
- * \param reset Flag indicating if the internal UI should be reset.
- * \param select Flag indicating if select condition is met
- * \param val Value of selector
- * \return int 
+ * If MS_CMD_NONE is passed, then the standard input is checked for remote updates.
+ * 
+ * \param cmd The setting_command from the caller's interface.
+ * \return PICO_ERROR_INVALID_ARG if unknown cmd. Else, PICO_ERROR_NONE 
  */
 int machine_settings_update(setting_command cmd);
 
