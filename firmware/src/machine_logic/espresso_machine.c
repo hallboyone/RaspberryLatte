@@ -279,7 +279,7 @@ static void espresso_machine_update_settings(){
     if(_state.switches.ac_switch_changed == 1){
         cmd = MS_CMD_ROOT;
     } else if(!_state.switches.ac_switch && (_state.switches.pump_switch_changed)){
-        const setting_command cmds [] = {MS_CMD_SUBFOLDER_C,MS_CMD_SUBFOLDER_B,MS_CMD_SUBFOLDER_A,MS_CMD_ROOT};
+        const setting_command cmds [] = {MS_CMD_SUBFOLDER_3,MS_CMD_SUBFOLDER_2,MS_CMD_SUBFOLDER_1,MS_CMD_ROOT};
         cmd = cmds[_state.switches.mode_dial];
     }
     machine_settings_update(cmd);

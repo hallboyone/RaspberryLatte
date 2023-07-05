@@ -49,7 +49,7 @@ static uint8_t _local_ui_folder_level(local_ui_folder * f){
 static void _local_ui_init_folder_name(local_ui_folder * f, const char * name){
     const size_t name_len = strlen(name);
     f->name = (char*)malloc((name_len+1)*sizeof(char));
-    strncpy(f->name, name, name_len);
+    strncpy(f->name, name, name_len + 1);
     f->name[name_len] = '\0';    
 }
 

@@ -490,10 +490,10 @@ int machine_settings_update(setting_command cmd){
     if(cmd == MS_CMD_NONE) cmd = _get_ssh_command();
     bool changed_folder = false;
     switch(cmd){
-        case MS_CMD_SUBFOLDER_A: 
-        case MS_CMD_SUBFOLDER_B:
-        case MS_CMD_SUBFOLDER_C:
-        local_ui_enter_subfolder(&settings_modifier, cmd - MS_CMD_SUBFOLDER_A);
+        case MS_CMD_SUBFOLDER_1: 
+        case MS_CMD_SUBFOLDER_2:
+        case MS_CMD_SUBFOLDER_3:
+        local_ui_enter_subfolder(&settings_modifier, cmd - MS_CMD_SUBFOLDER_1);
         changed_folder = true;
         break;
 

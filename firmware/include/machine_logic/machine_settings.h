@@ -124,13 +124,13 @@ enum {
     };
 
 typedef enum {
-    MS_CMD_NONE = '0',
-    MS_CMD_SUBFOLDER_A = '1',
-    MS_CMD_SUBFOLDER_B = '2',
-    MS_CMD_SUBFOLDER_C = '3',
-    MS_CMD_ROOT = 'r',
-    MS_CMD_UP = 'u',
-    MS_CMD_PRINT = 'p'
+    MS_CMD_NONE = '0',         /**<\brief No command. Check other sources. */
+    MS_CMD_SUBFOLDER_1 = '1',  /**<\brief Enter subfolder 1. */
+    MS_CMD_SUBFOLDER_2 = '2',  /**<\brief Enter subfolder 2. */
+    MS_CMD_SUBFOLDER_3 = '3',  /**<\brief Enter subfolder 3. */
+    MS_CMD_ROOT = 'r',         /**<\brief Go to root folder. */
+    MS_CMD_UP = 'u',           /**<\brief Go up a level. */ 
+    MS_CMD_PRINT = 'p'         /**<\brief Print current settings. */
 } setting_command;
 
 /** \brief Initialize the settings and attach to memory device. 
