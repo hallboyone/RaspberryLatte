@@ -29,6 +29,14 @@ static mb85_fram _mem = NULL;
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
 static uint8_t _ui_mask;
+static bool _reprint_line [NUM_SETTINGS] = {
+    1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1,
+    1,1,1,1,1,1,1,1,1,1};
 
 /** \brief Internal settings array holding the master settings */
 static machine_setting _ms [NUM_SETTINGS];
@@ -37,80 +45,81 @@ typedef struct{
     machine_setting max;        /**\brief The maximum value of the setting. */
     machine_setting min;        /**\brief The minimum value of the setting. */
     machine_setting std;        /**\brief The default value of the setting. */
+    uint8_t ln_idx;
 } machine_setting_specs;
 
 /** \brief Minimum settings array */
 static const machine_setting_specs _specs [NUM_SETTINGS] = {
-    {.scale = 10,  .min = 0,   .max = 1400, .std = 900 },// MS_TEMP_BREW_10C = 0
-    {.scale = 10,  .min = 0,   .max = 1400, .std = 1000},// MS_TEMP_HOT_10C
-    {.scale = 10,  .min = 0,   .max = 1400, .std = 1400},// MS_TEMP_STEAM_10C
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 150 },// MS_WEIGHT_DOSE_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 300 },// MS_WEIGHT_YIELD_10g
-    {.scale = 1,   .min = 0,   .max = 100,  .std = 100 },// MS_POWER_BREW_PER,   
-    {.scale = 1,   .min = 0,   .max = 100,  .std = 20  },// MS_POWER_HOT_PER
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
-    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   },// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  },// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_FLOW_100lps
-    {.scale = 10,  .min =-150, .max = 150,  .std = 0   },// MS_A1_TRGR_PRSR_10bar
-    {.scale = 10,  .min =-300, .max = 300,  .std = 0   },// MS_A1_TRGR_MASS_10g
-    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   },// MS_A1_TIMEOUT_s
+    {.scale = 10,  .min = 0,   .max = 1400, .std = 900 , .ln_idx = 1},// MS_TEMP_BREW_10C = 0
+    {.scale = 10,  .min = 0,   .max = 1400, .std = 1000, .ln_idx = 2},// MS_TEMP_HOT_10C
+    {.scale = 10,  .min = 0,   .max = 1400, .std = 1400, .ln_idx = 3},// MS_TEMP_STEAM_10C
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 150 , .ln_idx = 4},// MS_WEIGHT_DOSE_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 300 , .ln_idx = 5},// MS_WEIGHT_YIELD_10g
+    {.scale = 1,   .min = 0,   .max = 100,  .std = 100 , .ln_idx = 6},// MS_POWER_BREW_PER,   
+    {.scale = 1,   .min = 0,   .max = 100,  .std = 20  , .ln_idx = 7},// MS_POWER_HOT_PER
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 13},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 13},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 13},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 13},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 14},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 14},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 14},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 14},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 15},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 15},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 15},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 15},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 16},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 16},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 16},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 16},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 17},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 17},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 17},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 17},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 18},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 18},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 18},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 18},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 19},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 19},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 19},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 19},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 20},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 20},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 20},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 20},// MS_A1_TIMEOUT_s
+    {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 21},// MS_A1_REF_STYLE_ENM
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 21},// MS_A1_REF_START_per_100lps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 21},// MS_A1_REF_END_per_100lps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_PRSR_10bar
+    {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_MASS_10g
+    {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 21},// MS_A1_TIMEOUT_s
     };
 
 typedef local_ui_folder luf;
@@ -318,7 +327,7 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
         const int16_t deltas [3] = {-10, 1, 10};
         const int16_t step = (_specs[ms_id].scale==0) ? val-1 : deltas[val];
         _ms[ms_id] = CLAMP(_ms[ms_id] + step, _specs[ms_id].min, _specs[ms_id].max);
-        
+        _reprint_line[_specs[ms_id].ln_idx] = true;
         mb85_fram_save(_mem, _ms);
     } else if (local_ui_id_in_subtree(&f_presets, id)){
         // Presets
@@ -326,7 +335,7 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
         else if (val == 1) _machine_settings_load_profile(ms_id);
     }
 
-    machine_settings_print();
+    machine_settings_print(false);
     return false;
 }
 
@@ -470,6 +479,8 @@ void machine_settings_setup(mb85_fram mem){
 
         // Create value_flasher object
         _setting_flasher = value_flasher_setup(0, 750, &_ui_mask);
+
+        printf("\033[2J");
     }
 }
 
@@ -509,7 +520,7 @@ int machine_settings_update(setting_command cmd){
         break;
 
         case MS_CMD_PRINT:
-        machine_settings_print();
+        machine_settings_print(true);
         break;
 
         case MS_CMD_NONE:
@@ -536,42 +547,115 @@ int machine_settings_update(setting_command cmd){
 }
 
 
-int machine_settings_print(){
+int machine_settings_print(bool force){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
-    printf(
-        "\nBrew temp   : %5.1fC\n"
-        "Hot temp    : %5.1fC\n"
-        "Steam temp  : %5.1fC\n"
-        "Dose        : %5.1fg\n"
-        "Yield       : %5.1fg\n"
-        "Brew power  : %5d%%\n"
-        "Hot power   : %5d%%\n",
-        _ms[MS_TEMP_BREW_10C]/10.,
-        _ms[MS_TEMP_HOT_10C]/10.,
-        _ms[MS_TEMP_STEAM_10C]/10.,
-        _ms[MS_WEIGHT_DOSE_10g]/10.,
-        _ms[MS_WEIGHT_YIELD_10g]/10.,
-        _ms[MS_POWER_BREW_PER],
+    char s_str [1250];
+    uint16_t c_idx = 0;
+    const int ui_lines = 1+local_ui_num_lines();
+    // Move over anything printed below and then to top of settings
+    c_idx += sprintf(s_str + c_idx, "\033[%dA",ui_lines);
+    for(int i = 0; i < 23; i++){
+        c_idx += sprintf(s_str + c_idx, "\033[1A");
+    }
+    if(force || _reprint_line[0]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[1]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KBrew temp   : %5.1fC\n", 
+        _ms[MS_TEMP_BREW_10C]/10.);
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[2]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KHot temp    : %5.1fC\n",
+        _ms[MS_TEMP_HOT_10C]/10.);
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[3]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KSteam temp  : %5.1fC\n",
+        _ms[MS_TEMP_STEAM_10C]/10.);
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[4]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KDose        : %5.1fg\n",
+        _ms[MS_WEIGHT_DOSE_10g]/10.);
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[5]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KYield       : %5.1fg\n",
+        _ms[MS_WEIGHT_YIELD_10g]/10.);
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[6]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KBrew power  : %5d%%\n",
+        _ms[MS_POWER_BREW_PER]);
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[7]){
+        c_idx += sprintf(s_str + c_idx, "\033[2KHot power   : %5d%%\n",
         _ms[MS_POWER_HOT_PER]);
-    
-    printf("|=|=========================|========================|=========|\n");
-    printf("| |        Setpoint         |         Target         | Timeout |\n");
-    printf("|#|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n");
-    printf("|-|---------:-------:-------|------:----------:------|---------|\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[8]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[9]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K|=|=========================|========================|=========|\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[10]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K| |        Setpoint         |         Target         | Timeout |\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[11]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K|#|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    if(force || _reprint_line[12]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K|-|---------:-------:-------|------:----------:------|---------|\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
     for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
-        const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
-        const float ref_scales [] = {1., 100., 10.};
-        printf(
-           "|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n", i + 1,
-            (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
-            _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
-            _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
-            _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
-            _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
-            _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
-            _ms[offset + MS_A1_TIMEOUT_10s]/10.);
-    }      
-    printf("|=|=========================|========================|=========|\n\n");
+        if(force || _reprint_line[i + 13]){
+            const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
+            const float ref_scales [] = {1., 100., 10.};
+            c_idx += sprintf(s_str + c_idx, 
+            "\033[2K|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n", i + 1,
+                (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
+                _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
+                _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
+                _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
+                _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
+                _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
+                _ms[offset + MS_A1_TIMEOUT_10s]/10.);
+        } else {
+            c_idx += sprintf(s_str + c_idx, "\033[1B");
+        }
+    }
+    if(force || _reprint_line[22]){
+        c_idx += sprintf(s_str + c_idx, "\033[2K|=|=========================|========================|=========|\n");
+    } else {
+        c_idx += sprintf(s_str + c_idx, "\033[1B");
+    }
+    for(uint i = 0; i < 23; i++){
+        _reprint_line[i] = false;
+    }
+    c_idx += sprintf(s_str + c_idx, "\033[%dB",ui_lines);
+    printf("%s", s_str);
     return PICO_ERROR_NONE;
 }
 

@@ -454,7 +454,7 @@ int espresso_machine_setup(espresso_machine_viewer * state_viewer){
 
     espresso_machine_update_settings();
 
-    machine_settings_print();
+    machine_settings_print(true);
     return 0;
 }
 

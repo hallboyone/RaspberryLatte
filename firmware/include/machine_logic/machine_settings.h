@@ -159,6 +159,6 @@ int machine_settings_update(setting_command cmd);
  * 
  * \return PICO_ERROR_NONE if setup. Else PICO_ERROR_GENERIC.
  */
-int machine_settings_print();
+int machine_settings_print(bool force);
 #endif
 /** @} */

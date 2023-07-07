@@ -16,6 +16,21 @@
 
 #define DEBUG_LOCAL_UI
 
+static int num_lines = 0;
+
+static void _delete_chars(){
+    for(int i = 0; i < num_lines; i++){
+        printf("\033[1A\033[2K");
+    }
+    num_lines = 0;
+}
+
+void local_ui_reset_chars(){
+    num_lines = 0;
+}
+int local_ui_num_lines(){
+    return num_lines;
+}
 /**
  * \brief Returns the portion of the ID at the indicated level.
  * 
@@ -103,6 +118,8 @@ void local_ui_go_up(local_ui_folder_tree * tree){
         tree->cur_folder = tree->cur_folder->parent;
     }
     #ifdef DEBUG_LOCAL_UI
+    _delete_chars();
+    num_lines = 1 + tree->cur_folder->num_subfolders;
     printf("Entered [%s] with subfolders:\n", tree->cur_folder->name);
     for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
         printf(" (%d) [%s]\n", i+1, tree->cur_folder->subfolders[i]->name);
@@ -113,6 +130,8 @@ void local_ui_go_up(local_ui_folder_tree * tree){
 void local_ui_go_to_root(local_ui_folder_tree * tree){
     #ifdef DEBUG_LOCAL_UI
     if(tree->cur_folder != tree->root){
+        _delete_chars();
+        num_lines = 1 + tree->root->num_subfolders;
         printf("Returned to root with subfolders:\n");
         for(uint8_t i = 0; i < tree->root->num_subfolders; i++){
             printf(" (%d) [%s]\n", i+1, tree->root->subfolders[i]->name);
@@ -127,17 +146,27 @@ void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx
         // If in action folder, just call action instead of entering subfolder
         if(tree->cur_folder->action(tree->cur_folder->id, subfolder_idx, tree->cur_folder->data)){
             #ifdef DEBUG_LOCAL_UI
-            printf("Calling action on [%s] with value %d\n", tree->cur_folder->name, subfolder_idx);
+            _delete_chars();
+            num_lines = 1;
+            printf("Calling action on [%s] and returning to root\n", tree->cur_folder->name);
             #endif
             local_ui_go_to_root(tree);
         }
+        #ifdef DEBUG_LOCAL_UI
+        _delete_chars();
+        num_lines = 1;
+        printf("Calling action on [%s]\n", tree->cur_folder->name);
+        #endif
     } else if(subfolder_idx < tree->cur_folder->num_subfolders){
         // Not in action folder. Enter subfolder if valid index
         tree->cur_folder = tree->cur_folder->subfolders[subfolder_idx];
         #ifdef DEBUG_LOCAL_UI
+        _delete_chars();
         if(tree->cur_folder->action != NULL){
+            num_lines = 1;
             printf("Entered action folder [%s].\n", tree->cur_folder->name);
         } else {
+            num_lines = 1 + tree->cur_folder->num_subfolders;
             printf("Entered [%s] with subfolders:\n", tree->cur_folder->name);
             for(uint8_t i = 0; i < tree->cur_folder->num_subfolders; i++){
                 printf(" (%d) [%s]\n", i+1, tree->cur_folder->subfolders[i]->name);

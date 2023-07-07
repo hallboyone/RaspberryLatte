@@ -120,6 +120,9 @@ bool local_ui_is_action_folder(local_ui_folder * folder);
  */
 bool local_ui_id_in_subtree(local_ui_folder * f, uint32_t id);
 
+int local_ui_num_lines();
+void local_ui_reset_chars();
+
 #endif
 
 /** \} */
