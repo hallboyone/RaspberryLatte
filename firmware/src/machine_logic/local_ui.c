@@ -16,6 +16,7 @@
 
 #define DEBUG_LOCAL_UI
 
+#ifdef DEBUG_LOCAL_UI
 static int num_lines = 0;
 
 static void _delete_chars(){
@@ -31,6 +32,8 @@ void local_ui_reset_chars(){
 int local_ui_num_lines(){
     return num_lines;
 }
+#endif
+
 /**
  * \brief Returns the portion of the ID at the indicated level.
  * 
