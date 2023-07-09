@@ -29,14 +29,6 @@ static mb85_fram _mem = NULL;
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
 static uint8_t _ui_mask;
-static bool _reprint_line [NUM_SETTINGS] = {
-    1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1,
-    1,1,1,1,1,1,1,1,1,1};
 
 /** \brief Internal settings array holding the master settings */
 static machine_setting _ms [NUM_SETTINGS];
@@ -327,15 +319,17 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
         const int16_t deltas [3] = {-10, 1, 10};
         const int16_t step = (_specs[ms_id].scale==0) ? val-1 : deltas[val];
         _ms[ms_id] = CLAMP(_ms[ms_id] + step, _specs[ms_id].min, _specs[ms_id].max);
-        _reprint_line[_specs[ms_id].ln_idx] = true;
+        _machine_settings_print_ln(_specs[ms_id].ln_idx);
         mb85_fram_save(_mem, _ms);
     } else if (local_ui_id_in_subtree(&f_presets, id)){
         // Presets
-        if      (val == 0) _machine_settings_save_profile(ms_id);
-        else if (val == 1) _machine_settings_load_profile(ms_id);
+        if (val == 0){
+            _machine_settings_save_profile(ms_id);
+        } else if (val == 1){
+            _machine_settings_load_profile(ms_id);
+            machine_settings_print();
+        }
     }
-
-    machine_settings_print(false);
     return false;
 }
 
@@ -497,6 +491,20 @@ static setting_command _get_ssh_command(){
     return cmd;
 }
 
+static void _update_value_flasher(){
+    const folder_id id = settings_modifier.cur_folder->id;
+    if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
+        (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id))){
+        // If entered action settings folder, start value flasher
+        value_flasher_update(_setting_flasher, _ms[settings_modifier.cur_folder->data]);
+        value_flasher_start(_setting_flasher);
+    } else {
+        // else in nav folder or root. Display id.
+        value_flasher_end(_setting_flasher);
+        _ui_mask = settings_modifier.cur_folder->rel_id;
+    }
+}
+
 int machine_settings_update(setting_command cmd){
     if(cmd == MS_CMD_NONE) cmd = _get_ssh_command();
     bool changed_folder = false;
@@ -504,23 +512,20 @@ int machine_settings_update(setting_command cmd){
         case MS_CMD_SUBFOLDER_1: 
         case MS_CMD_SUBFOLDER_2:
         case MS_CMD_SUBFOLDER_3:
-        local_ui_enter_subfolder(&settings_modifier, cmd - MS_CMD_SUBFOLDER_1);
-        changed_folder = true;
+        changed_folder = local_ui_enter_subfolder(&settings_modifier, cmd - MS_CMD_SUBFOLDER_1);
         break;
 
         case MS_CMD_ROOT:
-        local_ui_go_to_root(&settings_modifier);
-        value_flasher_end(_setting_flasher);
-        _ui_mask = 0;
+        changed_folder = local_ui_go_to_root(&settings_modifier);
         break;
 
         case MS_CMD_UP:
-        local_ui_go_up(&settings_modifier);
-        changed_folder = true;
+        changed_folder = local_ui_go_up(&settings_modifier);
         break;
 
         case MS_CMD_PRINT:
-        machine_settings_print(true);
+        machine_settings_print();
+        machine_settings_print_local_ui();
         break;
 
         case MS_CMD_NONE:
@@ -531,132 +536,153 @@ int machine_settings_update(setting_command cmd){
     }
 
     if(changed_folder){
-        const folder_id id = settings_modifier.cur_folder->id;
-        if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
-            (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id))){
-            // If entered action settings folder, start value flasher
-                value_flasher_update(_setting_flasher, _ms[settings_modifier.cur_folder->data]);
-                value_flasher_start(_setting_flasher);
-        } else {
-            // else in nav folder. Display id.
-            value_flasher_end(_setting_flasher);
-            _ui_mask = settings_modifier.cur_folder->rel_id;
-        }
+        machine_settings_print_local_ui();
+        _update_value_flasher();
     }
     return PICO_ERROR_NONE;
 }
 
+/** \brief Enumerated list of all lines in setting's display */
+enum {
+    LN_TOP_BUFF = 0,    // 
+    LN_BREW_TEMP,       // Brew Temp   : %5.1fC
+    LN_HOT_TEMP,        // Hot Temp    : %5.1fC
+    LN_STEAM_TEMP,      // Steam Temp  : %5.1fC
+    LN_DOSE,            // Dose        : %5.1fC
+    LN_YIELD,           // Yield       : %5.1fC
+    LN_BREW_POWER,      // Brew Power  : %5.1fC
+    LN_HOT_POWER,       // Hot Power   : %5.1fC  
+    LN_MID_BUFF,        //      
+    LN_AB_TOP_BOUNDARY, // |=|=========================|========================|=========|
+    LN_AB_H1,           // | |        Setpoint         |         Target         | Timeout |
+    LN_AB_H2,           // |#|  Style  : Start :  End  | Flow : Pressure : Mass |         |
+    LN_AB_TOP_DIVIDE,   // |-|---------:-------:-------|------:----------:------|---------|
+    LN_AB_LEG_1,        // |1|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_2,        // |2|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_3,        // |3|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_4,        // |4|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_5,        // |5|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_6,        // |6|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_7,        // |7|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_8,        // |8|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LEG_9,        // |9|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
+    LN_AB_LOW_BOUNDARY, // |-|---------:-------:-------|------:----------:------|---------|
+    LN_COUNT
+};
 
-int machine_settings_print(bool force){
+/**
+ * \brief Clear and reprint the corresponding line of the machine settings display
+ * 
+ * \param ln_num The line to reprint
+ */
+static void _machine_settings_print_ln(uint ln_num){
+    const uint flat_ln_num = ((ln_num >= LN_AB_LEG_1 && ln_num <= LN_AB_LEG_9) ? LN_AB_LEG_1 : ln_num);
+    switch (flat_ln_num) {
+    case LN_TOP_BUFF:
+        printf("\033[1;1H\033[2K\n");
+        break;
+    case LN_BREW_TEMP:
+        printf("\033[%d;1H\033[2KBrew Temp   : %5.1fC\n",
+        ln_num+1, _ms[MS_TEMP_BREW_10C]/10.);
+        break;
+    case LN_HOT_TEMP:
+        printf("\033[%d;1H\033[2KHot Temp    : %5.1fC\n",
+        ln_num+1, _ms[MS_TEMP_HOT_10C]/10.);
+        break;
+    case LN_STEAM_TEMP:
+        printf("\033[%d;1H\033[2KSteam Temp  : %5.1fC\n",
+        ln_num+1, _ms[MS_TEMP_STEAM_10C]/10.);
+        break;
+    case LN_DOSE:
+        printf("\033[%d;1H\033[2KDose        : %5.1fC\n",
+        ln_num+1, _ms[MS_WEIGHT_DOSE_10g]/10.);
+        break;
+    case LN_YIELD:
+        printf("\033[%d;1H\033[2KYield       : %5.1fC\n",
+        ln_num+1, _ms[MS_WEIGHT_YIELD_10g]/10.);
+        break;
+    case LN_BREW_POWER:
+        printf("\033[%d;1H\033[2KBrew Power  : %5.1fC\n",
+        ln_num+1, _ms[MS_POWER_BREW_PER]/10.);
+        break;
+    case LN_HOT_POWER:
+        printf("\033[%d;1H\033[2KHot Power   : %5.1fC\n",
+        ln_num+1, _ms[MS_POWER_HOT_PER]/10.);
+        break;
+    case LN_MID_BUFF:
+        printf("\033[1;1H\033[2K\n");
+        break;
+    case LN_AB_TOP_BOUNDARY:
+        printf("\033[%d;1H\033[2K|=|=========================|========================|=========|\n",
+        ln_num+1);
+        break;
+    case LN_AB_H1:
+        printf("\033[%d;1H\033[2K| |        Setpoint         |         Target         | Timeout |\n",
+        ln_num+1);
+        break;
+    case LN_AB_H2:
+        printf("\033[%d;1H\033[2K|#|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n",
+        ln_num+1);
+        break;
+    case LN_AB_TOP_DIVIDE:
+        printf("\033[%d;1H\033[2K|-|---------:-------:-------|------:----------:------|---------|\n",
+        ln_num+1);
+        break;
+    case LN_AB_LEG_1:
+        const uint8_t offset = ln_num - LN_AB_LEG_1;
+        const float ref_scales [] = {1., 100., 10.};
+        printf("\033[%d;1H\033[2K|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n",
+            ln_num + 1,
+            (offset % 7) + 1, // leg index
+            (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
+            _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
+            _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
+            _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
+            _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
+            _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
+            _ms[offset + MS_A1_TIMEOUT_10s]/10.);
+        break;
+    case LN_AB_LOW_BOUNDARY:
+        printf("\033[%d;1H\033[2K|=|=========================|========================|=========|\n",
+        ln_num + 1);
+        break;
+    default:
+
+    }
+}
+
+int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
-    char s_str [1250];
-    uint16_t c_idx = 0;
-    const int ui_lines = 1+local_ui_num_lines();
-    // Move over anything printed below and then to top of settings
-    c_idx += sprintf(s_str + c_idx, "\033[%dA",ui_lines);
-    for(int i = 0; i < 23; i++){
-        c_idx += sprintf(s_str + c_idx, "\033[1A");
+    for(uint8_t ln_num = 0; ln_num < LN_COUNT; ln_num++){
+        _machine_settings_print_ln(ln_num);
     }
-    if(force || _reprint_line[0]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[1]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KBrew temp   : %5.1fC\n", 
-        _ms[MS_TEMP_BREW_10C]/10.);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[2]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KHot temp    : %5.1fC\n",
-        _ms[MS_TEMP_HOT_10C]/10.);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[3]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KSteam temp  : %5.1fC\n",
-        _ms[MS_TEMP_STEAM_10C]/10.);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[4]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KDose        : %5.1fg\n",
-        _ms[MS_WEIGHT_DOSE_10g]/10.);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[5]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KYield       : %5.1fg\n",
-        _ms[MS_WEIGHT_YIELD_10g]/10.);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[6]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KBrew power  : %5d%%\n",
-        _ms[MS_POWER_BREW_PER]);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[7]){
-        c_idx += sprintf(s_str + c_idx, "\033[2KHot power   : %5d%%\n",
-        _ms[MS_POWER_HOT_PER]);
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[8]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[9]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K|=|=========================|========================|=========|\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[10]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K| |        Setpoint         |         Target         | Timeout |\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[11]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K|#|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    if(force || _reprint_line[12]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K|-|---------:-------:-------|------:----------:------|---------|\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
-        if(force || _reprint_line[i + 13]){
-            const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
-            const float ref_scales [] = {1., 100., 10.};
-            c_idx += sprintf(s_str + c_idx, 
-            "\033[2K|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n", i + 1,
-                (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
-                _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
-                _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
-                _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
-                _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
-                _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
-                _ms[offset + MS_A1_TIMEOUT_10s]/10.);
-        } else {
-            c_idx += sprintf(s_str + c_idx, "\033[1B");
-        }
-    }
-    if(force || _reprint_line[22]){
-        c_idx += sprintf(s_str + c_idx, "\033[2K|=|=========================|========================|=========|\n");
-    } else {
-        c_idx += sprintf(s_str + c_idx, "\033[1B");
-    }
-    for(uint i = 0; i < 23; i++){
-        _reprint_line[i] = false;
-    }
-    c_idx += sprintf(s_str + c_idx, "\033[%dB",ui_lines);
-    printf("%s", s_str);
     return PICO_ERROR_NONE;
 }
 
+int machine_settings_print_local_ui(){
+    // always print at least 4 lines 
+    const uint8_t local_ui_num_ln = 4;
+
+    // Go below settings and delete all content in the lines below
+    printf("\033[%d;1H", LN_COUNT + 1 + local_ui_num_ln);
+    for(uint8_t i = 0; i < local_ui_num_ln; i++) printf("\033[A\033[2K\n");
+    
+    // Print the correct output for the type of folder.
+    const bool is_action = local_ui_is_action_folder(settings_modifier.cur_folder);
+    if(is_action){
+        printf("Adjusting: %s\n", settings_modifier.cur_folder->name);
+        for(uint8_t i = 1; i < local_ui_num_ln; i++) printf("\n");
+    } else {
+        printf("%s\n", settings_modifier.cur_folder->name);
+
+        // Never print more than local_ui_num_ln-1 folders. End with "..." if some have been cut off.
+        uint8_t n_ln = MIN(settings_modifier.cur_folder->num_subfolders, local_ui_num_ln - 1);
+        bool overflows = (settings_modifier.cur_folder->num_subfolders > local_ui_num_ln - 1);
+        for(uint8_t i = 0; i < n_ln; i++){
+            printf(" (%d) %s%s\n", i+1, 
+            settings_modifier.cur_folder->subfolders[i]->name,
+            (i == n_ln-1 && overflows) ? "..." : "");
+        }
+    }
+}
 /** @} */

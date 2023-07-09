@@ -157,8 +157,15 @@ int machine_settings_update(setting_command cmd);
 /**
  * \brief Print the current states using printf
  * 
- * \return PICO_ERROR_NONE if setup. Else PICO_ERROR_GENERIC.
+ * \return PICO_ERROR_NONE if library is setup. Else PICO_ERROR_GENERIC.
  */
-int machine_settings_print(bool force);
+int machine_settings_print();
+
+/**
+ * \brief print the current state of the internal local UI below the settings.
+ * 
+ * \return PICO_ERROR_NONE if library is setup. Else PICO_ERROR_GENERIC.
+ */
+int machine_settings_print_local_ui();
 #endif
 /** @} */

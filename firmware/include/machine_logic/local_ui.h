@@ -83,12 +83,12 @@ void local_ui_add_subfolder(local_ui_folder * folder,
 /**
  * \brief Go up a level in the folders
  */
-void local_ui_go_up(local_ui_folder_tree * tree);
+bool local_ui_go_up(local_ui_folder_tree * tree);
 
 /**
  * \brief Returns to the root of the tree
  */
-void local_ui_go_to_root(local_ui_folder_tree * tree);
+bool local_ui_go_to_root(local_ui_folder_tree * tree);
 
 /**
  * \brief Enter a subfolder of the active folder in the tree.
@@ -99,8 +99,10 @@ void local_ui_go_to_root(local_ui_folder_tree * tree);
  * 
  * \param tree Full tree structure
  * \param subfolder_idx Index of subfolder to enter or parameter passed to callback.
+ * 
+ * \returns True if another folder was entered. Else, returns false (e.g. an action was called)
  */
-void local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx);
+bool local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx);
 
 /**
  * \brief Indicates if passed in folder is an action folder
