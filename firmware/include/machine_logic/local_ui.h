@@ -28,6 +28,9 @@
 #define LOCAL_UI_H
 #include "pico/stdlib.h"
 
+#define LOCAL_UI_MAX_SUBFOLDER_NUM 3
+#define LOCAL_UI_MAX_FOLDER_NAME_LN 35
+
 /** \brief Unique, structured ID of folder. Assigned when added to tree. */
 typedef uint32_t folder_id;
 
@@ -43,12 +46,11 @@ typedef struct local_ui_folder_ {
     uint32_t id;                            /**< \brief A unique ID assigned to a folder */
     uint16_t rel_id;                        /**< \brief An unstructured ID based on parent rel_id and subfolder index.*/
     struct local_ui_folder_ * parent;       /**< \brief Parent folder. NULL if root. */
-    char * name;                            /**< \brief The folder's name as a null-terminated string*/
+    char name[LOCAL_UI_MAX_FOLDER_NAME_LN+1]; /**< \brief The folder's name as a null-terminated string*/
     folder_action action;                   /**< \brief An optional folder action callback*/
     folder_action_data data;                /**< \brief An integer value used to pass data to action folders */
     uint8_t num_subfolders;                 /**< \brief The number of subfolders under folder */
-    struct local_ui_folder_ ** subfolders;  /**< \brief A list of pointers to a folder's subfolders */
-    uint8_t _subfolder_buf_size;            /**< \brief Internal var used to allocate space for subfolder pointers*/
+    struct local_ui_folder_ * subfolders [LOCAL_UI_MAX_SUBFOLDER_NUM];  /**< \brief A list of pointers to a folder's subfolders */
 } local_ui_folder;
 
 /** \brief Object representing an entire folder structure. */
@@ -64,7 +66,9 @@ typedef struct {
  * \param root Folder that acts as the root of the tree.
  * \param root_name Human readable name of root folder.
  */
-void local_ui_folder_tree_init(local_ui_folder_tree * tree, local_ui_folder * root, const char * root_name);
+void local_ui_folder_tree_init(local_ui_folder_tree * tree, 
+                               local_ui_folder * root, 
+                               const char * root_name);
 
 /**
  * \brief Adds a subfolder with the given name and action (opt) to the indicated folder.
