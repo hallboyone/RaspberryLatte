@@ -609,12 +609,12 @@ static void _machine_settings_print_ln(uint ln_num){
         ln_num+1, _ms[MS_WEIGHT_YIELD_10g]/10.);
         break;
     case LN_BREW_POWER:
-        printf("\033[%d;1H\033[2KBrew Power  : %5.1fC\n",
-        ln_num+1, _ms[MS_POWER_BREW_PER]/10.);
+        printf("\033[%d;1H\033[2KBrew Power  : %3d%%\n",
+        ln_num+1, _ms[MS_POWER_BREW_PER]);
         break;
     case LN_HOT_POWER:
-        printf("\033[%d;1H\033[2KHot Power   : %5.1fC\n",
-        ln_num+1, _ms[MS_POWER_HOT_PER]/10.);
+        printf("\033[%d;1H\033[2KHot Power   : %3d%%\n",
+        ln_num+1, _ms[MS_POWER_HOT_PER]);
         break;
     case LN_MID_BUFF:
         printf("\033[1;1H\033[2K\n");
