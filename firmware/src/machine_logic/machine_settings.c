@@ -17,6 +17,13 @@
 #include "utils/value_flasher.h"
 #include "utils/macros.h"
 
+/**
+ * \brief Clear and reprint the corresponding line of the machine settings display
+ * 
+ * \param ln_num The line to reprint
+ */
+static void _machine_settings_print_ln(uint ln_num);
+
 /** \brief Starting address in mb85 FRAM chip where setting data is stored */
 static const reg_addr MACHINE_SETTINGS_START_ADDR = 0x0000;
 
@@ -33,11 +40,11 @@ static uint8_t _ui_mask;
 /** \brief Internal settings array holding the master settings */
 static machine_setting _ms [NUM_SETTINGS];
 typedef struct{
-    machine_setting scale;  /**\brief Length of each delta when incremented. 0 is for enumerated values. */
-    machine_setting max;        /**\brief The maximum value of the setting. */
-    machine_setting min;        /**\brief The minimum value of the setting. */
-    machine_setting std;        /**\brief The default value of the setting. */
-    uint8_t ln_idx;
+    machine_setting scale; /**\brief The amount the base unit is scaled. Larger means more precise but slower to adjust. 0 is for enumerated values. */
+    machine_setting max;   /**\brief The maximum value of the setting after scaling. */
+    machine_setting min;   /**\brief The minimum value of the setting after scaling. */
+    machine_setting std;   /**\brief The default value of the setting after scaling. */
+    uint8_t ln_idx;        /**<\brief The setting's line in the settings console display*/
 } machine_setting_specs;
 
 /** \brief Minimum settings array */
@@ -474,6 +481,7 @@ void machine_settings_setup(mb85_fram mem){
         // Create value_flasher object
         _setting_flasher = value_flasher_setup(0, 750, &_ui_mask);
 
+        // Clear screen
         printf("\033[2J");
     }
 }
@@ -485,6 +493,10 @@ machine_setting machine_settings_get(setting_id id){
     else return _ui_mask;
 }
 
+/**
+ * \brief Read any available char from stdin.
+ * \returns The passed in command or MS_CMD_NONE if none found.
+*/
 static setting_command _get_ssh_command(){
     int cmd = getchar_timeout_us(0);
     if(cmd < 0) cmd = MS_CMD_NONE;
@@ -570,11 +582,6 @@ enum {
     LN_COUNT
 };
 
-/**
- * \brief Clear and reprint the corresponding line of the machine settings display
- * 
- * \param ln_num The line to reprint
- */
 static void _machine_settings_print_ln(uint ln_num){
     const uint flat_ln_num = ((ln_num >= LN_AB_LEG_1 && ln_num <= LN_AB_LEG_9) ? LN_AB_LEG_1 : ln_num);
     switch (flat_ln_num) {
@@ -629,25 +636,25 @@ static void _machine_settings_print_ln(uint ln_num){
         ln_num+1);
         break;
     case LN_AB_LEG_1:
-        const uint8_t offset = ln_num - LN_AB_LEG_1;
+        {const uint8_t offset = (ln_num - LN_AB_LEG_1)*NUM_AUTOBREW_PARAMS_PER_LEG;
         const float ref_scales [] = {1., 100., 10.};
         printf("\033[%d;1H\033[2K|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n",
             ln_num + 1,
-            (offset % 7) + 1, // leg index
+            ln_num - LN_AB_LEG_1, // leg index
             (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
             _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
             _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
             _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
             _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
             _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
-            _ms[offset + MS_A1_TIMEOUT_10s]/10.);
+            _ms[offset + MS_A1_TIMEOUT_10s]/10.);}
         break;
     case LN_AB_LOW_BOUNDARY:
         printf("\033[%d;1H\033[2K|=|=========================|========================|=========|\n",
         ln_num + 1);
         break;
     default:
-
+        break;
     }
 }
 
@@ -660,12 +667,13 @@ int machine_settings_print(){
 }
 
 int machine_settings_print_local_ui(){
+    if(_mem == NULL) return PICO_ERROR_GENERIC;
     // always print at least 4 lines 
     const uint8_t local_ui_num_ln = 4;
 
     // Go below settings and delete all content in the lines below
-    printf("\033[%d;1H", LN_COUNT + 1 + local_ui_num_ln);
-    for(uint8_t i = 0; i < local_ui_num_ln; i++) printf("\033[A\033[2K\n");
+    printf("\033[%d;1H", LN_COUNT + 2 + local_ui_num_ln);
+    for(uint8_t i = 0; i < local_ui_num_ln; i++) printf("\033[A\033[2K");
     
     // Print the correct output for the type of folder.
     const bool is_action = local_ui_is_action_folder(settings_modifier.cur_folder);
@@ -673,7 +681,7 @@ int machine_settings_print_local_ui(){
         printf("Adjusting: %s\n", settings_modifier.cur_folder->name);
         for(uint8_t i = 1; i < local_ui_num_ln; i++) printf("\n");
     } else {
-        printf("%s\n", settings_modifier.cur_folder->name);
+        printf("\033[4m%s\033[24m\n", settings_modifier.cur_folder->name);
 
         // Never print more than local_ui_num_ln-1 folders. End with "..." if some have been cut off.
         uint8_t n_ln = MIN(settings_modifier.cur_folder->num_subfolders, local_ui_num_ln - 1);
@@ -684,5 +692,6 @@ int machine_settings_print_local_ui(){
             (i == n_ln-1 && overflows) ? "..." : "");
         }
     }
+    return PICO_ERROR_NONE;
 }
 /** @} */

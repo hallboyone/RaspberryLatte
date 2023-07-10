@@ -163,8 +163,11 @@ bool local_ui_enter_subfolder(local_ui_folder_tree * tree, uint8_t subfolder_idx
             }
             #endif
             return true;
-        } 
+        } else {
+            return false;
+        }
     }
+    return false;
 }
 
 bool local_ui_is_action_folder(local_ui_folder * folder){
