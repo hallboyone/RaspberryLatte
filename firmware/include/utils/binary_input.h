@@ -11,7 +11,7 @@
  * this complexity into \ref binary_input objects. These structures are setup and then
  * read as needed. The debouncing and muxing is handled automatically.
  * 
- * \{
+ * @{
  * \file
  * \author Richard Hall (hallboyone@icloud.com)
  * \brief GPIO Binary-input Library header
@@ -78,4 +78,4 @@ void binary_input_deinit(binary_input b);
 
 #endif
 
-/** /} */
+/** @} */

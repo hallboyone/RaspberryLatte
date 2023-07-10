@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 #include "config/raspberry_latte_config.h"
-#include "pinout.h"
+#include "config/pinout.h"
 
 #include "machine_logic/autobrew.h"
 #include "machine_logic/machine_settings.h"
@@ -49,8 +49,9 @@ static lmt01                   thermo;      /**< Boiler thermometer. */
 static nau7802                 scale;       /**< Output scale. */
 static ulka_pump               pump;        /**< The vibratory pump. */
 
-/** Autobrew and control objects */
+/** Boiler controller */
 static pid  heater_pid;
+/** Flow controller */
 static pid  flow_pid;                    
 
 /** 
@@ -156,7 +157,7 @@ static bool system_at_pressure(int32_t pressure_mbar){
 
 /** 
  * \brief Returns the pump power required to hit target pressure (clipped between 0 and 100).
- * \param target_pressure_bar The pressure in bar that is targeted.
+ * \param target_pressure_mbar The pressure in mbar that is targeted.
  * \returns The pump power needed to hit the target pressure in percent power.
 */
 static uint8_t get_power_for_pressure(uint16_t target_pressure_mbar){

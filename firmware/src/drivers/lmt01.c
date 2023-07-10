@@ -25,6 +25,7 @@ typedef struct lmt01_s{
     int _offset;      /**< \brief The constant offset added to the temp readings. */
 } lmt01_;
 
+/** \brief The pulse counts defining the piecewise-linear regions. */
 static const int PULSE_COUNTS [21] = { 
     26, 181, 338, 494, 651, 808,
     966, 1125, 1284, 1443, 1603, 
@@ -32,12 +33,14 @@ static const int PULSE_COUNTS [21] = {
     2569, 2731, 2894, 3058, 3220
     };
 
+/** \brief The slopes within each piecewise-linear region. */
 static const float PULSE_SLOPES [20] = {
     1.03226,1.01911,1.02564,1.01911,1.01911,
     1.01266,1.00629,1.00629,1.00629,1.00629,
     1.00000,0.99379,0.99379,0.99379,0.98765,
      0.98765,0.98765,0.98765,0.97561,0.99379};
 
+/** \brief The affine terms within each piecewise-linear region. */
 static const int PULSE_SHIFTS [20] = {
     -827, -824, -827, -823, -823, 
     -818, -812, -812, -812, -812,

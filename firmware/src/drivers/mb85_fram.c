@@ -12,6 +12,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+/** \brief The device code of MB85 ICs for ID over I2C. */
 #define MB85_DEVICE_CODE 0b1010000
 
 /** \brief Struct used internally to manage links with remote vars. */

@@ -12,10 +12,12 @@
 #include "utils/gpio_multi_callback.h"
 #include "utils/macros.h"
 
+/** Array of all timestamps. One for each GPIO. */
 static absolute_time_t _timestamps [32];
+/** Array of bitfields defining triggering events for corresponding GPIO. */
 static uint32_t _events [32] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
+/** Callback function that records the current time in the corresponding GPIO's field of ::_timestamps*/
 static void gpio_irq_timestamp_cb(uint gpio, uint32_t event, void* data){
     UNUSED_PARAMETER(event);
     UNUSED_PARAMETER(data);

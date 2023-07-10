@@ -13,19 +13,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+/** \brief Flag indicating if IRQ dispatch has been setup. */
 static bool _irq_dispatch_setup = false;
 
+/** \brief The callback function, triggering events, and optional data for a multi-callback. */
 typedef struct {
-    gpio_multi_callback_t fun;
-    uint32_t events;
-    void * data;
+    gpio_multi_callback_t fun; /**<\brief The callback function. */
+    uint32_t events;           /**<\brief Event flags indicating what will trigger callback (see Pico SDK for more info).*/
+    void * data;               /**<\brief Optional pointer to data that will be passed to callback. */
 } gpio_multi_callback_config_t;
 
+/** \brief Callback array for a single GPIO pin.
+ * Each contains a pointer to a callback collection and the number of callbacks.
+*/
 typedef struct {
-    gpio_multi_callback_config_t * callbacks;
-    uint8_t num_cb;
+    gpio_multi_callback_config_t * callbacks; /**<\brief Array of configured callbacks. */
+    uint8_t num_cb;                           /**<\brief The number of configured callbacks. */
 } gpio_multi_callback_array_t;
 
+/** \brief Array of callback arrays. One for each GPIO pin. */
 static gpio_multi_callback_array_t _callbacks [32] = {
     {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},
     {.callbacks = NULL, .num_cb = 0}, {.callbacks = NULL, .num_cb = 0},

@@ -63,6 +63,11 @@ void value_flasher_start(value_flasher vf);
  */
 void value_flasher_end(value_flasher vf);
 
+/**
+ * \brief Destroy the passed in value_flasher.
+ * 
+ * \param vf Object to destroy. 
+ */
 void value_flasher_deinit(value_flasher vf);
 #endif
 /** @} */

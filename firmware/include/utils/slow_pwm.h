@@ -6,7 +6,7 @@
  * Uses the alarm functions built into the rp2040 SDK. Useful in cases where fast switching
  * would be undesirable such as zerocross SSRs.
  * 
- * /{
+ * @{
  * \file slow_pwm.h
  * \brief Slow PWM header
  * \author Richard Hall (hallboyone@icloud.com)
@@ -69,9 +69,9 @@ uint8_t slow_pwm_get_duty(slow_pwm s);
  * 
  * Sets GPIO low and disables both alarms.
  * 
- * \param b Slow PWM object to deinit
+ * \param s Slow PWM object to deinit
 */
 void slow_pwm_deinit(slow_pwm s);
 
 #endif
-/** \} */
+/** @} */

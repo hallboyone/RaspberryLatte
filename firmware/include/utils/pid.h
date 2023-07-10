@@ -67,12 +67,13 @@ typedef struct {
     float f; /**< The feedforward gain. */
 } pid_gains;
 
+/** \brief Struct that allows library to pass out values of interested to outside watcher.*/
 typedef struct {
-    float u_p;
-    float u_i;
-    float u_d;
-    float u_ff;
-    float u_bias;
+    float u_p; /**<\brief The latest input from the proportional term. */
+    float u_i; /**<\brief The latest input from the integral term. */
+    float u_d; /**<\brief The latest input from the derivative term. */
+    float u_ff; /**<\brief The latest input from the feedforward term. */
+    float u_bias; /**<\brief The latest input from the bias term. */
 } pid_viewer;
 
 /**
@@ -229,7 +230,6 @@ void discrete_integral_print(const discrete_integral i);
 /**
  * \brief Configure a PID controller. Sets the appropriate parameters in internal sum and slope objects.
  * 
- * \param controller Pointer to pid_ctrl that will be initalized
  * \param K The controller gains
  * \param feedback_sensor Sensor used for feedback control
  * \param feedforward_sensor Sensor used for feedforward control
@@ -264,6 +264,9 @@ void pid_update_bias(pid controller, float bias);
  * updating the sum and slope terms, computing the input, and applying it to the plant (if not NULL). 
  * 
  * \param controller The pid object to update.
+ * \param viewer An external viewer struct that will be populated with current controller values. 
+ * 
+ * \returns The current input. 
  */
 float pid_tick(pid controller, pid_viewer * viewer);
 

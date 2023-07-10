@@ -4,6 +4,9 @@
  */
 #define AC_SETTLING_TIME_MS 500
 
+/** \brief The difference between the zerocross sense time and the actual zerocross time. */
+#define AC_0CROSS_SHIFT 0
+
 #define BOILER_PID_GAIN_P 0.05
 #define BOILER_PID_GAIN_I 0.00000175
 #define BOILER_PID_GAIN_D 0.0

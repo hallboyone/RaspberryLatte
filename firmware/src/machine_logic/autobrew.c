@@ -14,6 +14,13 @@
 
 #include "utils/macros.h"
 
+/**
+ * \brief A single leg of an autobrew routine.
+ * Each leg has a mapping function that generates a pump power setting from a linear changing flowrate
+ * defined by setpoint_start and setpoint_end. The leg will run until a timeout is reached or one
+ * of any optional ending triggers return true. When first called, setup functions can be called to get
+ * external components ready.
+ */
 typedef struct _autobrew_leg {
     autobrew_mapping mapping;                                  /**< Which of the configured mappings to use. -1 is straight mapping. */
     uint16_t setpoint_start;                                   /**< Setpoint at start of leg. */

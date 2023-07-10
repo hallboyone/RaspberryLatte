@@ -24,12 +24,13 @@
 
 #include "pico/stdlib.h"
 
+/** \brief A callback function triggered by GPIO events. */
 typedef void (*gpio_multi_callback_t)(uint gpio, uint32_t event, void* data);
 
 /**
  * \brief Attach a callback to a GPIO for specific events
  * 
- * \ref gpio must be a valid pin number and cannot have been setup. Furthermore, the
+ * The GPIO must be a valid pin number and cannot have been setup. Furthermore, the
  * callback cannot be NULL. These conditions are checked with asserts. 
  * 
  * \param gpio The GPIO number to attach to
@@ -44,10 +45,11 @@ int gpio_multi_callback_attach(uint8_t gpio, uint32_t event_mask, bool enabled, 
 /**
  * \brief Enable or disable the interrupt for the given events
  * 
- * Equivelent to the \ref gpio_set_irq_enabled function in the pico SDK. This function
+ * Equivelent to the gpio_set_irq_enabled function in the pico SDK. This function
  * just asserts that the gpio had been previously setup.
  * 
  * \param gpio The GPIO number ot modify.
+ * \param event_mask The events that will trigger the callback. 
  * \param enable Flag indicating if the events should be enabled or disabled.
  * \return PICO_ERROR_NONE 
  */
