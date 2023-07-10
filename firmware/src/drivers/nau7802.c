@@ -12,14 +12,17 @@
 
 #include <stdlib.h>
 
+/** \brief Implementation of an object representing a NAU7802 IC. */
 typedef struct nau7802_s{
-    i2c_inst_t * bus;
-    float conversion_factor_mg;
-    uint32_t latest_val;            /**< Last ADC reading */
-    uint32_t origin;   
+    i2c_inst_t * bus;           /**< The I2C bus that the sensor is attached to. */
+    float conversion_factor_mg; /**< The conversion for the given sensor to mg. */
+    uint32_t latest_val;        /**< Last ADC reading */
+    uint32_t origin;            /**< The current origin of the sensor. */
 } nau7802_;
 
+/**\brief The number of times to attempt to setup sensor before erroring. */
 static const uint8_t MAX_SETUP_ATTEMPTS = 10;
+/**\brief The length of time to wait for the calibration before erroring. */
 static const uint CALIBRATION_TIMEOUT_US = 1000000;
 
 const dev_addr _nau7802_addr = 0x2A;     /**< I2C address of the NAU7802 IC */

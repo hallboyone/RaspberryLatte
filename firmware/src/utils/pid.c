@@ -22,9 +22,12 @@
 /** \brief Max value stored in 24 bits */
 #define DISCRETE_DERIVATIVE_SHIFT_AT_VAL (0x1<<24)-1
 
+/** \brief Integer field holding PID data as a fixed point value. */
 typedef int32_t pid_data_fxpt_t;
+/** \brief Integer field holding PID data summations as a fixed point value. */
 typedef int64_t pid_data_sum_fxpt_t;
 
+/** \brief A single datapoint with a fixedpoint value and reading time. */
 typedef struct {
     pid_time t;    /**< Time associated with datapoint */
     pid_data_fxpt_t v; /**< Integer value associated with datapoint */
@@ -64,7 +67,7 @@ typedef struct discrete_integral_s{
     pid_data_sum_fxpt_t lower_bound; /**< The lower bound on the area under the curve. Useful for anti-windup. */
     pid_data_sum_fxpt_t upper_bound; /**< The upper bound on the area under the curve. Useful for anti-windup. */
     datapoint_fxpt prev_p;           /**< The previous datapoint. Updated each time the integral is ticked. */
-    bool init_point_added;
+    bool init_point_added;           /**< Flag indicating if first point has been added. */
 } discrete_integral_;
 
 /**

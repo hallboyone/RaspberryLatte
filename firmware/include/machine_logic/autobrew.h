@@ -31,11 +31,16 @@
 #include "pico/stdlib.h"
 #include "utils/pid.h"
 
-#define AUTOBREW_LEG_MAX_NUM 16
+/** \brief The maximum number of legs in the autobrew routine. */
+#define AUTOBREW_LEG_MAX_NUM 9
 
+/** \brief The maximum number of setup functions in an autobrew leg. */
 #define AUTOBREW_SETUP_FUN_MAX_NUM 3
+
+/** \brief The maximum number of trigger functions in an autobrew leg. */
 #define AUTOBREW_TRIGGER_MAX_NUM   3
 
+/** \brief The maximum power deliverable by a autobrew leg. */
 #define AUTOBREW_PUMP_POWER_MAX 100
 
 /** 

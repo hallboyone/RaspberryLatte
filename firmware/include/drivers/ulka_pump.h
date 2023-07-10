@@ -79,7 +79,7 @@ uint8_t ulka_pump_pressure_to_power(ulka_pump p, const float target_pressure_bar
 /**
  * \brief Turns the pump off.
  * 
- * Equivalent to \ref ulka_pump_pwr_percent(&p, 0);
+ * Equivalent to ::ulka_pump_pwr_percent (&p, 0);
  * 
  * \param p A previously setup pump struct to write the power to
  */

@@ -28,7 +28,9 @@ typedef struct phasecontrol_s{
   uint8_t timeout_idx;      /**< The timeout (i.e. duty cycle). The smaller the number, the longer before load is switched on. */
 } phasecontrol_;
 
+/** The length of one full period of a 60Hz signal. */
 static const uint64_t PERIOD_1_00 = 16667;
+/** The length of 0.75 a period of a 60Hz signal. */
 static const uint64_t PERIOD_0_75 = 12500;
 
 /**

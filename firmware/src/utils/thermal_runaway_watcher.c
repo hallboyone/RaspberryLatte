@@ -13,6 +13,7 @@
 #include "utils/thermal_runaway_watcher.h"
 #include "config/raspberry_latte_config.h"
 
+/** \brief Implementation of a terminal runaway watcher object. */
 typedef struct thermal_runaway_watcher_s {
     thermal_runaway_state state;  /**< \brief The state of the watcher. */
     int16_t setpoint;             /**< \brief The latest setpoint of the system. */
@@ -27,10 +28,17 @@ typedef struct thermal_runaway_watcher_s {
     absolute_time_t temp_change_timer_end; /**< \brief End of temp-change window*/  
 } thermal_runaway_watcher_;
 
+/** Check if watcher is in error state. 
+ * \param s The state that should be checked.
+ * \return True if not in error state. False if in error state. 
+*/
 static inline bool _not_error_state(thermal_runaway_state s){
     return s >= 0;
 }
-
+/** Check if watcher timer has expired.
+ * \param trw The watcher that should be checked.
+ * \return True if timer has expired. False otherwise. 
+*/
 static inline bool _temp_change_timer_expired(thermal_runaway_watcher trw){
     return absolute_time_diff_us(get_absolute_time(), trw->temp_change_timer_end) <= 0;
 }

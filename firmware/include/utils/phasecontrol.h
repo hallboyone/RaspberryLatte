@@ -14,8 +14,6 @@
  * the diode, the load is not inductive so the system can be safely switched off. If used in a load
  * without a diode, the timing after a zero cross when the current goes to zero must be tuned. 
  * 
- * \todo Switch to multiple GPIO callback library when written.
- * 
  * \{
  * 
  * \file

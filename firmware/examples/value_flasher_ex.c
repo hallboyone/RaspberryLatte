@@ -28,6 +28,7 @@
 #include "value_flasher.h"
 #include <stdio.h>
 
+/** \brief Example use of the value_flasher to display the value 132. */
 int main(){
     const uint VALUE = 132;
     const uint PERIOD_MS = 750;

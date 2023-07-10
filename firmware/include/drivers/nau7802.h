@@ -12,7 +12,7 @@
  * > and many other high resolution, low sample rate applications.
  * 
  * This library provides abstracts the interface with this IC. Using the ::nau7802_setup function,
- * a user can initialize a \ref nau7802 structure attached to a specified \ref i2c_inst_t. The NAU7802
+ * a user can initialize a \ref nau7802 structure attached to a specified i2c_inst_t. The NAU7802
  * IC will be initalized to default values, but these can be modified using the various helper 
  * functions.
  * 
@@ -22,8 +22,6 @@
  * \brief NAU7802 Library header
  * \version 0.1
  * \date 2022-08-16
- * 
- * \todo Move I2C functions into their own library.
  */
  
 #ifndef NAU7802_H
@@ -32,7 +30,7 @@
 #include "pico/stdlib.h"
 #include "utils/i2c_bus.h"
 
-/** \brief Object representing a NAU7802 IC. */
+/** \brief Abstract object representing a NAU7802 IC. */
 typedef struct nau7802_s * nau7802;
 
 /** Options for the voltage supplied to load cell */
