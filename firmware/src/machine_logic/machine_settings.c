@@ -610,31 +610,31 @@ static void _machine_settings_print_ln(uint ln_num){
         LN_TOP_BUFF);
         break;
     case LN_BREW_TEMP:
-        printf("\033[%d;1H\033[2KBrew Temp   : %5.1fC\n",
+        printf("\033[%d;1H\033[2KBrew Temp   : %5.1f C\n",
         LN_BREW_TEMP+1, _ms[MS_TEMP_BREW_10C]/10.);
         break;
     case LN_HOT_TEMP:
-        printf("\033[%d;1H\033[2KHot Temp    : %5.1fC\n",
+        printf("\033[%d;1H\033[2KHot Temp    : %5.1f C\n",
         LN_HOT_TEMP+1, _ms[MS_TEMP_HOT_10C]/10.);
         break;
     case LN_STEAM_TEMP:
-        printf("\033[%d;1H\033[2KSteam Temp  : %5.1fC\n",
+        printf("\033[%d;1H\033[2KSteam Temp  : %5.1f C\n",
         LN_STEAM_TEMP+1, _ms[MS_TEMP_STEAM_10C]/10.);
         break;
     case LN_DOSE:
-        printf("\033[%d;1H\033[2KDose        : %5.1fC\n",
+        printf("\033[%d;1H\033[2KDose        : %5.1f g\n",
         LN_DOSE+1, _ms[MS_WEIGHT_DOSE_10g]/10.);
         break;
     case LN_YIELD:
-        printf("\033[%d;1H\033[2KYield       : %5.1fC\n",
+        printf("\033[%d;1H\033[2KYield       : %5.1f g\n",
         LN_YIELD+1, _ms[MS_WEIGHT_YIELD_10g]/10.);
         break;
     case LN_BREW_POWER:
-        printf("\033[%d;1H\033[2KBrew Power  : %3d%%\n",
+        printf("\033[%d;1H\033[2KBrew Power  :   %3d %%\n",
         LN_BREW_POWER+1, _ms[MS_POWER_BREW_PER]);
         break;
     case LN_HOT_POWER:
-        printf("\033[%d;1H\033[2KHot Power   : %3d%%\n",
+        printf("\033[%d;1H\033[2KHot Power   :   %3d %%\n",
         LN_HOT_POWER+1, _ms[MS_POWER_HOT_PER]);
         break;
     case LN_MID_BUFF:
