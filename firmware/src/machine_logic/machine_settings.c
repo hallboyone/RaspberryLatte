@@ -17,6 +17,10 @@
 #include "utils/value_flasher.h"
 #include "utils/macros.h"
 
+
+/** Printing the folder structure takes at lease 4 lines */
+static const uint8_t local_ui_num_ln = 4;
+
 /**
  * \brief Clear and reprint the corresponding line of the machine settings display
  * 
@@ -335,6 +339,7 @@ static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
         } else if (val == 1){
             _machine_settings_load_profile(ms_id);
             machine_settings_print();
+            machine_settings_print_local_ui();
         }
     }
     return false;
@@ -452,17 +457,17 @@ static void _machine_settings_setup_local_ui(){
 
     local_ui_add_subfolder(&f_,                 &f_presets,               "Presets",                      NULL, 0);
     local_ui_add_subfolder(&f_presets,          &f_presets_profile_a,     "Presets 1-3",                  NULL, 0);
-    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_0,   "Preset 1 (save, load)",        &_ms_f_cb, 0);
-    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_1,   "Preset 2 (save, load)",        &_ms_f_cb, 1);
-    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_2,   "Preset 3 (save, load)",        &_ms_f_cb, 2);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_0,   "Preset 1 (1-save, 2-load)",        &_ms_f_cb, 0);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_1,   "Preset 2 (1-save, 2-load)",        &_ms_f_cb, 1);
+    local_ui_add_subfolder(&f_presets_profile_a,&f_presets_profile_a_2,   "Preset 3 (1-save, 2-load)",        &_ms_f_cb, 2);
     local_ui_add_subfolder(&f_presets,          &f_presets_profile_b,     "Presets 4-6",                  NULL, 0);
-    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_0,   "Preset 4 (save, load)",        &_ms_f_cb, 3);
-    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_1,   "Preset 5 (save, load)",        &_ms_f_cb, 4);
-    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_2,   "Preset 6 (save, load)",        &_ms_f_cb, 5);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_0,   "Preset 4 (1-save, 2-load)",        &_ms_f_cb, 3);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_1,   "Preset 5 (1-save, 2-load)",        &_ms_f_cb, 4);
+    local_ui_add_subfolder(&f_presets_profile_b,&f_presets_profile_b_2,   "Preset 6 (1-save, 2-load)",        &_ms_f_cb, 5);
     local_ui_add_subfolder(&f_presets,          &f_presets_profile_c,     "Presets 7-9",                  NULL, 0);
-    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_0,   "Preset 7 (save, load)",        &_ms_f_cb, 6);
-    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_1,   "Preset 8 (save, load)",        &_ms_f_cb, 7);
-    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_2,   "Preset 9 (save, load)",        &_ms_f_cb, 8);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_0,   "Preset 7 (1-save, 2-load)",        &_ms_f_cb, 6);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_1,   "Preset 8 (1-save, 2-load)",        &_ms_f_cb, 7);
+    local_ui_add_subfolder(&f_presets_profile_c,&f_presets_profile_c_2,   "Preset 9 (1-save, 2-load)",        &_ms_f_cb, 8);
 }
 
 void machine_settings_setup(mb85_fram mem){
@@ -579,6 +584,7 @@ enum {
     LN_AB_LEG_8,        // |8|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
     LN_AB_LEG_9,        // |9|   %s    : %5.1f : %5.1f | %4.2f:   %4.1f  : %4.1f|  %4.1f  |
     LN_AB_LOW_BOUNDARY, // |-|---------:-------:-------|------:----------:------|---------|
+    LN_LOW_BUFF,        //
     LN_COUNT
 };
 
@@ -586,80 +592,102 @@ static void _machine_settings_print_ln(uint ln_num){
     const uint flat_ln_num = ((ln_num >= LN_AB_LEG_1 && ln_num <= LN_AB_LEG_9) ? LN_AB_LEG_1 : ln_num);
     switch (flat_ln_num) {
     case LN_TOP_BUFF:
-        printf("\033[1;1H\033[2K\n");
+        printf("\033[%d;1H\033[2K\n",
+        LN_TOP_BUFF);
         break;
     case LN_BREW_TEMP:
         printf("\033[%d;1H\033[2KBrew Temp   : %5.1fC\n",
-        ln_num+1, _ms[MS_TEMP_BREW_10C]/10.);
+        LN_BREW_TEMP+1, _ms[MS_TEMP_BREW_10C]/10.);
         break;
     case LN_HOT_TEMP:
         printf("\033[%d;1H\033[2KHot Temp    : %5.1fC\n",
-        ln_num+1, _ms[MS_TEMP_HOT_10C]/10.);
+        LN_HOT_TEMP+1, _ms[MS_TEMP_HOT_10C]/10.);
         break;
     case LN_STEAM_TEMP:
         printf("\033[%d;1H\033[2KSteam Temp  : %5.1fC\n",
-        ln_num+1, _ms[MS_TEMP_STEAM_10C]/10.);
+        LN_STEAM_TEMP+1, _ms[MS_TEMP_STEAM_10C]/10.);
         break;
     case LN_DOSE:
         printf("\033[%d;1H\033[2KDose        : %5.1fC\n",
-        ln_num+1, _ms[MS_WEIGHT_DOSE_10g]/10.);
+        LN_DOSE+1, _ms[MS_WEIGHT_DOSE_10g]/10.);
         break;
     case LN_YIELD:
         printf("\033[%d;1H\033[2KYield       : %5.1fC\n",
-        ln_num+1, _ms[MS_WEIGHT_YIELD_10g]/10.);
+        LN_YIELD+1, _ms[MS_WEIGHT_YIELD_10g]/10.);
         break;
     case LN_BREW_POWER:
         printf("\033[%d;1H\033[2KBrew Power  : %3d%%\n",
-        ln_num+1, _ms[MS_POWER_BREW_PER]);
+        LN_BREW_POWER+1, _ms[MS_POWER_BREW_PER]);
         break;
     case LN_HOT_POWER:
         printf("\033[%d;1H\033[2KHot Power   : %3d%%\n",
-        ln_num+1, _ms[MS_POWER_HOT_PER]);
+        LN_HOT_POWER+1, _ms[MS_POWER_HOT_PER]);
         break;
     case LN_MID_BUFF:
-        printf("\033[1;1H\033[2K\n");
+        printf("\033[%d;1H\033[2K\n",
+        LN_MID_BUFF + 1);
         break;
     case LN_AB_TOP_BOUNDARY:
         printf("\033[%d;1H\033[2K|=|=========================|========================|=========|\n",
-        ln_num+1);
+        LN_AB_TOP_BOUNDARY+1);
         break;
     case LN_AB_H1:
         printf("\033[%d;1H\033[2K| |        Setpoint         |         Target         | Timeout |\n",
-        ln_num+1);
+        LN_AB_H1+1);
         break;
     case LN_AB_H2:
         printf("\033[%d;1H\033[2K|#|  Style  : Start :  End  | Flow : Pressure : Mass |         |\n",
-        ln_num+1);
+        LN_AB_H2+1);
         break;
     case LN_AB_TOP_DIVIDE:
         printf("\033[%d;1H\033[2K|-|---------:-------:-------|------:----------:------|---------|\n",
-        ln_num+1);
+        LN_AB_TOP_DIVIDE+1);
         break;
     case LN_AB_LEG_1:
-        {const uint8_t offset = (ln_num - LN_AB_LEG_1)*NUM_AUTOBREW_PARAMS_PER_LEG;
-        const float ref_scales [] = {1., 100., 10.};
-        printf("\033[%d;1H\033[2K|%d|%s: %5.1f : %5.1f | %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n",
-            ln_num + 1,
-            ln_num - LN_AB_LEG_1, // leg index
-            (_ms[offset + MS_A1_REF_STYLE_ENM] == 0 ? "  Power  " : (_ms[offset+MS_A1_REF_STYLE_ENM] == 1 ? "  Flow   " : " Pressure")),
-            _ms[offset + MS_A1_REF_START_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
-            _ms[offset + MS_A1_REF_END_per_100lps_10bar]/(ref_scales[_ms[offset+MS_A1_REF_STYLE_ENM]]),
-            _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
-            _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
-            _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
-            _ms[offset + MS_A1_TIMEOUT_10s]/10.);}
-        break;
+        {
+            const uint8_t offset = (ln_num - LN_AB_LEG_1)*NUM_AUTOBREW_PARAMS_PER_LEG;
+            printf("\033[%d;1H\033[2K|%d|", ln_num + 1, ln_num - LN_AB_LEG_1);
+            switch (_ms[offset + MS_A1_REF_STYLE_ENM]){
+                case AUTOBREW_REF_STYLE_PWR:
+                printf("  Power  : %5d : %5d ",
+                    _ms[offset + MS_A1_REF_START_per_100lps_10bar],
+                    _ms[offset + MS_A1_REF_END_per_100lps_10bar]);
+                    break;
+                case AUTOBREW_REF_STYLE_FLOW:
+                printf("  Flow   : %5.2f : %5.2f ",
+                    _ms[offset + MS_A1_REF_START_per_100lps_10bar]/100.,
+                    _ms[offset + MS_A1_REF_END_per_100lps_10bar]/100.);
+                    break;
+                case AUTOBREW_REF_STYLE_PRSR:
+                printf(" Pressure: %5.1f : %5.1f ",
+                    _ms[offset + MS_A1_REF_START_per_100lps_10bar]/10.,
+                    _ms[offset + MS_A1_REF_END_per_100lps_10bar]/10.);
+                    break;
+            }
+            printf("| %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n",
+                _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
+                _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
+                _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
+                _ms[offset + MS_A1_TIMEOUT_10s]/10.);        
+            break;
+        }
     case LN_AB_LOW_BOUNDARY:
         printf("\033[%d;1H\033[2K|=|=========================|========================|=========|\n",
-        ln_num + 1);
+        LN_AB_LOW_BOUNDARY + 1);
+        break;
+    case LN_LOW_BUFF:
+        printf("\033[%d;1H\033[2K\n",
+        LN_LOW_BUFF + 1);
         break;
     default:
         break;
     }
+    printf("\033[%d;1H", LN_COUNT + local_ui_num_ln + 2);
 }
 
 int machine_settings_print(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
+    printf("\033[2J");
     for(uint8_t ln_num = 0; ln_num < LN_COUNT; ln_num++){
         _machine_settings_print_ln(ln_num);
     }
@@ -668,11 +696,9 @@ int machine_settings_print(){
 
 int machine_settings_print_local_ui(){
     if(_mem == NULL) return PICO_ERROR_GENERIC;
-    // always print at least 4 lines 
-    const uint8_t local_ui_num_ln = 4;
 
     // Go below settings and delete all content in the lines below
-    printf("\033[%d;1H", LN_COUNT + 2 + local_ui_num_ln);
+    printf("\033[%d;1H", LN_COUNT + 1 + local_ui_num_ln);
     for(uint8_t i = 0; i < local_ui_num_ln; i++) printf("\033[A\033[2K");
     
     // Print the correct output for the type of folder.
@@ -692,6 +718,7 @@ int machine_settings_print_local_ui(){
             (i == n_ln-1 && overflows) ? "..." : "");
         }
     }
+    printf("\033[%d;1H", LN_COUNT + local_ui_num_ln + 2);
     return PICO_ERROR_NONE;
 }
 /** @} */

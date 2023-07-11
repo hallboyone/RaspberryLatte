@@ -7,7 +7,7 @@
  * \date 2022-12-09
  */
 
-//#define DISABLE_BOILER
+#define DISABLE_BOILER
 
 #include "machine_logic/espresso_machine.h"
 
