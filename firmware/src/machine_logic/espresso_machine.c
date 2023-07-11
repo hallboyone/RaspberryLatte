@@ -7,7 +7,7 @@
  * \date 2022-12-09
  */
 
-#define DISABLE_BOILER
+#define ENABLE_BOILER
 
 #include "machine_logic/espresso_machine.h"
 
@@ -37,7 +37,6 @@ static espresso_machine_state _state = {.pump.pump_lock = true, .boiler.temperat
 
 /** I2C bus connected to memory, scale ADC, and I2C port */
 static i2c_inst_t *  bus = i2c1;
-
 static thermal_runaway_watcher trw;         /**< Watches the boiler state to make sure it's behaving as expected. */
 static binary_output           leds;        /**< The three LEDs indicating to the user the machine's state. */
 static binary_input            pump_switch; /**< Monitors the state of the pump switch. */
@@ -54,10 +53,12 @@ static pid  heater_pid;
 /** Flow controller */
 static pid  flow_pid;                    
 
+#ifdef ENABLE_BOILER
 /** 
  * \brief Shuts down the pump and boiler. 
 */
 static void espresso_machine_e_stop();
+#endif
 
 /**
  * \brief Checks if the AC is on.
@@ -343,9 +344,7 @@ static void espresso_machine_update_pump(){
 static void espresso_machine_update_boiler(){
     _state.boiler.temperature = lmt01_read(thermo);
 
-    #ifdef DISABLE_BOILER
-    _state.boiler.setpoint = 0;
-    #else
+    #ifdef ENABLE_BOILER
     // Update setpoints
     if(is_ac_on_and_settled()){
         if(_state.switches.mode_dial == MODE_STEAM){
@@ -368,6 +367,8 @@ static void espresso_machine_update_boiler(){
         pid_tick(heater_pid, &_state.boiler.pid_state);
     }
     _state.boiler.power_level = slow_pwm_get_duty(heater);
+    #else
+    _state.boiler.setpoint = 0;
     #endif
 }
 
@@ -467,8 +468,10 @@ void espresso_machine_tick(){
     espresso_machine_update_leds();
 }
 
+#ifdef ENABLE_BOILER
 static void espresso_machine_e_stop(){
     slow_pwm_set_duty(heater, 0);
     ulka_pump_off(pump);
     binary_output_mask(solenoid, 0);
 }
+#endif
