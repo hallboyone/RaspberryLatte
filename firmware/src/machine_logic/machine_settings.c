@@ -39,15 +39,21 @@ static mb85_fram _mem = NULL;
 
 /** \brief Flasher object to display a setting when it's getting modified. */
 static value_flasher _setting_flasher;
+/** \brief Bitfield used to store output of ::_setting_flasher. */
 static uint8_t _ui_mask;
 
-/** \brief Internal settings array holding the master settings */
+/** \brief Internal settings array holding the current settings */
 static machine_setting _ms [NUM_SETTINGS];
+
+/**
+ * \brief The scale, bounds, and default for a machine setting.
+ * Also contains the line of the console display that contains the setting.
+ */
 typedef struct{
-    machine_setting scale; /**\brief The amount the base unit is scaled. Larger means more precise but slower to adjust. 0 is for enumerated values. */
-    machine_setting max;   /**\brief The maximum value of the setting after scaling. */
-    machine_setting min;   /**\brief The minimum value of the setting after scaling. */
-    machine_setting std;   /**\brief The default value of the setting after scaling. */
+    machine_setting scale; /**<\brief The amount the base unit is scaled. Larger means more precise but slower to adjust. 0 is for enumerated values. */
+    machine_setting max;   /**<\brief The maximum value of the setting after scaling. */
+    machine_setting min;   /**<\brief The minimum value of the setting after scaling. */
+    machine_setting std;   /**<\brief The default value of the setting after scaling. */
     uint8_t ln_idx;        /**<\brief The setting's line in the settings console display*/
 } machine_setting_specs;
 
@@ -61,191 +67,190 @@ static const machine_setting_specs _specs [NUM_SETTINGS] = {
     {.scale = 1,   .min = 0,   .max = 100,  .std = 100 , .ln_idx = 6},// MS_POWER_BREW_PER,   
     {.scale = 1,   .min = 0,   .max = 100,  .std = 20  , .ln_idx = 7},// MS_POWER_HOT_PER
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 13},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 13},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 13},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 13},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 13},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 13},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 13},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 14},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 14},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 14},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 14},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 14},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 14},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 14},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 15},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 15},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 15},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 15},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 15},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 15},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 15},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 16},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 16},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 16},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 16},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 16},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 16},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 16},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 17},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 17},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 17},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 17},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 17},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 17},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 17},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 18},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 18},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 18},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 18},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 18},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 18},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 18},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 19},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 19},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 19},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 19},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 19},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 19},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 19},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 20},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 20},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 20},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 20},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 20},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 20},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 20},// MS_A1_TIMEOUT_s
     {.scale = 0,   .min = 0,   .max = 2,    .std = 0   , .ln_idx = 21},// MS_A1_REF_STYLE_ENM
-    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 21},// MS_A1_REF_START_per_100lps_10bar
-    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 21},// MS_A1_REF_END_per_100lps_10bar
-    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_FLOW_100lps
+    {.scale = 10,  .min = 0,   .max = 300,  .std = 25  , .ln_idx = 21},// MS_A1_REF_START_per_100mlps_10bar
+    {.scale = 1,   .min = 0,   .max = 300,  .std = 25  , .ln_idx = 21},// MS_A1_REF_END_per_100mlps_10bar
+    {.scale = 100, .min =-300, .max = 300,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_FLOW_100mlps
     {.scale = 10,  .min =-150, .max = 150,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_PRSR_10bar
     {.scale = 10,  .min =-300, .max = 300,  .std = 0   , .ln_idx = 21},// MS_A1_TRGR_MASS_10g
     {.scale = 10,  .min = 0,   .max = 600,  .std = 0   , .ln_idx = 21},// MS_A1_TIMEOUT_s
     };
 
-typedef local_ui_folder luf;
 static local_ui_folder_tree settings_modifier; /**< \brief Local UI folder tree for updating machine settings*/
-static luf  f_;
-static luf      f_set;
-static luf          f_set_temp;
-static luf              f_set_temp_brew;
-static luf              f_set_temp_hot;
-static luf              f_set_temp_steam;
-static luf          f_set_weight;
-static luf              f_set_weight_yield;
-static luf              f_set_weight_dose; 
-static luf          f_set_power;
-static luf              f_set_power_brew;
-static luf              f_set_power_hot;
-static luf      f_ab;
-static luf          f_ab_ab13;
-static luf              f_ab_ab13_ab1;
-static luf                  f_ab_ab13_ab1_ref;
-static luf                      f_ab_ab13_ab1_ref_style;
-static luf                      f_ab_ab13_ab1_ref_start;
-static luf                      f_ab_ab13_ab1_ref_end;
-static luf                  f_ab_ab13_ab1_trgr;
-static luf                      f_ab_ab13_ab1_trgr_flow;
-static luf                      f_ab_ab13_ab1_trgr_prsr;
-static luf                      f_ab_ab13_ab1_trgr_mass;
-static luf                  f_ab_ab13_ab1_timeout;
-static luf              f_ab_ab13_ab2;
-static luf                  f_ab_ab13_ab2_ref;
-static luf                      f_ab_ab13_ab2_ref_style;
-static luf                      f_ab_ab13_ab2_ref_start;
-static luf                      f_ab_ab13_ab2_ref_end;
-static luf                  f_ab_ab13_ab2_trgr;
-static luf                      f_ab_ab13_ab2_trgr_flow;
-static luf                      f_ab_ab13_ab2_trgr_prsr;
-static luf                      f_ab_ab13_ab2_trgr_mass;
-static luf                  f_ab_ab13_ab2_timeout;
-static luf              f_ab_ab13_ab3;
-static luf                  f_ab_ab13_ab3_ref;
-static luf                      f_ab_ab13_ab3_ref_style;
-static luf                      f_ab_ab13_ab3_ref_start;
-static luf                      f_ab_ab13_ab3_ref_end;
-static luf                  f_ab_ab13_ab3_trgr;
-static luf                      f_ab_ab13_ab3_trgr_flow;
-static luf                      f_ab_ab13_ab3_trgr_prsr;
-static luf                      f_ab_ab13_ab3_trgr_mass;
-static luf                  f_ab_ab13_ab3_timeout;
-static luf          f_ab_ab46;
-static luf              f_ab_ab46_ab4;
-static luf                  f_ab_ab46_ab4_ref;
-static luf                      f_ab_ab46_ab4_ref_style;
-static luf                      f_ab_ab46_ab4_ref_start;
-static luf                      f_ab_ab46_ab4_ref_end;
-static luf                  f_ab_ab46_ab4_trgr;
-static luf                      f_ab_ab46_ab4_trgr_flow;
-static luf                      f_ab_ab46_ab4_trgr_prsr;
-static luf                      f_ab_ab46_ab4_trgr_mass;
-static luf                  f_ab_ab46_ab4_timeout;
-static luf              f_ab_ab46_ab5;
-static luf                  f_ab_ab46_ab5_ref;
-static luf                      f_ab_ab46_ab5_ref_style;
-static luf                      f_ab_ab46_ab5_ref_start;
-static luf                      f_ab_ab46_ab5_ref_end; 
-static luf                  f_ab_ab46_ab5_trgr;
-static luf                      f_ab_ab46_ab5_trgr_flow;
-static luf                      f_ab_ab46_ab5_trgr_prsr;
-static luf                      f_ab_ab46_ab5_trgr_mass;
-static luf                  f_ab_ab46_ab5_timeout;
-static luf              f_ab_ab46_ab6;
-static luf                  f_ab_ab46_ab6_ref;
-static luf                      f_ab_ab46_ab6_ref_style;
-static luf                      f_ab_ab46_ab6_ref_start;
-static luf                      f_ab_ab46_ab6_ref_end;
-static luf                  f_ab_ab46_ab6_trgr;
-static luf                      f_ab_ab46_ab6_trgr_flow;
-static luf                      f_ab_ab46_ab6_trgr_prsr;
-static luf                      f_ab_ab46_ab6_trgr_mass;
-static luf                  f_ab_ab46_ab6_timeout;
-static luf          f_ab_ab79;
-static luf              f_ab_ab79_ab7;
-static luf                  f_ab_ab79_ab7_ref;
-static luf                      f_ab_ab79_ab7_ref_style;
-static luf                      f_ab_ab79_ab7_ref_start;
-static luf                      f_ab_ab79_ab7_ref_end;
-static luf                  f_ab_ab79_ab7_trgr;
-static luf                      f_ab_ab79_ab7_trgr_flow;
-static luf                      f_ab_ab79_ab7_trgr_prsr;
-static luf                      f_ab_ab79_ab7_trgr_mass;
-static luf                  f_ab_ab79_ab7_timeout;
-static luf              f_ab_ab79_ab8;
-static luf                  f_ab_ab79_ab8_ref;
-static luf                      f_ab_ab79_ab8_ref_style;
-static luf                      f_ab_ab79_ab8_ref_start;
-static luf                      f_ab_ab79_ab8_ref_end; 
-static luf                  f_ab_ab79_ab8_trgr;
-static luf                      f_ab_ab79_ab8_trgr_flow;
-static luf                      f_ab_ab79_ab8_trgr_prsr;
-static luf                      f_ab_ab79_ab8_trgr_mass;
-static luf                  f_ab_ab79_ab8_timeout;
-static luf              f_ab_ab79_ab9;
-static luf                  f_ab_ab79_ab9_ref;
-static luf                      f_ab_ab79_ab9_ref_style;
-static luf                      f_ab_ab79_ab9_ref_start;
-static luf                      f_ab_ab79_ab9_ref_end;
-static luf                  f_ab_ab79_ab9_trgr;
-static luf                      f_ab_ab79_ab9_trgr_flow;
-static luf                      f_ab_ab79_ab9_trgr_prsr;
-static luf                      f_ab_ab79_ab9_trgr_mass;
-static luf                  f_ab_ab79_ab9_timeout;
-static luf      f_presets;
-static luf          f_presets_profile_a;
-static luf              f_presets_profile_a_0;
-static luf              f_presets_profile_a_1;
-static luf              f_presets_profile_a_2;
-static luf          f_presets_profile_b;
-static luf              f_presets_profile_b_0;
-static luf              f_presets_profile_b_1;
-static luf              f_presets_profile_b_2;
-static luf          f_presets_profile_c;
-static luf              f_presets_profile_c_0;
-static luf              f_presets_profile_c_1;
-static luf              f_presets_profile_c_2;
+static local_ui_folder  f_; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder      f_set; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_set_temp; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_temp_brew; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_temp_hot; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_temp_steam; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_set_weight; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_weight_yield; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_weight_dose;  /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_set_power; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_power_brew; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_set_power_hot; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder      f_ab; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_ab_ab13; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab13_ab1; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab1_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab1_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab1_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab1_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab1_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab1_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab1_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab1_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab1_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab13_ab2; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab2_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab2_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab2_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab2_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab2_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab2_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab2_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab2_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab2_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab13_ab3; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab3_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab3_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab3_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab3_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab3_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab3_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab3_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab13_ab3_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab13_ab3_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_ab_ab46; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab46_ab4; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab4_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab4_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab4_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab4_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab4_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab4_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab4_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab4_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab4_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab46_ab5; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab5_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab5_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab5_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab5_ref_end;  /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab5_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab5_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab5_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab5_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab5_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab46_ab6; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab6_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab6_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab6_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab6_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab6_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab6_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab6_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab46_ab6_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab46_ab6_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_ab_ab79; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab79_ab7; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab7_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab7_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab7_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab7_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab7_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab7_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab7_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab7_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab7_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab79_ab8; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab8_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab8_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab8_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab8_ref_end;  /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab8_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab8_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab8_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab8_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab8_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_ab_ab79_ab9; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab9_ref; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab9_ref_style; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab9_ref_start; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab9_ref_end; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab9_trgr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab9_trgr_flow; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab9_trgr_prsr; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                      f_ab_ab79_ab9_trgr_mass; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder                  f_ab_ab79_ab9_timeout; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder      f_presets; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_presets_profile_a; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_a_0; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_a_1; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_a_2; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_presets_profile_b; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_b_0; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_b_1; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_b_2; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder          f_presets_profile_c; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_c_0; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_c_1; /**< \brief Folder in tree used to update machine settings. */
+static local_ui_folder              f_presets_profile_c_2; /**< \brief Folder in tree used to update machine settings. */
 
 /**
  * \brief Returns the starting address of the given settings profile
@@ -320,20 +325,24 @@ static int _machine_settings_load_profile(uint8_t profile_id){
  * 
  * \param id ID of calling folder
  * \param val Value of increment index. 0 = -10, 1 = +1, and 2 = +10
+ * \param ms_id The ID of the calling folder's machine setting.
  * \returns True if value was greater than 2. False otherwise
  */
 static bool _ms_f_cb(folder_id id, uint8_t val, folder_action_data ms_id){
     if (val > 2) return true;
     if (local_ui_id_in_subtree(&f_set, id) || local_ui_id_in_subtree(&f_ab, id) ){
         // Get step size (special case if base step size is 0)
-        //const int16_t deltas [3] = {-10*_specs[ms_id].scale, _specs[ms_id].scale, 10*_specs[ms_id].scale};
         const int16_t deltas [3] = {-10, 1, 10};
         const int16_t step = (_specs[ms_id].scale==0) ? val-1 : deltas[val];
+
+        // Increment and clamp setting
         _ms[ms_id] = CLAMP(_ms[ms_id] + step, _specs[ms_id].min, _specs[ms_id].max);
+
+        // Print results and save
         _machine_settings_print_ln(_specs[ms_id].ln_idx);
         mb85_fram_save(_mem, _ms);
     } else if (local_ui_id_in_subtree(&f_presets, id)){
-        // Presets
+        // Save or load presets
         if (val == 0){
             _machine_settings_save_profile(ms_id);
         } else if (val == 1){
@@ -365,30 +374,30 @@ static void _machine_settings_setup_local_ui(){
     local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab1,           "Autobrew Leg 1",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A1_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A1_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A1_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A1_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_ref,  &f_ab_ab13_ab1_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A1_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A1_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A1_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A1_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab13_ab1_trgr, &f_ab_ab13_ab1_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A1_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab13_ab1,      &f_ab_ab13_ab1_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A1_TIMEOUT_10s);
     local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab2,           "Autobrew Leg 2",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A2_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A2_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A2_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A2_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_ref,  &f_ab_ab13_ab2_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A2_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A2_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A2_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A2_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab13_ab2_trgr, &f_ab_ab13_ab2_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A2_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab13_ab2,      &f_ab_ab13_ab2_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A2_TIMEOUT_10s);
     local_ui_add_subfolder(&f_ab_ab13,          &f_ab_ab13_ab3,           "Autobrew Leg 3",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A3_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A3_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A3_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A3_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_ref,  &f_ab_ab13_ab3_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A3_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A3_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A3_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A3_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab13_ab3_trgr, &f_ab_ab13_ab3_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A3_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab13_ab3,      &f_ab_ab13_ab3_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A3_TIMEOUT_10s);
@@ -396,30 +405,30 @@ static void _machine_settings_setup_local_ui(){
     local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab4,           "Autobrew Leg 4",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A4_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A4_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A4_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A4_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_ref,  &f_ab_ab46_ab4_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A4_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A4_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A4_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A4_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab46_ab4_trgr, &f_ab_ab46_ab4_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A4_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab46_ab4,      &f_ab_ab46_ab4_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A4_TIMEOUT_10s);
     local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab5,           "Autobrew Leg 5",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A5_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A5_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A5_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A5_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_ref,  &f_ab_ab46_ab5_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A5_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A5_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A5_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A5_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab46_ab5_trgr, &f_ab_ab46_ab5_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A5_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab46_ab5,      &f_ab_ab46_ab5_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A5_TIMEOUT_10s);
     local_ui_add_subfolder(&f_ab_ab46,          &f_ab_ab46_ab6,           "Autobrew Leg 6",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A6_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A6_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A6_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A6_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_ref,  &f_ab_ab46_ab6_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A6_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A6_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A6_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A6_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab46_ab6_trgr, &f_ab_ab46_ab6_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A6_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab46_ab6,      &f_ab_ab46_ab6_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A6_TIMEOUT_10s);
@@ -427,30 +436,30 @@ static void _machine_settings_setup_local_ui(){
     local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab7,           "Autobrew Leg 7",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A7_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A7_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A7_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A7_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_ref,  &f_ab_ab79_ab7_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A7_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A7_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A7_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A7_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab79_ab7_trgr, &f_ab_ab79_ab7_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A7_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab79_ab7,      &f_ab_ab79_ab7_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A7_TIMEOUT_10s);
     local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab8,           "Autobrew Leg 8",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A8_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A8_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A8_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A8_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_ref,  &f_ab_ab79_ab8_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A8_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A8_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A8_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A8_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab79_ab8_trgr, &f_ab_ab79_ab8_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A8_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab79_ab8,      &f_ab_ab79_ab8_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A8_TIMEOUT_10s);
     local_ui_add_subfolder(&f_ab_ab79,          &f_ab_ab79_ab9,           "Autobrew Leg 9",               NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_ref,       "Setpoint",                     NULL, 0);
     local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_style, "Style (Pwr, Flow, Prsr)",      _ms_f_cb, MS_A9_REF_STYLE_ENM);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A9_REF_START_per_100lps_10bar);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A9_REF_END_per_100lps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_start, "Starting Setpoint",            _ms_f_cb, MS_A9_REF_START_per_100mlps_10bar);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_ref,  &f_ab_ab79_ab9_ref_end,   "Ending Setpoint",              _ms_f_cb, MS_A9_REF_END_per_100mlps_10bar);
     local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_trgr,      "Trigger",                      NULL, 0);
-    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A9_TRGR_FLOW_100lps);
+    local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_flow, "Flow (ml/s, -0.1, 0.01, 0.1)", _ms_f_cb, MS_A9_TRGR_FLOW_100mlps);
     local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_prsr, "Prsr (bar, -1, 0.1, 1)",       _ms_f_cb, MS_A9_TRGR_PRSR_10bar);
     local_ui_add_subfolder(&f_ab_ab79_ab9_trgr, &f_ab_ab79_ab9_trgr_mass, "Mass (g, -1, 0.1, 1)",         _ms_f_cb, MS_A9_TRGR_MASS_10g);
     local_ui_add_subfolder(&f_ab_ab79_ab9,      &f_ab_ab79_ab9_timeout,   "Timeout (-1, 0.1, 1)",         _ms_f_cb, MS_A9_TIMEOUT_10s);
@@ -508,6 +517,11 @@ static setting_command _get_ssh_command(){
     return cmd;
 }
 
+/** 
+ * \brief Start and stop the value flasher depending on state of folder tree.
+ * If not in an action folder, then the ::_ui_mask is set to the current folder's
+ * relative ID.
+*/
 static void _update_value_flasher(){
     const folder_id id = settings_modifier.cur_folder->id;
     if(local_ui_is_action_folder(settings_modifier.cur_folder) &&
@@ -650,22 +664,22 @@ static void _machine_settings_print_ln(uint ln_num){
             switch (_ms[offset + MS_A1_REF_STYLE_ENM]){
                 case AUTOBREW_REF_STYLE_PWR:
                 printf("  Power  : %5d : %5d ",
-                    _ms[offset + MS_A1_REF_START_per_100lps_10bar],
-                    _ms[offset + MS_A1_REF_END_per_100lps_10bar]);
+                    _ms[offset + MS_A1_REF_START_per_100mlps_10bar],
+                    _ms[offset + MS_A1_REF_END_per_100mlps_10bar]);
                     break;
                 case AUTOBREW_REF_STYLE_FLOW:
                 printf("  Flow   : %5.2f : %5.2f ",
-                    _ms[offset + MS_A1_REF_START_per_100lps_10bar]/100.,
-                    _ms[offset + MS_A1_REF_END_per_100lps_10bar]/100.);
+                    _ms[offset + MS_A1_REF_START_per_100mlps_10bar]/100.,
+                    _ms[offset + MS_A1_REF_END_per_100mlps_10bar]/100.);
                     break;
                 case AUTOBREW_REF_STYLE_PRSR:
                 printf(" Pressure: %5.1f : %5.1f ",
-                    _ms[offset + MS_A1_REF_START_per_100lps_10bar]/10.,
-                    _ms[offset + MS_A1_REF_END_per_100lps_10bar]/10.);
+                    _ms[offset + MS_A1_REF_START_per_100mlps_10bar]/10.,
+                    _ms[offset + MS_A1_REF_END_per_100mlps_10bar]/10.);
                     break;
             }
             printf("| %4.2f :   %4.1f   : %4.1f |  %4.1f   |\n",
-                _ms[offset + MS_A1_TRGR_FLOW_100lps]/100.,
+                _ms[offset + MS_A1_TRGR_FLOW_100mlps]/100.,
                 _ms[offset + MS_A1_TRGR_PRSR_10bar]/10.,
                 _ms[offset + MS_A1_TRGR_MASS_10g]/10.,
                 _ms[offset + MS_A1_TIMEOUT_10s]/10.);        
