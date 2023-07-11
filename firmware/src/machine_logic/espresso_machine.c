@@ -190,7 +190,7 @@ static void espresso_machine_autobrew_setup(){
     bool is_first_leg = false;
     for(uint8_t i = 0; i < NUM_AUTOBREW_LEGS; i++){
         const uint8_t offset = i*NUM_AUTOBREW_PARAMS_PER_LEG;
-        const machine_setting leg_timeout = machine_settings_get(MS_A1_TIMEOUT_10s + offset);
+        const machine_setting leg_timeout = 100*machine_settings_get(MS_A1_TIMEOUT_10s + offset);
         if(leg_timeout > 0){
             // Setup reference and timeout
             const machine_setting ref_style = machine_settings_get(MS_A1_REF_STYLE_ENM + offset);
@@ -332,7 +332,7 @@ static void espresso_machine_update_pump(){
     // Update Pump States
     _state.pump.pump_lock     = ulka_pump_is_locked(pump);
     _state.pump.power_level   = ulka_pump_get_pwr(pump);
-    _state.pump.flowrate_ml_s = read_pump_flowrate_ul_s();
+    _state.pump.flowrate_ml_s = ulka_pump_get_flow_ml_s(pump);
     _state.pump.pressure_bar  = ulka_pump_get_pressure_bar(pump);
 }
 
