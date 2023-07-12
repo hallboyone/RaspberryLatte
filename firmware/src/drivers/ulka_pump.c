@@ -50,16 +50,16 @@ ulka_pump ulka_pump_setup(uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocr
     ulka_pump p = malloc(sizeof(ulka_pump_));
     p->locked = true;
     p->power_percent = 0;
-    p->flow_ml_s = NULL;
+    p->flow_ml_s = -1;
     p->driver = phasecontrol_setup(zerocross_pin, out_pin, zerocross_shift_us, zerocross_event);
     return p;
 }
 
 int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, float ml_per_tick){
-    if(p->flow_ml_s != NULL) flow_meter_deinit(p->flow_ml_s);
+    if(p->flow_ml_s != -1) flow_meter_deinit(p->flow_ml_s);
 
     p->flow_ml_s = flow_meter_setup(pin_num, ml_per_tick, ULKA_PUMP_FLOW_FILTER_SPAN_MS, ULKA_PUMP_FLOW_SAMPLE_RATE_MS);
-    return (p->flow_ml_s == NULL ? PICO_ERROR_GENERIC : PICO_ERROR_NONE);
+    return (p->flow_ml_s < 0 ? PICO_ERROR_GENERIC : PICO_ERROR_NONE);
 }
 
 uint8_t ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
@@ -72,7 +72,7 @@ uint8_t ulka_pump_pwr_percent(ulka_pump p, uint8_t power_percent){
 }
 
 uint8_t ulka_pump_pressure_to_power(ulka_pump p, const float target_pressure_bar){
-    if(p->flow_ml_s == NULL || target_pressure_bar < 0) return 0;
+    if(p->flow_ml_s == -1 || target_pressure_bar < 0) return 0;
     
     const float flowrate = ulka_pump_get_flow_ml_s(p);
     for(uint i = 0; i < NUM_LINEAR_REGIONS; i++){
@@ -105,11 +105,11 @@ uint8_t ulka_pump_get_pwr(ulka_pump p){
 }
 
 float ulka_pump_get_flow_ml_s(ulka_pump p){
-    return (p->flow_ml_s == NULL ? 0 : flow_meter_rate(p->flow_ml_s));
+    return (p->flow_ml_s == -1 ? 0 : flow_meter_rate(p->flow_ml_s));
 }
 
 float ulka_pump_get_pressure_bar(ulka_pump p){
-    if(p->flow_ml_s == NULL || p->power_percent == 0) return 0;
+    if(p->flow_ml_s == -1 || p->power_percent == 0) return 0;
 
     // Index of the linear region indexed by the percent power (1-10, 11-20, ..., 91-100)
     const uint8_t active_region = (p->power_percent-1)/LINEAR_REGION_SPAN;
@@ -124,7 +124,7 @@ bool ulka_pump_is_locked(ulka_pump p){
 }
 
 void ulka_pump_deinit(ulka_pump p){
-    if(p->flow_ml_s != NULL) flow_meter_deinit(p->flow_ml_s);
+    if(p->flow_ml_s != -1) flow_meter_deinit(p->flow_ml_s);
     phasecontrol_deinit(p->driver);
     free(p);
 }

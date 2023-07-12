@@ -24,7 +24,7 @@
 #include "utils/pid.h"
 
 /** \brief Opaque object defining a single flow meter. */
-typedef struct flow_meter_s* flow_meter;
+typedef int8_t flow_meter;
 
 /**
  * \brief Configures a single flow_meter structure.
