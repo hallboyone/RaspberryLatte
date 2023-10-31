@@ -21,8 +21,6 @@
 
 #include "pico/stdlib.h"
 
-#include "utils/pid.h"
-
 /** \brief Opaque object defining a single flow meter. */
 typedef int8_t flow_meter;
 
@@ -36,12 +34,9 @@ typedef int8_t flow_meter;
  * 
  * \param pin_num The GPIO attached to the flow meter's signal wire.
  * \param conversion_factor The factor to convert from pulse counts to desired volume.
- * \param filter_span_ms The duration over which the slope will be computed.
- * \param sample_dwell_time_ms The minimum duration between samples.
  * \return A new flow_meter object on success. NULL on error.  
  */
-flow_meter flow_meter_setup(uint8_t pin_num, float conversion_factor, 
-                            uint16_t filter_span_ms, uint16_t sample_dwell_time_ms);
+flow_meter flow_meter_setup(uint8_t pin_num, double conversion_factor);
 
 /**
  * \brief Return the volume since the last zero point.
@@ -49,7 +44,7 @@ flow_meter flow_meter_setup(uint8_t pin_num, float conversion_factor,
  * \param fm Flow meter to read volume from.
  * \return Volume since last zero point based on the conversion factor.
  */
-float flow_meter_volume(flow_meter fm);
+double flow_meter_volume(flow_meter fm);
 
 /**
  * \brief Returns the current flowrate of the sensor.
@@ -57,7 +52,7 @@ float flow_meter_volume(flow_meter fm);
  * \param fm Flow meter to read rate from.
  * \return Flow rate in volume/s.
  */
-float flow_meter_rate(flow_meter fm);
+double flow_meter_rate(flow_meter fm);
 
 /**
  * \brief Resets the volume and flow rate to 0.
@@ -65,12 +60,5 @@ float flow_meter_rate(flow_meter fm);
  * \param fm Flow meter to zero. 
  */
 void flow_meter_zero(flow_meter fm);
-
-/**
- * \brief Destroy a flow_meter object.
- * 
- * \param fm The flow_meter object to destroy.
- */
-void flow_meter_deinit(flow_meter fm);
 #endif
 /** \} */

@@ -19,7 +19,7 @@
 #define SCALE_CONVERSION_MG -0.152710615479
 
 /** ml per pulse of pump flow sensor. */
-#define PULSE_TO_FLOW_CONVERSION_ML  0.5 
+#define PULSE_TO_FLOW_CONVERSION_ML  0.009472
 
 // Between two temp readings, the temperature must not change by more than this amount.
 #define THERMAL_RUNAWAY_WATCHER_MAX_CONSECUTIVE_TEMP_CHANGE_cC 1000

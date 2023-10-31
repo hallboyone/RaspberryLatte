@@ -7,7 +7,7 @@
  * \date 2022-12-09
  */
 
-#define ENABLE_BOILER
+//#define ENABLE_BOILER
 
 #include "machine_logic/espresso_machine.h"
 
@@ -466,6 +466,7 @@ void espresso_machine_tick(){
     espresso_machine_update_boiler();
     espresso_machine_update_pump();
     espresso_machine_update_leds();
+    _state.scale.val_mg = nau7802_read_mg(scale);
 }
 
 #ifdef ENABLE_BOILER
