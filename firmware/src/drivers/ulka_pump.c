@@ -16,9 +16,6 @@
 
 #include "utils/macros.h"
 
-#define ULKA_PUMP_FLOW_FILTER_SPAN_MS 1505
-#define ULKA_PUMP_FLOW_SAMPLE_RATE_MS 100
-
 /** \brief Struct containing the fields for the actuation and measurement of a single Ulka pump */
 typedef struct ulka_pump_s {
     phasecontrol driver;   /**< \brief Phase-control object responsible for switching pump's SSR. */
@@ -56,9 +53,7 @@ ulka_pump ulka_pump_setup(uint8_t zerocross_pin, uint8_t out_pin, int32_t zerocr
 }
 
 int ulka_pump_setup_flow_meter(ulka_pump p, uint8_t pin_num, float ml_per_tick){
-    if(p->flow_ml_s != -1) flow_meter_deinit(p->flow_ml_s);
-
-    p->flow_ml_s = flow_meter_setup(pin_num, ml_per_tick, ULKA_PUMP_FLOW_FILTER_SPAN_MS, ULKA_PUMP_FLOW_SAMPLE_RATE_MS);
+    p->flow_ml_s = flow_meter_setup(pin_num, ml_per_tick);
     return (p->flow_ml_s < 0 ? PICO_ERROR_GENERIC : PICO_ERROR_NONE);
 }
 
@@ -124,7 +119,6 @@ bool ulka_pump_is_locked(ulka_pump p){
 }
 
 void ulka_pump_deinit(ulka_pump p){
-    if(p->flow_ml_s != -1) flow_meter_deinit(p->flow_ml_s);
     phasecontrol_deinit(p->driver);
     free(p);
 }
